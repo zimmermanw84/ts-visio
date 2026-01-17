@@ -1,0 +1,53 @@
+export interface VisioCell {
+    N: string; // Name (e.g. "Width")
+    V: string; // Value (e.g. "2.5")
+    U?: string; // Unit (e.g. "IN")
+    F?: string; // Formula (e.g. "Width*0.5")
+}
+
+export interface VisioRow {
+    T?: string; // Type
+    IX?: number; // Index
+    Cells: { [name: string]: VisioCell }; // Named cells within the row
+}
+
+export interface VisioSection {
+    N: string; // Name (e.g. "Geometry")
+    Rows: VisioRow[];
+}
+
+export interface VisioShape {
+    ID: string;
+    Name: string;
+    NameU?: string; // Universal Name
+    Type: string;   // e.g. "Shape" or "Group"
+    Master?: string; // Master ID reference
+    Text?: string;
+
+    // ShapeSheet Data
+    Cells: { [name: string]: VisioCell }; // Top-level cells
+    Sections: { [name: string]: VisioSection };
+}
+
+export interface VisioConnect {
+    FromSheet: string;
+    FromCell: string;
+    FromPart?: number;
+    ToSheet: string;
+    ToCell: string;
+    ToPart?: number;
+}
+
+export interface VisioPage {
+    ID: string;
+    Name: string;
+    NameU?: string;
+    Shapes: VisioShape[];
+    Connects: VisioConnect[];
+
+    // PageSheet
+    PageSheet?: {
+        Cells: { [name: string]: VisioCell };
+        Sections: { [name: string]: VisioSection };
+    };
+}

@@ -1,0 +1,21 @@
+{
+  "name": "js-visio",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": "",
+  "dependencies": {
+    "fast-xml-parser": "^5.3.3",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.9",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
+  }
+}
