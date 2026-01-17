@@ -16,7 +16,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Strict Typing**: Interact with `VisioPage`, `VisioShape`, and `VisioConnect` objects.
 - **ShapeSheet Access**: Read `Cells`, `Rows`, and `Sections` directly.
 - **Connections**: Analyze connectivity between shapes.
-- **Modify & Save**: Update internal XML and save back to a buffer.
+- **Modular Architecture**: Use specialized components for loading, page management, and shape reading.
 
 ## Installation
 
@@ -26,7 +26,7 @@ npm install js-visio
 
 ## Usage
 
-### Loading a File
+### Simple Loader (Legacy)
 
 ```typescript
 import fs from 'fs';
@@ -37,59 +37,61 @@ const run = async () => {
     const buffer = fs.readFileSync('diagram.vsdx');
 
     await loader.load(buffer);
-
-    // ... interact with the file
+    // ...
 };
 ```
 
-### Inspecting Pages and Shapes
+### Modular API (New)
+
+For more control, use the specialized classes `VisioPackage`, `PageManager`, and `ShapeReader`.
+
+#### 1. Load the Package
+`VisioPackage` handles loading the zip file and providing access to internal files.
 
 ```typescript
-const pages = await loader.getPages();
-console.log(`Found ${pages.length} pages`);
+import { VisioPackage } from 'js-visio';
+import fs from 'fs';
 
-for (const page of pages) {
+const pkg = new VisioPackage();
+const buffer = fs.readFileSync('diagram.vsdx');
+await pkg.load(buffer);
+```
+
+#### 2. Manage Pages
+`PageManager` lists available pages in the document.
+
+```typescript
+import { PageManager } from 'js-visio';
+
+const pageManager = new PageManager(pkg);
+const pages = pageManager.getPages();
+
+pages.forEach(page => {
     console.log(`Page: ${page.Name} (ID: ${page.ID})`);
+});
+```
 
-    // Get Shapes for this page
-    // Note: You need to know the path to the page XML.
-    // In standard VSDX, "Page-1" is usually "visio/pages/page1.xml" but parsing logic is improving.
-    const shapes = await loader.getPageShapes('visio/pages/page1.xml');
+#### 3. Read Shapes
+`ShapeReader` parses shape data from a specific page's XML file.
 
-    for (const shape of shapes) {
-        console.log(`  Shape: ${shape.Name} (Text: ${shape.Text})`);
+```typescript
+import { ShapeReader } from 'js-visio';
 
-        // Access ShapeSheet Cells
-        if (shape.Cells['Width']) {
-            console.log(`    Width: ${shape.Cells['Width'].V}`);
-        }
+const shapeReader = new ShapeReader(pkg);
 
-        // Access Geometry Sections
-        if (shape.Sections['Geometry']) {
-            console.log(`    Geometry Rows: ${shape.Sections['Geometry'].Rows.length}`);
-        }
+// Typically pages are at 'visio/pages/page{ID}.xml' or similar,
+// strictly you should map Page ID to file name, but commonly:
+const shapes = shapeReader.readShapes('visio/pages/page1.xml');
+
+shapes.forEach(shape => {
+    console.log(`Shape: ${shape.Name}`);
+    console.log(`  Text: ${shape.Text}`);
+
+    // Access detailed Cell data
+    if (shape.Cells['Width']) {
+        console.log(`  Width: ${shape.Cells['Width'].V}`);
     }
-}
-```
-
-### Analyzing Connections
-
-```typescript
-const connects = await loader.getPageConnects('visio/pages/page1.xml');
-
-for (const conn of connects) {
-    console.log(`Shape ${conn.FromSheet} connects to Shape ${conn.ToSheet}`);
-}
-```
-
-### Saving Changes
-
-```typescript
-// Low-level XML modification (High-level APIs coming soon)
-await loader.setFileContent('visio/pages/page1.xml', updatedXmlString);
-
-const newBuffer = await loader.save();
-fs.writeFileSync('updated_diagram.vsdx', newBuffer);
+});
 ```
 
 ## Development
