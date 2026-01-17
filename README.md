@@ -16,7 +16,8 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Strict Typing**: Interact with `VisioPage`, `VisioShape`, and `VisioConnect` objects.
 - **ShapeSheet Access**: Read `Cells`, `Rows`, and `Sections` directly.
 - **Connections**: Analyze connectivity between shapes.
-- **Modular Architecture**: Use specialized components for loading, page management, and shape reading.
+- **Modular Architecture**: Use specialized components for loading, page management, shape reading, and modification.
+- **Modify Content**: Update text content of shapes.
 
 ## Installation
 
@@ -92,6 +93,24 @@ shapes.forEach(shape => {
         console.log(`  Width: ${shape.Cells['Width'].V}`);
     }
 });
+    }
+});
+```
+
+#### 4. Update Shapes
+`ShapeModifier` allows you to modify shape properties (currently Text) and save the changes back to the package.
+
+```typescript
+import { ShapeModifier } from 'js-visio';
+
+const modifier = new ShapeModifier(pkg);
+
+// Update the text of Shape with ID "1" on Page "1"
+await modifier.updateShapeText('1', '1', 'New Text Content');
+
+// Save the changes to a new buffer
+const newBuffer = await pkg.save();
+fs.writeFileSync('updated_diagram.vsdx', newBuffer);
 ```
 
 ## Development
