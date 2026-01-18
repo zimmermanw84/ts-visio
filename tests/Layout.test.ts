@@ -42,4 +42,17 @@ describe('Layout', () => {
         // 2 + 2 + 0.5 = 4.5
         expect(s2.x).toBe(4.5);
     });
+    it('should place a shape below another', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+        const s1 = await page.addShape({ text: 'A', x: 2, y: 5, width: 2, height: 1 });
+        const s2 = await page.addShape({ text: 'B', x: 0, y: 0, width: 2, height: 1 });
+
+        await s2.placeBelow(s1, { gap: 1 });
+
+        // X aligned: 2
+        // Y: 5 - (1+1)/2 - 1 = 3
+        expect(s2.x).toBe(2);
+        expect(s2.y).toBe(3);
+    });
 });
