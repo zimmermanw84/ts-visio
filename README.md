@@ -103,12 +103,18 @@ const tableId = await page.addTable(
 );
 ```
 
-#### 5. Save the Document
+#### 6. Save the Document
 Save the modified document back to disk.
 
 ```typescript
 await doc.save('updated_diagram.vsdx');
 ```
+
+## Examples
+
+Check out the [examples](./examples) directory for complete scripts.
+
+- **[Simple Schema](./examples/simple-schema.ts)**: Generates a database schema ERD with tables, styling, and Crow's Foot connectors.
 
 ## Development
 

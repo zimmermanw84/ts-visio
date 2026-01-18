@@ -1,6 +1,6 @@
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { VisioPackage } from './VisioPackage';
-import { createFillSection, createCharacterSection } from './utils/StyleHelpers';
+import { createFillSection, createCharacterSection, createLineSection } from './utils/StyleHelpers';
 
 export interface NewShapeProps {
     text: string;
@@ -86,6 +86,7 @@ export class ShapeModifier {
                 { '@_N': 'ConFixedCode', '@_V': '0' }
             ],
             Section: [
+                createLineSection({ color: '#000000', weight: '0.01' }),
                 {
                     '@_N': 'Geometry',
                     '@_IX': '0',
