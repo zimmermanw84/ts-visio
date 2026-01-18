@@ -52,8 +52,8 @@ export class Page {
 
         return new Shape(internalStub, this.id, this.pkg);
     }
-    async connectShapes(fromShape: Shape, toShape: Shape): Promise<void> {
+    async connectShapes(fromShape: Shape, toShape: Shape, beginArrow?: string, endArrow?: string): Promise<void> {
         const modifier = new ShapeModifier(this.pkg);
-        await modifier.addConnector(this.id, fromShape.id, toShape.id);
+        await modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow);
     }
 }

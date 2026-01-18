@@ -34,7 +34,7 @@ export class ShapeModifier {
         return `visio/pages/page${pageId}.xml`;
     }
 
-    async addConnector(pageId: string, fromShapeId: string, toShapeId: string): Promise<string> {
+    async addConnector(pageId: string, fromShapeId: string, toShapeId: string, beginArrow?: string, endArrow?: string): Promise<string> {
         const pagePath = `visio/pages/page${pageId}.xml`;
         let content = '';
 
@@ -72,6 +72,8 @@ export class ShapeModifier {
                 { '@_N': 'EndY', '@_V': '0' },
                 { '@_N': 'PinX', '@_V': '0' },
                 { '@_N': 'PinY', '@_V': '0' },
+                { '@_N': 'BeginArrow', '@_V': beginArrow || '0' },
+                { '@_N': 'EndArrow', '@_V': endArrow || '0' },
                 // 1D Transform requires standard cells
                 { '@_N': 'Width', '@_V': '0' },
                 { '@_N': 'Height', '@_V': '0' },

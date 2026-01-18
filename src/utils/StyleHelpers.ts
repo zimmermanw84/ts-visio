@@ -19,6 +19,18 @@ export function createFillSection(hexColor: string): VisioSection {
     };
 }
 
+export const ArrowHeads = {
+    None: '0',
+    Standard: '1',
+    Open: '2',
+    Stealth: '3',
+    Diamond: '4',
+    Oneway: '5',
+    CrowsFoot: '29', // Visio "Many"
+    One: '24',       // Visio "One" (Dash) - Approximate, or '26'
+    // There are many variants, but 29 is the standard "Fork"
+};
+
 export function createCharacterSection(props: { bold?: boolean; color?: string }): VisioSection {
     // Visio Character Section
     // N="Character"

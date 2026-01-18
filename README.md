@@ -84,6 +84,10 @@ const shape1 = await page.addShape({ text: "From", x: 2, y: 4, width: 2, height:
 const shape2 = await page.addShape({ text: "To", x: 6, y: 4, width: 2, height: 1 });
 
 await page.connectShapes(shape1, shape2);
+
+// OR with arrowheads (Crow's Foot, etc.)
+import { ArrowHeads } from 'ts-visio/utils/StyleHelpers';
+await page.connectShapes(shape1, shape2, ArrowHeads.One, ArrowHeads.CrowsFoot);
 ```
 
 #### 5. Save the Document
