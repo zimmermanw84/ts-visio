@@ -17,7 +17,9 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **ShapeSheet Access**: Read `Cells`, `Rows`, and `Sections` directly.
 - **Connections**: Analyze connectivity between shapes.
 - **Modular Architecture**: Use specialized components for loading, page management, shape reading, and modification.
+- **Modular Architecture**: Use specialized components for loading, page management, shape reading, and modification.
 - **Modify Content**: Update text content of shapes.
+- **Create Shapes**: Add new rectangular shapes with text to pages.
 
 ## Installation
 
@@ -97,6 +99,15 @@ const modifier = new ShapeModifier(pkg);
 
 // Update the text of Shape with ID "1" on Page "1"
 await modifier.updateShapeText('1', '1', 'New Text Content');
+
+// Add a new Shape to Page "1"
+await modifier.addShape('1', {
+    text: "New Box",
+    x: 2,
+    y: 2,
+    width: 3,
+    height: 1
+});
 
 // Save the changes to a new buffer
 const newBuffer = await pkg.save();
