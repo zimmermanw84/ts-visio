@@ -1,54 +1,56 @@
 import { VisioDocument } from '../src/VisioDocument';
-import { ArrowHeads } from '../src/utils/StyleHelpers';
+import { SchemaDiagram } from '../src/SchemaDiagram';
 import * as path from 'path';
 
 async function run() {
     console.log("Generating simple-schema.vsdx...");
     const doc = await VisioDocument.create();
     const page = doc.pages[0];
+    const schema = new SchemaDiagram(page);
 
-    // 1. Create Tables
-    // Users Table
-    // 1. Create Tables
-    // Users Table
-    const usersTable = await page.addTable(2, 6, "Users", [
+    // 1. Create Tables using Facade
+    // Initial Table at specific coords
+    const usersTable = await schema.addTable("Users", [
         "ID: int [PK]",
         "username: varchar",
         "email: varchar",
         "created_at: timestamp"
-    ]);
+    ], 2, 6);
 
-    // Posts Table
-    const postsTable = await page.addTable(8, 6, "Posts", [
+    // 2. Create other tables at (0,0) and use Layout to position them
+    const postsTable = await schema.addTable("Posts", [
         "ID: int [PK]",
         "user_id: int [FK]",
         "title: varchar",
         "content: text",
         "published: boolean"
-    ]);
+    ], 0, 0);
 
-    // Comments Table
-    const commentsTable = await page.addTable(8, 2, "Comments", [
+    const commentsTable = await schema.addTable("Comments", [
         "ID: int [PK]",
         "post_id: int [FK]",
         "user_id: int [FK]",
         "body: text"
-    ]);
+    ], 0, 0);
 
-    // 2. Retrieve Shapes to connect them
-    // Refactored: addTable now returns the Shape object directly.
+    // 3. Apply Layout
+    // Place Posts to the right of Users
+    await postsTable.placeRightOf(usersTable, { gap: 1.5 });
 
-    // 3. Connect Tables (Fluent API)
+    // Place Comments below Posts
+    await commentsTable.placeBelow(postsTable, { gap: 1.0 });
+
+    // 4. Create Relations (Semantic)
     // Users -> Posts (One to Many)
-    await usersTable.connectTo(postsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
+    await schema.addRelation(usersTable, postsTable, '1:N');
 
     // Posts -> Comments (One to Many)
-    await postsTable.connectTo(commentsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
+    await schema.addRelation(postsTable, commentsTable, '1:N');
 
     // Users -> Comments (One to Many)
-    await usersTable.connectTo(commentsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
+    await schema.addRelation(usersTable, commentsTable, '1:N');
 
-    // 4. Save
+    // 5. Save
     const outPath = path.resolve(__dirname, 'simple-schema.vsdx');
     await doc.save(outPath);
     console.log(`Saved to ${outPath}`);

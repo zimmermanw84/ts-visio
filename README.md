@@ -160,7 +160,28 @@ const tableShape = await page.addTable(
 console.log(tableShape.id); // Access ID
 ```
 
-#### 7. Save the Document
+await shape4.placeBelow(shape1, { gap: 0.5 });
+```
+
+#### 8. Typed Schema Builder (Facade)
+For ER diagrams, use the `SchemaDiagram` wrapper for simplified semantics.
+
+```typescript
+import { VisioDocument, SchemaDiagram } from 'ts-visio';
+
+const doc = await VisioDocument.create();
+const page = doc.pages[0];
+const schema = new SchemaDiagram(page);
+
+// Add Tables
+const users = await schema.addTable('Users', ['id', 'email'], 0, 0);
+const posts = await schema.addTable('Posts', ['id', 'user_id'], 5, 0);
+
+// Add Relations (1:N maps to Crow's Foot arrow)
+await schema.addRelation(users, posts, '1:N');
+```
+
+#### 9. Save the Document
 Save the modified document back to disk.
 
 ```typescript
