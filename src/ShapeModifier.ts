@@ -59,26 +59,53 @@ export class ShapeModifier {
         const maxId = shapes.reduce((max: number, s: any) => Math.max(max, Number(s['@_ID'] || 0)), 0);
         const newId = (maxId + 1).toString();
 
+        // Find From/To shapes to get coordinates
+        const findShape = (id: string) => shapes.find((s: any) => s['@_ID'] == id);
+        const sourceShape = findShape(fromShapeId);
+        const targetShape = findShape(toShapeId);
+
+        let beginX = '0';
+        let beginY = '0';
+        let endX = '0';
+        let endY = '0';
+
+        const getCellVal = (shape: any, name: string) => {
+            if (!shape || !shape.Cell) return '0';
+            const cell = shape.Cell.find((c: any) => c['@_N'] === name);
+            return cell ? cell['@_V'] : '0';
+        };
+
+        if (sourceShape) {
+            beginX = getCellVal(sourceShape, 'PinX');
+            beginY = getCellVal(sourceShape, 'PinY');
+        }
+        if (targetShape) {
+            endX = getCellVal(targetShape, 'PinX');
+            endY = getCellVal(targetShape, 'PinY');
+        }
+
         // 1. Create Connector Shape
-        const connectorShape = {
+        const connectorShape: any = {
             '@_ID': newId,
             '@_NameU': 'Dynamic connector',
+            '@_Name': 'Dynamic connector',
             '@_Type': 'Shape',
             // '@_Master': '2', // Removed: We don't have masters in blank templates yet
             Cell: [
-                { '@_N': 'BeginX', '@_V': '0' },
-                { '@_N': 'BeginY', '@_V': '0' },
-                { '@_N': 'EndX', '@_V': '0' },
-                { '@_N': 'EndY', '@_V': '0' },
-                { '@_N': 'PinX', '@_V': '0' },
-                { '@_N': 'PinY', '@_V': '0' },
+                { '@_N': 'BeginX', '@_V': beginX },
+                { '@_N': 'BeginY', '@_V': beginY },
+                { '@_N': 'EndX', '@_V': endX },
+                { '@_N': 'EndY', '@_V': endY },
+                { '@_N': 'PinX', '@_V': '0', '@_F': '(BeginX+EndX)/2' },
+                { '@_N': 'PinY', '@_V': '0', '@_F': '(BeginY+EndY)/2' },
                 { '@_N': 'BeginArrow', '@_V': beginArrow || '0' },
                 { '@_N': 'EndArrow', '@_V': endArrow || '0' },
                 // 1D Transform requires standard cells
-                { '@_N': 'Width', '@_V': '0' },
+                { '@_N': 'Width', '@_V': '0', '@_F': 'SQRT((EndX-BeginX)^2+(EndY-BeginY)^2)' },
                 { '@_N': 'Height', '@_V': '0' },
-                { '@_N': 'LocPinX', '@_V': '0' }, // Will be recalculated by Visio
-                { '@_N': 'LocPinY', '@_V': '0' },
+                { '@_N': 'Angle', '@_V': '0', '@_F': 'ATAN2(EndY-BeginY,EndX-BeginX)' },
+                { '@_N': 'LocPinX', '@_V': '0', '@_F': 'Width*0.5' }, // Center pivot
+                { '@_N': 'LocPinY', '@_V': '0', '@_F': 'Height*0.5' },
                 { '@_N': 'ObjType', '@_V': '2' }, // 1D Shape
                 { '@_N': 'ShapePermeableX', '@_V': '0' }, // Recommended for connectors
                 { '@_N': 'ShapePermeableY', '@_V': '0' },
@@ -178,7 +205,7 @@ export class ShapeModifier {
             newId = (maxId + 1).toString();
         }
 
-        const newShape = {
+        const newShape: any = {
             '@_ID': newId,
             '@_Name': `Sheet.${newId}`,
             '@_Type': 'Shape',
