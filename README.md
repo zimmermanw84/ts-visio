@@ -27,26 +27,9 @@ npm install ts-visio
 
 ## Usage
 
-### Simple Loader (Legacy)
 
-```typescript
-import fs from 'fs';
-import { VsdxLoader } from 'ts-visio';
 
-const run = async () => {
-    const loader = new VsdxLoader();
-    const buffer = fs.readFileSync('diagram.vsdx');
-
-    await loader.load(buffer);
-    // ...
-};
-```
-
-### Modular API (New)
-
-For more control, use the specialized classes `VisioPackage`, `PageManager`, and `ShapeReader`.
-
-#### 1. Load the Package
+### 1. Load the Package
 `VisioPackage` handles loading the zip file and providing access to internal files.
 
 ```typescript
