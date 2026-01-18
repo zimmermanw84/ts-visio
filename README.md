@@ -1,4 +1,4 @@
-# js-visio
+# ts-visio
 
 > [!WARNING]
 > **Under Construction**
@@ -22,7 +22,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 ## Installation
 
 ```bash
-npm install js-visio
+npm install ts-visio
 ```
 
 ## Usage
@@ -31,7 +31,7 @@ npm install js-visio
 
 ```typescript
 import fs from 'fs';
-import { VsdxLoader } from 'js-visio';
+import { VsdxLoader } from 'ts-visio';
 
 const run = async () => {
     const loader = new VsdxLoader();
@@ -50,7 +50,7 @@ For more control, use the specialized classes `VisioPackage`, `PageManager`, and
 `VisioPackage` handles loading the zip file and providing access to internal files.
 
 ```typescript
-import { VisioPackage } from 'js-visio';
+import { VisioPackage } from 'ts-visio';
 import fs from 'fs';
 
 const pkg = new VisioPackage();
@@ -62,7 +62,7 @@ await pkg.load(buffer);
 `PageManager` lists available pages in the document.
 
 ```typescript
-import { PageManager } from 'js-visio';
+import { PageManager } from 'ts-visio';
 
 const pageManager = new PageManager(pkg);
 const pages = pageManager.getPages();
@@ -76,7 +76,7 @@ pages.forEach(page => {
 `ShapeReader` parses shape data from a specific page's XML file.
 
 ```typescript
-import { ShapeReader } from 'js-visio';
+import { ShapeReader } from 'ts-visio';
 
 const shapeReader = new ShapeReader(pkg);
 
@@ -101,7 +101,7 @@ shapes.forEach(shape => {
 `ShapeModifier` allows you to modify shape properties (currently Text) and save the changes back to the package.
 
 ```typescript
-import { ShapeModifier } from 'js-visio';
+import { ShapeModifier } from 'ts-visio';
 
 const modifier = new ShapeModifier(pkg);
 
