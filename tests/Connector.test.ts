@@ -40,6 +40,13 @@ describe('Connectors', () => {
         // Note: ShapeReader parses Cells into an object map
         expect(connector?.Cells['ObjType']?.V).toBe('2');
 
+        // Check coordinates match connected shapes
+        // Box 1: (2, 4) -> Box 2: (6, 4)
+        expect(connector?.Cells['BeginX']?.V).toBe('2');
+        expect(connector?.Cells['BeginY']?.V).toBe('4');
+        expect(connector?.Cells['EndX']?.V).toBe('6');
+        expect(connector?.Cells['EndY']?.V).toBe('4');
+
         // 2. Check Line Section exists (Visibility)
         // Note: ShapeReader parses Sections into an object map by Name
         expect(connector?.Sections['Line']).toBeDefined();
@@ -66,13 +73,16 @@ describe('Connectors', () => {
         // Cell: [ { LineColor... }, ... ]
         // So expectation: lineSection.Cell is array.
 
-        expect(lineSection).toBeDefined();
+        if (!lineSection) throw new Error('Line section missing');
+
         // Check Cells map
+        if (!lineSection.Cells) throw new Error('Line section cells missing');
         expect(lineSection.Cells).toBeDefined();
         expect(lineSection.Cells['LineColor']).toBeDefined();
 
         // 3. Check Geometry formulas (Dynamic sizing)
         const geometry = connector?.Sections['Geometry'];
+        if (!geometry) throw new Error('Geometry section missing');
         const geomRows = geometry.Rows;
         expect(geomRows).toBeDefined();
 

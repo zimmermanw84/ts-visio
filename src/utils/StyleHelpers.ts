@@ -1,6 +1,6 @@
 export interface VisioSection {
     '@_N': string;
-    '@_IX'?: string;
+    '@_IX': string;
     Row?: any[];
     Cell?: any[];
 }
@@ -52,6 +52,7 @@ export function createCharacterSection(props: { bold?: boolean; color?: string }
 
     return {
         '@_N': 'Character',
+        '@_IX': '0',
         Row: [
             {
                 '@_T': 'Character',
