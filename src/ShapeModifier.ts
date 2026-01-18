@@ -394,6 +394,59 @@ export class ShapeModifier {
         const newXml = this.builder.build(parsed);
         this.pkg.updateFile(pagePath, newXml);
     }
+    async updateShapePosition(pageId: string, shapeId: string, x: number, y: number): Promise<void> {
+        const pagePath = this.getPagePath(pageId);
+        let content: string;
+        try {
+            content = this.pkg.getFileText(pagePath);
+        } catch {
+            throw new Error(`Could not find page file for ID ${pageId}`);
+        }
+
+        const parsed = this.parser.parse(content);
+        let found = false;
+
+        const findAndUpdate = (shapes: any[]) => {
+            for (const shape of shapes) {
+                if (shape['@_ID'] == shapeId) {
+                    found = true;
+                    // Ensure Cell array exists
+                    if (!shape.Cell) {
+                        shape.Cell = [];
+                    } else if (!Array.isArray(shape.Cell)) {
+                        shape.Cell = [shape.Cell];
+                    }
+
+                    // Helper to update specific cell
+                    const updateCell = (name: string, value: string) => {
+                        const cell = shape.Cell.find((c: any) => c['@_N'] === name);
+                        if (cell) {
+                            cell['@_V'] = value;
+                        } else {
+                            shape.Cell.push({ '@_N': name, '@_V': value });
+                        }
+                    };
+
+                    updateCell('PinX', x.toString());
+                    updateCell('PinY', y.toString());
+                    return;
+                }
+            }
+        };
+
+        const shapesData = parsed.PageContents?.Shapes?.Shape;
+        if (shapesData) {
+            const shapesArray = Array.isArray(shapesData) ? shapesData : [shapesData];
+            findAndUpdate(shapesArray);
+        }
+
+        if (!found) {
+            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        }
+
+        const newXml = this.builder.build(parsed);
+        this.pkg.updateFile(pagePath, newXml);
+    }
 }
 
 export interface ShapeStyle {
