@@ -75,4 +75,54 @@ describe('Group Shapes', () => {
         // Ensure NO Geometry section
         expect(group?.Sections['Geometry']).toBeUndefined();
     });
+
+    it('should calculate absolute coordinates for connectors between nested shapes', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        // 1. Create Group 1 at (10, 10)
+        // Size 4x4. LocPin defaults to center (2,2).
+        // Origin (Bottom-Left) = 10-2=8, 10-2=8.
+        const g1 = await page.addShape({ text: 'G1', x: 10, y: 10, width: 4, height: 4, type: 'Group' });
+
+        // 2. Add Child 1 inside G1 at (3, 3) relative
+        // Absolute Expected: Origin(8) + 3 = 11.
+        const c1 = await page.addShape({ text: 'C1', x: 3, y: 3, width: 1, height: 1 }, g1.id);
+
+        // 3. Create Group 2 at (20, 10)
+        // Size 4x4. LocPin (2,2). Origin (18, 8).
+        const g2 = await page.addShape({ text: 'G2', x: 20, y: 10, width: 4, height: 4, type: 'Group' });
+
+        // 4. Add Child 2 inside G2 at (1, 1) relative
+        // Absolute Expected: Origin(18) + 1 = 19.
+        const c2 = await page.addShape({ text: 'C2', x: 1, y: 1, width: 1, height: 1 }, g2.id);
+
+        // 5. Connect C1 -> C2
+        await page.connectShapes(c1, c2);
+        await doc.save(testFile);
+
+        const buffer = fs.readFileSync(testFile);
+        const pkg = new VisioPackage();
+        await pkg.load(buffer);
+        const reader = new ShapeReader(pkg);
+        const shapes = reader.readShapes('visio/pages/page1.xml');
+
+        const connector = shapes.find(s => s.NameU === 'Dynamic connector');
+        expect(connector).toBeDefined();
+
+        // Check BeginX/Y (from C1)
+        // Expect ~11
+        const beginX = parseFloat(connector?.Cells['BeginX']?.V || '0');
+        const beginY = parseFloat(connector?.Cells['BeginY']?.V || '0');
+        expect(beginX).toBe(11);
+        expect(beginY).toBe(11);
+
+        // Check EndX/Y (to C2)
+        // Expect 19, 9
+        // Y: Origin(8) + 1 = 9.
+        const endX = parseFloat(connector?.Cells['EndX']?.V || '0');
+        const endY = parseFloat(connector?.Cells['EndY']?.V || '0');
+        expect(endX).toBe(19);
+        expect(endY).toBe(9);
+    });
 });

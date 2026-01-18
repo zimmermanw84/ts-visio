@@ -101,19 +101,62 @@ export class ShapeModifier {
         let endX = '0';
         let endY = '0';
 
+        // Build Parent Map
+        const shapeHierarchy = new Map<string, { shape: any; parent: any }>();
+        const mapHierarchy = (shapes: any[], parent: any | null) => {
+            for (const s of shapes) {
+                shapeHierarchy.set(s['@_ID'], { shape: s, parent });
+                if (s.Shapes && s.Shapes.Shape) {
+                    const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
+                    mapHierarchy(children, s);
+                }
+            }
+        };
+        const topShapes = parsed.PageContents.Shapes ? (Array.isArray(parsed.PageContents.Shapes.Shape) ? parsed.PageContents.Shapes.Shape : [parsed.PageContents.Shapes.Shape]) : [];
+        mapHierarchy(topShapes, null);
+
         const getCellVal = (shape: any, name: string) => {
             if (!shape || !shape.Cell) return '0';
             const cell = shape.Cell.find((c: any) => c['@_N'] === name);
             return cell ? cell['@_V'] : '0';
         };
 
+        const getAbsolutePos = (id: string): { x: number, y: number } => {
+            const entry = shapeHierarchy.get(id);
+            if (!entry) return { x: 0, y: 0 };
+
+            const shape = entry.shape;
+            const pinX = parseFloat(getCellVal(shape, 'PinX'));
+            const pinY = parseFloat(getCellVal(shape, 'PinY'));
+
+            if (!entry.parent) {
+                return { x: pinX, y: pinY };
+            }
+
+            // Parent Origin
+            const parentPos = getAbsolutePos(entry.parent['@_ID']);
+            const parentLocPinX = parseFloat(getCellVal(entry.parent, 'LocPinX'));
+            const parentLocPinY = parseFloat(getCellVal(entry.parent, 'LocPinY'));
+
+            // Parent Origin (Bottom-Left usually) = ParentPin - ParentLocPin
+            const parentOriginX = parentPos.x - parentLocPinX;
+            const parentOriginY = parentPos.y - parentLocPinY;
+
+            return {
+                x: parentOriginX + pinX,
+                y: parentOriginY + pinY
+            };
+        };
+
         if (sourceShape) {
-            beginX = getCellVal(sourceShape, 'PinX');
-            beginY = getCellVal(sourceShape, 'PinY');
+            const abs = getAbsolutePos(fromShapeId);
+            beginX = abs.x.toString();
+            beginY = abs.y.toString();
         }
         if (targetShape) {
-            endX = getCellVal(targetShape, 'PinX');
-            endY = getCellVal(targetShape, 'PinY');
+            const abs = getAbsolutePos(toShapeId);
+            endX = abs.x.toString();
+            endY = abs.y.toString();
         }
 
         const dx = parseFloat(endX) - parseFloat(beginX);
