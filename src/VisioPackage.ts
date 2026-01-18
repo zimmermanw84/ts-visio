@@ -1,8 +1,28 @@
 import JSZip from 'jszip';
+import * as T from './templates/MinimalVsdx';
 
 export class VisioPackage {
     private zip: JSZip | null = null;
     private files: Map<string, string> = new Map();
+
+    static async create(): Promise<VisioPackage> {
+        const pkg = new VisioPackage();
+        pkg.zip = new JSZip();
+
+        // Populate minimal structure
+        pkg.updateFile('[Content_Types].xml', T.CONTENT_TYPES_XML);
+        pkg.updateFile('_rels/.rels', T.RELS_XML);
+        pkg.updateFile('visio/document.xml', T.DOCUMENT_XML);
+        pkg.updateFile('visio/_rels/document.xml.rels', T.DOCUMENT_RELS_XML);
+        pkg.updateFile('visio/pages/pages.xml', T.PAGES_XML);
+        pkg.updateFile('visio/pages/_rels/pages.xml.rels', T.PAGES_RELS_XML);
+        pkg.updateFile('visio/pages/page1.xml', T.PAGE1_XML);
+        pkg.updateFile('visio/windows.xml', T.WINDOWS_XML);
+        pkg.updateFile('docProps/core.xml', T.CORE_XML);
+        pkg.updateFile('docProps/app.xml', T.APP_XML);
+
+        return pkg;
+    }
 
     async load(buffer: Buffer | ArrayBuffer | Uint8Array): Promise<void> {
         this.files.clear();

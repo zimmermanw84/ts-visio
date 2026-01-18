@@ -58,7 +58,14 @@ const buffer = fs.readFileSync('diagram.vsdx');
 await pkg.load(buffer);
 ```
 
-#### 2. Manage Pages
+#### 2. Create a Blank Package
+You can also create a new, empty Visio document.
+
+```typescript
+const pkg = await VisioPackage.create();
+```
+
+#### 3. Manage Pages
 `PageManager` lists available pages in the document.
 
 ```typescript
@@ -72,7 +79,7 @@ pages.forEach(page => {
 });
 ```
 
-#### 3. Read Shapes
+#### 4. Read Shapes
 `ShapeReader` parses shape data from a specific page's XML file.
 
 ```typescript
@@ -97,7 +104,7 @@ shapes.forEach(shape => {
 });
 ```
 
-#### 4. Update Shapes
+#### 5. Update Shapes
 `ShapeModifier` allows you to modify shape properties (currently Text) and save the changes back to the package.
 
 ```typescript
