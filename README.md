@@ -115,6 +115,10 @@ await shape2.placeRightOf(shape1, { gap: 1 });
 // Chain placement
 const shape3 = await page.addShape({ text: "Step 3", x: 0, y: 0, width: 2, height: 1 });
 await shape3.placeRightOf(shape2);
+
+// Vertical stacking
+const shape4 = await page.addShape({ text: "Below", x: 0, y: 0, width: 2, height: 1 });
+await shape4.placeBelow(shape1, { gap: 0.5 });
 ```
 
 #### 7. Fluent API & Chaining

@@ -74,4 +74,24 @@ export class Shape {
 
         return this;
     }
+
+    async placeBelow(targetShape: Shape, options: { gap: number } = { gap: 1 }): Promise<this> {
+        const newX = targetShape.x; // Align Centers
+        // Target Bottom = target.y - target.height / 2
+        // My Top = Target Bottom - gap
+        // My Center = My Top - my.height / 2
+        // My Center = target.y - target.height/2 - gap - my.height/2
+        const newY = targetShape.y - (targetShape.height + this.height) / 2 - options.gap;
+
+        const modifier = new ShapeModifier(this.pkg);
+        await modifier.updateShapePosition(this.pageId, this.id, newX, newY);
+
+        if (this.internalShape.Cells['PinX']) this.internalShape.Cells['PinX'].V = newX.toString();
+        else this.internalShape.Cells['PinX'] = { V: newX.toString(), N: 'PinX' };
+
+        if (this.internalShape.Cells['PinY']) this.internalShape.Cells['PinY'].V = newY.toString();
+        else this.internalShape.Cells['PinY'] = { V: newY.toString(), N: 'PinY' };
+
+        return this;
+    }
 }
