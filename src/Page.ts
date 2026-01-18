@@ -46,7 +46,11 @@ export class Page {
             Text: props.text,
             Cells: {
                 'Width': { V: props.width.toString() },
-                'Height': { V: props.height.toString() }
+                'Height': { V: props.height.toString() },
+                'PinX': { V: props.x.toString() },
+                'PinY': { V: props.y.toString() },
+                'LocPinX': { V: (props.width / 2).toString() },
+                'LocPinY': { V: (props.height / 2).toString() }
             }
         };
 

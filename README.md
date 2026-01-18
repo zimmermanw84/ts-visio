@@ -101,7 +101,23 @@ await page.addShape({
 }, group.id);
 ```
 
-#### 5. Fluent API & Chaining
+
+#### 6. Automatic Layout
+Easily position shapes relative to each other.
+
+```typescript
+const shape1 = await page.addShape({ text: "Step 1", x: 2, y: 5, width: 2, height: 1 });
+const shape2 = await page.addShape({ text: "Step 2", x: 0, y: 0, width: 2, height: 1 }); // X,Y ignored if we place it next
+
+// Place Shape 2 to the right of Shape 1 with a 1-inch gap
+await shape2.placeRightOf(shape1, { gap: 1 });
+
+// Chain placement
+const shape3 = await page.addShape({ text: "Step 3", x: 0, y: 0, width: 2, height: 1 });
+await shape3.placeRightOf(shape2);
+```
+
+#### 7. Fluent API & Chaining
 Combine creation, styling, and connection in a clean syntax.
 
 ```typescript

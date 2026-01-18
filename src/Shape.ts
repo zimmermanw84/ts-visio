@@ -57,4 +57,21 @@ export class Shape {
         // For now, valid XML is the priority.
         return this;
     }
+
+    async placeRightOf(targetShape: Shape, options: { gap: number } = { gap: 1 }): Promise<this> {
+        const newX = targetShape.x + targetShape.width + options.gap;
+        const newY = targetShape.y; // Keep same Y (per instructions, aligns center-to-center if PinY is center)
+
+        const modifier = new ShapeModifier(this.pkg);
+        await modifier.updateShapePosition(this.pageId, this.id, newX, newY);
+
+        // Update local state is crucial for chaining successive placements
+        if (this.internalShape.Cells['PinX']) this.internalShape.Cells['PinX'].V = newX.toString();
+        else this.internalShape.Cells['PinX'] = { V: newX.toString(), N: 'PinX' };
+
+        if (this.internalShape.Cells['PinY']) this.internalShape.Cells['PinY'].V = newY.toString();
+        else this.internalShape.Cells['PinY'] = { V: newY.toString(), N: 'PinY' };
+
+        return this;
+    }
 }

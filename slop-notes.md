@@ -150,6 +150,8 @@ You can copy and paste these directly into your chat window.
 2. Calculate the new `x` for the current shape (`target.x + target.width + gap`).
 3. Keep the same `y` coordinate (top-aligned).
 4. Update the current shape's internal state and XML to reflect this new position."
+5. Add tests for this method.
+6. Update README.md with the new feature.
 
 
 * [ ] **Prompt:** "Add a `placeBelow(target: Shape, options: { gap: number })` method that performs similar logic for vertical stacking."
