@@ -56,4 +56,51 @@ export class Page {
         const modifier = new ShapeModifier(this.pkg);
         await modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow);
     }
+
+    async addTable(x: number, y: number, title: string, columns: string[]): Promise<string> {
+        // Dimensions
+        const width = 3;
+        const headerHeight = 0.5;
+        const lineItemHeight = 0.25;
+        const bodyHeight = Math.max(0.5, columns.length * lineItemHeight + 0.1); // Min height
+
+        // Math for stacking:
+        // We want Header Bottom == Body Top
+        // Header Center Y = hy
+        // Body Center Y = by
+        // Header Bottom = hy - (hh/2)
+        // Body Top = by + (bh/2)
+        // hy - hh/2 = by + bh/2  =>  by = hy - (hh + bh)/2
+
+        const headerY = y;
+        const bodyY = headerY - (headerHeight + bodyHeight) / 2;
+
+        // 1. Header Shape
+        // Grey background, bold text
+        const headerShape = await this.addShape({
+            text: title,
+            x: x,
+            y: headerY,
+            width: width,
+            height: headerHeight,
+            fillColor: '#DDDDDD', // Light Grey
+            bold: true
+        });
+
+        // 2. Body Shape
+        // White background, list of columns
+        const bodyText = columns.join('\n');
+        await this.addShape({
+            text: bodyText,
+            x: x,
+            y: bodyY,
+            width: width,
+            height: bodyHeight,
+            fillColor: '#FFFFFF',
+            fontColor: '#000000' // Explicit black
+        });
+
+        // Return ID of the "main" shape (Header)
+        return headerShape.id;
+    }
 }

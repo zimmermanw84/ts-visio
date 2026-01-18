@@ -88,6 +88,19 @@ await page.connectShapes(shape1, shape2);
 // OR with arrowheads (Crow's Foot, etc.)
 import { ArrowHeads } from 'ts-visio/utils/StyleHelpers';
 await page.connectShapes(shape1, shape2, ArrowHeads.One, ArrowHeads.CrowsFoot);
+await page.connectShapes(shape1, shape2, ArrowHeads.One, ArrowHeads.CrowsFoot);
+```
+
+#### 5. Add Tables
+Create a compound stacked shape for database tables.
+
+```typescript
+const tableId = await page.addTable(
+    5,
+    5,
+    "Users",
+    ["ID: int", "Name: varchar", "Email: varchar"]
+);
 ```
 
 #### 5. Save the Document
