@@ -30,94 +30,51 @@ npm install ts-visio
 
 
 
-### 1. Load the Package
-`VisioPackage` handles loading the zip file and providing access to internal files.
+### 1. Create or Load a Document
+The `VisioDocument` class is the main entry point.
 
 ```typescript
-import { VisioPackage } from 'ts-visio';
-import fs from 'fs';
+import { VisioDocument } from 'ts-visio';
 
-const pkg = new VisioPackage();
-const buffer = fs.readFileSync('diagram.vsdx');
-await pkg.load(buffer);
+// Create a new blank document
+const doc = await VisioDocument.create();
+
+// OR Load an existing file
+// const doc = await VisioDocument.load('diagram.vsdx');
 ```
 
-#### 2. Create a Blank Package
-You can also create a new, empty Visio document.
+#### 2. Access Pages
+Access pages through the `pages` property.
 
 ```typescript
-const pkg = await VisioPackage.create();
+const page = doc.pages[0];
+console.log(`Editing Page: ${page.name}`);
 ```
 
-#### 3. Manage Pages
-`PageManager` lists available pages in the document.
+#### 3. Add & Modify Shapes
+Add new shapes or modify existing ones without dealing with XML.
 
 ```typescript
-import { PageManager } from 'ts-visio';
-
-const pageManager = new PageManager(pkg);
-const pages = pageManager.getPages();
-
-pages.forEach(page => {
-    console.log(`Page: ${page.Name} (ID: ${page.ID})`);
-});
-```
-
-#### 4. Read Shapes
-`ShapeReader` parses shape data from a specific page's XML file.
-
-```typescript
-import { ShapeReader } from 'ts-visio';
-
-const shapeReader = new ShapeReader(pkg);
-
-// Typically pages are at 'visio/pages/page{ID}.xml' or similar,
-// strictly you should map Page ID to file name, but commonly:
-const shapes = shapeReader.readShapes('visio/pages/page1.xml');
-
-shapes.forEach(shape => {
-    console.log(`Shape: ${shape.Name}`);
-    console.log(`  Text: ${shape.Text}`);
-
-    // Access detailed Cell data
-    if (shape.Cells['Width']) {
-        console.log(`  Width: ${shape.Cells['Width'].V}`);
-    }
-});
-
-```
-
-#### 5. Update Shapes
-`ShapeModifier` allows you to modify shape properties (currently Text) and save the changes back to the package.
-
-```typescript
-import { ShapeModifier } from 'ts-visio';
-
-const modifier = new ShapeModifier(pkg);
-
-// Update the text of Shape with ID "1" on Page "1"
-await modifier.updateShapeText('1', '1', 'New Text Content');
-
-// Add a new Shape to Page "1"
-await modifier.addShape('1', {
-    text: "New Box",
-    x: 2,
-    y: 2,
+// Add a new rectangle shape
+const shape = await page.addShape({
+    text: "Hello World",
+    x: 1,
+    y: 1,
     width: 3,
     height: 1
 });
 
+// Modify text
+await shape.setText("Updated Text");
+
+console.log(`Shape ID: ${shape.id}`);
 ```
 
-#### 6. Save the Package
-You can generate a buffer or write directly to a file.
+#### 4. Save the Document
+Save the modified document back to disk.
 
 ```typescript
-// Save to a file asynchronously
-await pkg.save('updated_diagram.vsdx');
-
-// OR Generate a buffer
-const buffer = await pkg.save();
+await doc.save('updated_diagram.vsdx');
 ```
 
 ## Development
