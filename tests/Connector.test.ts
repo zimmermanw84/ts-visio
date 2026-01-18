@@ -37,53 +37,38 @@ describe('Connectors', () => {
         expect(connector).toBeDefined();
 
         // 1. Check ObjType = 2 (1D Shape)
-        // Note: ShapeReader parses Cells into an object map
         expect(connector?.Cells['ObjType']?.V).toBe('2');
 
-        // Check coordinates match connected shapes
-        // Box 1: (2, 4) -> Box 2: (6, 4)
-        expect(connector?.Cells['BeginX']?.V).toBe('2');
+        // Check coordinates match connected shapes (Edge Routing)
+        // Box 1 (Center 2, Width 2) -> Right Edge is 3
+        // Box 2 (Center 6, Width 2) -> Left Edge is 5
+        expect(connector?.Cells['BeginX']?.V).toBe('3');
         expect(connector?.Cells['BeginY']?.V).toBe('4');
-        expect(connector?.Cells['EndX']?.V).toBe('6');
+        expect(connector?.Cells['EndX']?.V).toBe('5');
         expect(connector?.Cells['EndY']?.V).toBe('4');
 
         // Check pre-calculated Width/Angle for visibility
-        // dx = 4, dy = 0 -> Width = 4, Angle = 0
-        expect(connector?.Cells['Width']?.V).toBe('4');
+        // dx = 2 (5-3), dy = 0 -> Width = 2, Angle = 0
+        expect(connector?.Cells['Width']?.V).toBe('2');
         expect(connector?.Cells['Angle']?.V).toBe('0');
 
-        // 2. Check Line Section exists (Visibility)
-        // Note: ShapeReader parses Sections into an object map by Name
-        expect(connector?.Sections['Line']).toBeDefined();
-        // Section structure is { '@_N': 'Line', Cell: [...] }
-        // ShapeReader parses rows/cells.
-        // Let's assume standard parsing: Section -> Row (generic) or Cell (if property section)?
-        // ShapeReader.ts: shape.Sections[section['@_N']] = parseSection(section);
-        // StyleHelpers creates Line section with Cell array directly under Section, no Row?
-        // Wait, ShapeModifier injected: Section: [ createLineSection... ]
-        // createLineSection returns: { '@_N': 'Line', Cell: [...] }
-        // So it has Cells directly.
-        // Let's check how ShapeReader parses sections.
+        // Check PinX/PinY (Midpoint)
+        // Begin(3,4), End(5,4). Mid = (4, 4)
+        expect(connector?.Cells['PinX']?.V).toBe('4');
+        expect(connector?.Cells['PinY']?.V).toBe('4');
 
-        // ShapeReader.ts:
-        // parseSection just returns the object?
-        // import { asArray, parseCells, parseSection } from './utils/VisioParsers';
-        // I need to check VisioParsers to be sure how it handles it.
-        // But likely it preserves structure.
-
+        // 2. Check Line Section exists (Visibility & Arrows)
         const lineSection = connector?.Sections['Line'];
-        // It should have Cells
-        // The test code I previously wrote assumed Row[0], but Line section usually has Cell directly if it's a Property section.
-        // Let's check createLineSection again.
-        // Cell: [ { LineColor... }, ... ]
-        // So expectation: lineSection.Cell is array.
-
         if (!lineSection) throw new Error('Line section missing');
-
-        // Check Cells map
         if (!lineSection.Cells) throw new Error('Line section cells missing');
-        expect(lineSection.Cells).toBeDefined();
+
         expect(lineSection.Cells['LineColor']).toBeDefined();
+
+        // Check Arrow Defaults (should be '0' if not specified, but verify they EXIST)
+        expect(lineSection.Cells['BeginArrow']?.V).toBe('0');
+        expect(lineSection.Cells['EndArrow']?.V).toBe('0');
+        expect(lineSection.Cells['BeginArrowSize']?.V).toBe('2'); // Default Medium
+        expect(lineSection.Cells['EndArrowSize']?.V).toBe('2'); // Default Medium
 
         // 3. Check Geometry formulas (Dynamic sizing)
         const geometry = connector?.Sections['Geometry'];
@@ -95,11 +80,10 @@ describe('Connectors', () => {
         expect(lineToRow).toBeDefined();
 
         // Check Cell X formula
-        // lineToRow.Cells is a map { Name: Cell }
         const xCell = lineToRow?.Cells['X'];
         expect(xCell).toBeDefined();
         expect(xCell?.F).toBe('Width');
         // Ensure static value is also set for immediate visibility
-        expect(xCell?.V).toBe('4');
+        expect(xCell?.V).toBe('2');
     });
 });

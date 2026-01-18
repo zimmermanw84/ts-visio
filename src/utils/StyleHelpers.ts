@@ -68,14 +68,37 @@ export function createCharacterSection(props: { bold?: boolean; color?: string }
     };
 }
 
-export function createLineSection(props: { color?: string; pattern?: string; weight?: string }): VisioSection {
+export function createLineSection(props: {
+    color?: string;
+    pattern?: string;
+    weight?: string;
+    beginArrow?: string;
+    beginArrowSize?: string;
+    endArrow?: string;
+    endArrowSize?: string;
+}): VisioSection {
+    const cells = [
+        { '@_N': 'LineColor', '@_V': props.color || '#000000' },
+        { '@_N': 'LinePattern', '@_V': props.pattern || '1' }, // 1 = Solid
+        { '@_N': 'LineWeight', '@_V': props.weight || '0.01' } // ~0.72pt
+    ];
+
+    if (props.beginArrow) {
+        cells.push({ '@_N': 'BeginArrow', '@_V': props.beginArrow });
+    }
+    if (props.beginArrowSize) {
+        cells.push({ '@_N': 'BeginArrowSize', '@_V': props.beginArrowSize });
+    }
+    if (props.endArrow) {
+        cells.push({ '@_N': 'EndArrow', '@_V': props.endArrow });
+    }
+    if (props.endArrowSize) {
+        cells.push({ '@_N': 'EndArrowSize', '@_V': props.endArrowSize });
+    }
+
     return {
         '@_N': 'Line',
         '@_IX': '0',
-        Cell: [
-            { '@_N': 'LineColor', '@_V': props.color || '#000000' },
-            { '@_N': 'LinePattern', '@_V': props.pattern || '1' }, // 1 = Solid
-            { '@_N': 'LineWeight', '@_V': props.weight || '0.01' } // ~0.72pt
-        ]
+        Cell: cells
     };
 }
