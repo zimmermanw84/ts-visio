@@ -63,7 +63,9 @@ const shape = await page.addShape({
     y: 1,
     width: 3,
     height: 1,
-    fillColor: "#ff0000" // Option hexadecimal fill color
+    fillColor: "#ff0000", // Option hexadecimal fill color
+    fontColor: "#ffffff",
+    bold: true
 });
 
 // Modify text

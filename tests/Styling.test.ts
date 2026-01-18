@@ -36,4 +36,23 @@ describe('Styling', () => {
         // Advanced: Read back file and check XML content manually?
         // Skipped for now, trust creation.
     });
+
+    it('should create a shape with bold text and color', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        const shape = await page.addShape({
+            text: 'Bold Red Text',
+            x: 5,
+            y: 5,
+            width: 2,
+            height: 1,
+            fillColor: '#FFFFFF',
+            fontColor: '#FF0000',
+            bold: true
+        });
+
+        await doc.save(testFile);
+        expect(fs.existsSync(testFile)).toBe(true);
+    });
 });
