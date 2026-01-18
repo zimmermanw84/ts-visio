@@ -35,6 +35,37 @@ export class ShapeModifier {
         return `visio/pages/page${pageId}.xml`;
     }
 
+    private getAllShapes(parsed: any): any[] {
+        let topLevelShapes = parsed.PageContents.Shapes ? parsed.PageContents.Shapes.Shape : [];
+        if (!Array.isArray(topLevelShapes)) {
+            topLevelShapes = topLevelShapes ? [topLevelShapes] : [];
+        }
+
+        const gather = (shapeList: any[]): any[] => {
+            let all: any[] = [];
+            for (const s of shapeList) {
+                all.push(s);
+                if (s.Shapes && s.Shapes.Shape) {
+                    const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
+                    all = all.concat(gather(children));
+                }
+            }
+            return all;
+        };
+
+        return gather(topLevelShapes);
+    }
+
+    private getNextId(parsed: any): string {
+        const allShapes = this.getAllShapes(parsed);
+        let maxId = 0;
+        for (const s of allShapes) {
+            const id = parseInt(s['@_ID']);
+            if (!isNaN(id) && id > maxId) maxId = id;
+        }
+        return (maxId + 1).toString();
+    }
+
     async addConnector(pageId: string, fromShapeId: string, toShapeId: string, beginArrow?: string, endArrow?: string): Promise<string> {
         const pagePath = `visio/pages/page${pageId}.xml`;
         let content = '';
@@ -56,12 +87,12 @@ export class ShapeModifier {
         }
 
         // Generate ID
-        const shapes = parsed.PageContents.Shapes.Shape;
-        const maxId = shapes.reduce((max: number, s: any) => Math.max(max, Number(s['@_ID'] || 0)), 0);
-        const newId = (maxId + 1).toString();
+        const newId = this.getNextId(parsed);
 
-        // Find From/To shapes to get coordinates
-        const findShape = (id: string) => shapes.find((s: any) => s['@_ID'] == id);
+        // Recursive Find Helper for Source/Target (since they might be inside Groups)
+        const allShapes = this.getAllShapes(parsed);
+        const findShape = (id: string) => allShapes.find((s: any) => s['@_ID'] == id);
+
         const sourceShape = findShape(fromShapeId);
         const targetShape = findShape(toShapeId);
 
@@ -126,7 +157,8 @@ export class ShapeModifier {
             ]
         };
 
-        shapes.push(connectorShape);
+        const topLevelShapes = parsed.PageContents.Shapes.Shape; // Always array due to Ensure Shapes above
+        topLevelShapes.push(connectorShape);
 
         // 2. Add to Connects collection
         if (!parsed.PageContents.Connects) {
@@ -194,30 +226,12 @@ export class ShapeModifier {
             parsed.PageContents.Shapes.Shape = topLevelShapes;
         }
 
-        // Helper to gather all shapes recursively
-        const getAllShapes = (shapeList: any[]): any[] => {
-            let all: any[] = [];
-            for (const s of shapeList) {
-                all.push(s);
-                if (s.Shapes && s.Shapes.Shape) {
-                    const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
-                    all = all.concat(getAllShapes(children));
-                }
-            }
-            return all;
-        };
-
-        const allShapes = getAllShapes(topLevelShapes);
+        const allShapes = this.getAllShapes(parsed);
 
         // Auto-generate ID if not provided
         let newId = props.id;
         if (!newId) {
-            let maxId = 0;
-            for (const s of allShapes) {
-                const id = parseInt(s['@_ID']);
-                if (!isNaN(id) && id > maxId) maxId = id;
-            }
-            newId = (maxId + 1).toString();
+            newId = this.getNextId(parsed);
         }
 
         const newShape: any = {
