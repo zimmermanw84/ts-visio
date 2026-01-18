@@ -1,6 +1,6 @@
 import { VisioShape } from './types/VisioTypes';
 import { VisioPackage } from './VisioPackage';
-import { ShapeModifier } from './ShapeModifier';
+import { ShapeModifier, ShapeStyle } from './ShapeModifier';
 
 export class Shape {
     constructor(
@@ -42,5 +42,19 @@ export class Shape {
 
     get y(): number {
         return this.internalShape.Cells['PinY'] ? Number(this.internalShape.Cells['PinY'].V) : 0;
+    }
+
+    async connectTo(targetShape: Shape, beginArrow?: string, endArrow?: string): Promise<this> {
+        const modifier = new ShapeModifier(this.pkg);
+        await modifier.addConnector(this.pageId, this.id, targetShape.id, beginArrow, endArrow);
+        return this;
+    }
+
+    async setStyle(style: ShapeStyle): Promise<this> {
+        const modifier = new ShapeModifier(this.pkg);
+        await modifier.updateShapeStyle(this.pageId, this.id, style);
+        // Minimal local state update to reflect changes if necessary
+        // For now, valid XML is the priority.
+        return this;
     }
 }

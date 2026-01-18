@@ -302,4 +302,67 @@ export class ShapeModifier {
         const newXml = this.builder.build(parsed);
         this.pkg.updateFile(pagePath, newXml);
     }
+    async updateShapeStyle(pageId: string, shapeId: string, style: ShapeStyle): Promise<void> {
+        const pagePath = this.getPagePath(pageId);
+        let content: string;
+        try {
+            content = this.pkg.getFileText(pagePath);
+        } catch {
+            throw new Error(`Could not find page file for ID ${pageId}`);
+        }
+
+        const parsed = this.parser.parse(content);
+        let found = false;
+
+        const findAndUpdate = (shapes: any[]) => {
+            for (const shape of shapes) {
+                if (shape['@_ID'] == shapeId) {
+                    found = true;
+                    // Ensure Section array exists
+                    if (!shape.Section) {
+                        shape.Section = [];
+                    } else if (!Array.isArray(shape.Section)) {
+                        shape.Section = [shape.Section];
+                    }
+
+                    // Update/Add Fill
+                    if (style.fillColor) {
+                        // Remove existing Fill section if any (simplified: assuming IX=0)
+                        shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Fill');
+                        shape.Section.push(createFillSection(style.fillColor));
+                    }
+
+                    // Update/Add Character (Font/Text Style)
+                    if (style.fontColor || style.bold !== undefined) {
+                        // Remove existing Character section if any
+                        shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Character');
+                        shape.Section.push(createCharacterSection({
+                            bold: style.bold,
+                            color: style.fontColor
+                        }));
+                    }
+                    return;
+                }
+            }
+        };
+
+        const shapesData = parsed.PageContents?.Shapes?.Shape;
+        if (shapesData) {
+            const shapesArray = Array.isArray(shapesData) ? shapesData : [shapesData];
+            findAndUpdate(shapesArray);
+        }
+
+        if (!found) {
+            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        }
+
+        const newXml = this.builder.build(parsed);
+        this.pkg.updateFile(pagePath, newXml);
+    }
+}
+
+export interface ShapeStyle {
+    fillColor?: string;
+    fontColor?: string;
+    bold?: boolean;
 }
