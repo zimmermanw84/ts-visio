@@ -71,8 +71,7 @@ await shape.setText("Updated Text");
 console.log(`Shape ID: ${shape.id}`);
 ```
 
-console.log(`Shape ID: ${shape.id}`);
-```
+
 
 #### 4. Connect Shapes
 Link two shapes with a dynamic connector.
