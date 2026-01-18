@@ -111,18 +111,25 @@ describe('Group Shapes', () => {
         expect(connector).toBeDefined();
 
         // Check BeginX/Y (from C1)
-        // Expect ~11
         const beginX = parseFloat(connector?.Cells['BeginX']?.V || '0');
         const beginY = parseFloat(connector?.Cells['BeginY']?.V || '0');
-        expect(beginX).toBe(11);
-        expect(beginY).toBe(11);
+
+        // C1 Center 11, Width 1. Right Edge is 11.5.
+        // It connects to C2 (19, 9). Vector (8, -2).
+        // Hit intersects Right Edge.
+        // x = 11.5.
+        expect(beginX).toBe(11.5);
+        // y = 10.875 (Calculated slope offset)
+        expect(beginY).toBeCloseTo(10.875);
 
         // Check EndX/Y (to C2)
-        // Expect 19, 9
-        // Y: Origin(8) + 1 = 9.
         const endX = parseFloat(connector?.Cells['EndX']?.V || '0');
         const endY = parseFloat(connector?.Cells['EndY']?.V || '0');
-        expect(endX).toBe(19);
-        expect(endY).toBe(9);
+
+        // C2 Center 19, Width 1. Left Edge is 18.5.
+        // x = 18.5.
+        expect(endX).toBe(18.5);
+        // y = 9.125
+        expect(endY).toBeCloseTo(9.125);
     });
 });

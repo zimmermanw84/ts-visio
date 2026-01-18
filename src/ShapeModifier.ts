@@ -148,15 +148,72 @@ export class ShapeModifier {
             };
         };
 
+        let sourceGeom: { x: number, y: number, w: number, h: number } | null = null;
+        let targetGeom: { x: number, y: number, w: number, h: number } | null = null;
+
         if (sourceShape) {
             const abs = getAbsolutePos(fromShapeId);
+            const w = parseFloat(getCellVal(sourceShape, 'Width'));
+            const h = parseFloat(getCellVal(sourceShape, 'Height'));
+            // Start at center (temporary)
             beginX = abs.x.toString();
             beginY = abs.y.toString();
+
+            // Store geometry for edge calc
+            sourceGeom = { x: abs.x, y: abs.y, w, h };
         }
         if (targetShape) {
             const abs = getAbsolutePos(toShapeId);
+            const w = parseFloat(getCellVal(targetShape, 'Width'));
+            const h = parseFloat(getCellVal(targetShape, 'Height'));
+            // End at center
             endX = abs.x.toString();
             endY = abs.y.toString();
+
+            targetGeom = { x: abs.x, y: abs.y, w, h };
+        }
+
+        // Calculate Edge Points
+        const getEdgePoint = (cx: number, cy: number, w: number, h: number, targetX: number, targetY: number) => {
+            const dx = targetX - cx;
+            const dy = targetY - cy;
+
+            if (dx === 0 && dy === 0) return { x: cx, y: cy };
+
+            // Angle of line
+            const rad = Math.atan2(dy, dx);
+
+            // Intersect with vertical sides (x = +/- w/2)
+            // if cos(rad) > 0, intersect right side.
+            // distance to x edge = (w/2) / cos(rad)
+            const rw = w / 2;
+            const rh = h / 2;
+
+            // Potential t values (distance from center)
+            const tx = dx !== 0 ? (dx > 0 ? rw : -rw) / Math.cos(rad) : Infinity;
+            const ty = dy !== 0 ? (dy > 0 ? rh : -rh) / Math.sin(rad) : Infinity;
+
+            // We want the smallest positive t that hits the box
+            // Note: tx, ty calculated above are "distance along the ray".
+            // Since we directionally chose side based on sign of dx/dy, they should be positive.
+            // We take the min.
+
+            const t = Math.min(Math.abs(tx), Math.abs(ty));
+
+            return {
+                x: cx + t * Math.cos(rad),
+                y: cy + t * Math.sin(rad)
+            };
+        };
+
+        if (sourceGeom && targetGeom) {
+            const startNode = getEdgePoint(sourceGeom.x, sourceGeom.y, sourceGeom.w, sourceGeom.h, targetGeom.x, targetGeom.y);
+            const endNode = getEdgePoint(targetGeom.x, targetGeom.y, targetGeom.w, targetGeom.h, sourceGeom.x, sourceGeom.y);
+
+            beginX = startNode.x.toString();
+            beginY = startNode.y.toString();
+            endX = endNode.x.toString();
+            endY = endNode.y.toString();
         }
 
         const dx = parseFloat(endX) - parseFloat(beginX);
@@ -176,10 +233,8 @@ export class ShapeModifier {
                 { '@_N': 'BeginY', '@_V': beginY },
                 { '@_N': 'EndX', '@_V': endX },
                 { '@_N': 'EndY', '@_V': endY },
-                { '@_N': 'PinX', '@_V': '0', '@_F': '(BeginX+EndX)/2' },
-                { '@_N': 'PinY', '@_V': '0', '@_F': '(BeginY+EndY)/2' },
-                { '@_N': 'BeginArrow', '@_V': beginArrow || '0' },
-                { '@_N': 'EndArrow', '@_V': endArrow || '0' },
+                { '@_N': 'PinX', '@_V': ((parseFloat(beginX) + parseFloat(endX)) / 2).toString(), '@_F': '(BeginX+EndX)/2' },
+                { '@_N': 'PinY', '@_V': ((parseFloat(beginY) + parseFloat(endY)) / 2).toString(), '@_F': '(BeginY+EndY)/2' },
                 // 1D Transform requires standard cells
                 { '@_N': 'Width', '@_V': widthVal.toString(), '@_F': 'SQRT((EndX-BeginX)^2+(EndY-BeginY)^2)' },
                 { '@_N': 'Height', '@_V': '0' },
@@ -193,7 +248,14 @@ export class ShapeModifier {
                 { '@_N': 'ConFixedCode', '@_V': '0' }
             ],
             Section: [
-                createLineSection({ color: '#000000', weight: '0.01' }),
+                createLineSection({
+                    color: '#000000',
+                    weight: '0.01',
+                    beginArrow: beginArrow || '0',
+                    beginArrowSize: '2', // Medium
+                    endArrow: endArrow || '0',
+                    endArrowSize: '2' // Medium
+                }),
                 {
                     '@_N': 'Geometry',
                     '@_IX': '0',
