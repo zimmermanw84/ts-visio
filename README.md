@@ -109,8 +109,6 @@ await modifier.addShape('1', {
     height: 1
 });
 
-    height: 1
-});
 ```
 
 #### 6. Save the Package
