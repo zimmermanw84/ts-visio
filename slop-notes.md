@@ -105,3 +105,74 @@ Here are the specific, technical AI prompts you can use to build these features.
 > 4. Return the ID of the main container shape."
 > 5. Update README.md with the new features.
 > 6. Update tests to reflect the new features.
+
+
+----
+
+Here is an itemized markdown list of prompts designed to guide an AI coding assistant (like Copilot, Gemini, or ChatGPT) through these refactors.
+
+You can copy and paste these directly into your chat window.
+
+# AI Prompts for ts-visio Refactoring
+
+## 1. Object-Oriented Return Types
+
+*Context: We need to stop returning strings (IDs) and start returning rich objects.*
+
+* [ ] **Prompt:** "Refactor the `Page.addShape` and `Page.addTable` methods. Currently, they return a `Promise<string>` (the Shape ID). Change them to return a `Promise<Shape>` object. The `Shape` object should encapsulate the ID and provide access to its own properties (like `x`, `y`, `width`, `height`). Update the `Shape` interface to support this."
+* [ ] **Prompt:** "Scan the codebase for all instances where `addShape` is called. Refactor the calling code to handle the new object return type instead of the string ID string."
+
+## 2. Fluent Chaining
+
+*Context: We want to enable syntax like `shape.connectTo(other)`. This requires the `Shape` object to have methods.*
+
+* [ ] **Prompt:** "I want to implement a fluent API for my `Shape` class. Add a method `connectTo(targetShape: Shape, beginArrow?: number, endArrow?: number)` to the `Shape` class. This method should internally call the page's connection logic using `this.id` and `targetShape.id`. It should return `this` (or a Promise of `this`) to allow for further chaining."
+* [ ] **Prompt:** "Add a method `setStyle(styleProps: ShapeStyle)` to the `Shape` class that allows updating fill and text properties. Ensure it returns `this` to support chains like `myShape.connectTo(other).setStyle({...})`."
+
+## 3. Shape Grouping (Complex XML)
+
+*Context: Visio Groups act like mini-pages. This is the hardest implementation detail.*
+
+* [ ] **Prompt:** "I need to implement native Visio 'Group' shapes. Explain the XML structure for a `<Shape Type='Group'>` in a `.vsdx` file. How does it differ from a standard 2D shape? specifically, how do I nest other shapes inside it?"
+* [ ] **Prompt:** "Refactor `addTable` to use a Group shape.
+1. Create a parent Group shape to hold the table.
+2. Inside the Group, add the 'Header' rectangle and the 'Body' rectangle.
+3. **Crucial:** Adjust the coordinates of the Header and Body to be relative to the Group's parent coordinates, not the Page coordinates."
+
+
+
+## 4. Automatic Layout / Relative Positioning
+
+*Context: We need simple math to calculate bounding boxes.*
+
+* [ ] **Prompt:** "Implement a `placeRightOf(target: Shape, options: { gap: number })` method on the `Shape` class.
+1. Retrieve the `x`, `y`, `width` of the `target` shape.
+2. Calculate the new `x` for the current shape (`target.x + target.width + gap`).
+3. Keep the same `y` coordinate (top-aligned).
+4. Update the current shape's internal state and XML to reflect this new position."
+
+
+* [ ] **Prompt:** "Add a `placeBelow(target: Shape, options: { gap: number })` method that performs similar logic for vertical stacking."
+
+## 5. Typed Schema Builder
+
+*Context: This is a 'Facade' pattern that simplifies the generic API for a specific use case.*
+
+* [ ] **Prompt:** "Create a new class `SchemaDiagram` that acts as a domain-specific wrapper around `VisioPage`.
+1. It should have a method `addTable(tableName: string, columns: string[])`.
+2. It should have a method `addRelation(fromTable: Shape, toTable: Shape, type: '1:1' | '1:N')`.
+3. Map '1:1' to specific Visio arrow IDs (e.g., standard arrowheads) and '1:N' to Crow's Foot arrowheads."
+
+
+
+---
+
+### Recommended Execution Order
+
+I suggest running the prompts in this exact order: **1 → 3 → 2 → 4 → 5**.
+
+**Why?**
+
+* You need the **Objects (1)** to exist before you can **Group (3)** them.
+* You need the **Group (3)** logic working before you add **Chaining (2)** methods to it.
+* **Layout (4)** relies on the unified coordinates of the Group, so it must come after.

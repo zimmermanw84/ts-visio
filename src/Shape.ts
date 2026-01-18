@@ -35,4 +35,12 @@ export class Shape {
     get height(): number {
         return this.internalShape.Cells['Height'] ? Number(this.internalShape.Cells['Height'].V) : 0;
     }
+
+    get x(): number {
+        return this.internalShape.Cells['PinX'] ? Number(this.internalShape.Cells['PinX'].V) : 0;
+    }
+
+    get y(): number {
+        return this.internalShape.Cells['PinY'] ? Number(this.internalShape.Cells['PinY'].V) : 0;
+    }
 }

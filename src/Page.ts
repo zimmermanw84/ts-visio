@@ -57,7 +57,7 @@ export class Page {
         await modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow);
     }
 
-    async addTable(x: number, y: number, title: string, columns: string[]): Promise<string> {
+    async addTable(x: number, y: number, title: string, columns: string[]): Promise<Shape> {
         // Dimensions
         const width = 3;
         const headerHeight = 0.5;
@@ -100,7 +100,7 @@ export class Page {
             fontColor: '#000000' // Explicit black
         });
 
-        // Return ID of the "main" shape (Header)
-        return headerShape.id;
+        // Return the "main" shape (Header)
+        return headerShape;
     }
 }

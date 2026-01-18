@@ -9,7 +9,9 @@ async function run() {
 
     // 1. Create Tables
     // Users Table
-    const usersId = await page.addTable(2, 6, "Users", [
+    // 1. Create Tables
+    // Users Table
+    const usersTable = await page.addTable(2, 6, "Users", [
         "ID: int [PK]",
         "username: varchar",
         "email: varchar",
@@ -17,7 +19,7 @@ async function run() {
     ]);
 
     // Posts Table
-    const postsId = await page.addTable(8, 6, "Posts", [
+    const postsTable = await page.addTable(8, 6, "Posts", [
         "ID: int [PK]",
         "user_id: int [FK]",
         "title: varchar",
@@ -26,7 +28,7 @@ async function run() {
     ]);
 
     // Comments Table
-    const commentsId = await page.addTable(8, 2, "Comments", [
+    const commentsTable = await page.addTable(8, 2, "Comments", [
         "ID: int [PK]",
         "post_id: int [FK]",
         "user_id: int [FK]",
@@ -34,39 +36,19 @@ async function run() {
     ]);
 
     // 2. Retrieve Shapes to connect them
-    // We need shape objects to pass to connectShapes.
-    // Since addTable returns an ID, we can fetch the shape objects via the page (conceptually).
-    // However, our current API `getShapes()` reads from XML. We just added them, so we might need to save/reload or relies on internal state if we were robust.
-    // BUT: The current implementation of `addTable` returns the ID.
-    // The `Page` class has `getShapes()`, which reads from the package.
-    // Since `addShape` updates the package in memory, `getShapes` should theoretically be able to read it back IF `ShapeReader` parses the current XML.
-    // Let's rely on `page.getShapes()` finding them.
-
-    // Helper to find shape by ID
-    const findShape = (id: string) => {
-        const shapes = page.getShapes();
-        return shapes.find(s => s.id === id);
-    }
-
-    const usersShape = findShape(usersId);
-    const postsShape = findShape(postsId);
-    const commentsShape = findShape(commentsId);
-
-    if (!usersShape || !postsShape || !commentsShape) {
-        throw new Error("Could not find created shapes to connect.");
-    }
+    // Refactored: addTable now returns the Shape object directly.
 
     // 3. Connect Tables
     // Users -> Posts (One to Many)
-    await page.connectShapes(usersShape, postsShape, ArrowHeads.One, ArrowHeads.CrowsFoot);
+    await page.connectShapes(usersTable, postsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
 
     // Posts -> Comments (One to Many)
-    await page.connectShapes(postsShape, commentsShape, ArrowHeads.One, ArrowHeads.CrowsFoot);
+    await page.connectShapes(postsTable, commentsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
 
     // Users -> Comments (One to Many)
     // Connecting from Users to Comments as well (optional, but typical)
     // Note: This might overlap with Posts connection visually without routing logic, but Visio 'Dynamic connector' should handle basic routing.
-    await page.connectShapes(usersShape, commentsShape, ArrowHeads.One, ArrowHeads.CrowsFoot);
+    await page.connectShapes(usersTable, commentsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
 
     // 4. Save
     const outPath = path.resolve(__dirname, 'simple-schema.vsdx');

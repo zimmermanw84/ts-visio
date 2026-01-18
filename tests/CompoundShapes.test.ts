@@ -20,9 +20,12 @@ describe('Compound Shapes (Table)', () => {
         const columns = ['id: int', 'username: varchar', 'email: varchar', 'created_at: timestamp'];
 
         // Add Table at (4, 6)
-        const mainId = await page.addTable(4, 6, title, columns);
+        // Add Table at (4, 6)
+        const mainShape = await page.addTable(4, 6, title, columns);
 
-        expect(mainId).toBeDefined();
+        expect(mainShape).toBeDefined();
+        expect(mainShape.id).toBeDefined(); // Check ID exists on object
+        expect(mainShape.text).toBe(title); // Verify it's the header shape
 
         await doc.save(testFile);
         expect(fs.existsSync(testFile)).toBe(true);

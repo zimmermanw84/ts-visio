@@ -95,12 +95,14 @@ await page.connectShapes(shape1, shape2, ArrowHeads.One, ArrowHeads.CrowsFoot);
 Create a compound stacked shape for database tables.
 
 ```typescript
-const tableId = await page.addTable(
+const tableShape = await page.addTable(
     5,
     5,
     "Users",
     ["ID: int", "Name: varchar", "Email: varchar"]
 );
+console.log(tableShape.id); // Access ID
+```
 ```
 
 #### 6. Save the Document
