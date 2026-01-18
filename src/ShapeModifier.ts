@@ -65,6 +65,197 @@ export class ShapeModifier {
         }
         return (maxId + 1).toString();
     }
+    private getCellVal(shape: any, name: string): string {
+        if (!shape || !shape.Cell) return '0';
+        const cell = shape.Cell.find((c: any) => c['@_N'] === name);
+        return cell ? cell['@_V'] : '0';
+    }
+
+    private buildShapeHierarchy(parsed: any): Map<string, { shape: any; parent: any }> {
+        const shapeHierarchy = new Map<string, { shape: any; parent: any }>();
+        const mapHierarchy = (shapes: any[], parent: any | null) => {
+            for (const s of shapes) {
+                shapeHierarchy.set(s['@_ID'], { shape: s, parent });
+                if (s.Shapes && s.Shapes.Shape) {
+                    const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
+                    mapHierarchy(children, s);
+                }
+            }
+        };
+        const topShapes = parsed.PageContents.Shapes ?
+            (Array.isArray(parsed.PageContents.Shapes.Shape) ? parsed.PageContents.Shapes.Shape : [parsed.PageContents.Shapes.Shape])
+            : [];
+        mapHierarchy(topShapes, null);
+        return shapeHierarchy;
+    }
+
+    private getAbsolutePos(id: string, shapeHierarchy: Map<string, { shape: any; parent: any }>): { x: number, y: number } {
+        const entry = shapeHierarchy.get(id);
+        if (!entry) return { x: 0, y: 0 };
+
+        const shape = entry.shape;
+        const pinX = parseFloat(this.getCellVal(shape, 'PinX'));
+        const pinY = parseFloat(this.getCellVal(shape, 'PinY'));
+
+        if (!entry.parent) {
+            return { x: pinX, y: pinY };
+        }
+
+        const parentPos = this.getAbsolutePos(entry.parent['@_ID'], shapeHierarchy);
+        const parentLocPinX = parseFloat(this.getCellVal(entry.parent, 'LocPinX'));
+        const parentLocPinY = parseFloat(this.getCellVal(entry.parent, 'LocPinY'));
+
+        return {
+            x: (parentPos.x - parentLocPinX) + pinX,
+            y: (parentPos.y - parentLocPinY) + pinY
+        };
+    }
+
+    private getEdgePoint(cx: number, cy: number, w: number, h: number, targetX: number, targetY: number): { x: number, y: number } {
+        const dx = targetX - cx;
+        const dy = targetY - cy;
+
+        if (dx === 0 && dy === 0) return { x: cx, y: cy };
+
+        const rad = Math.atan2(dy, dx);
+        const rw = w / 2;
+        const rh = h / 2;
+
+        const tx = dx !== 0 ? (dx > 0 ? rw : -rw) / Math.cos(rad) : Infinity;
+        const ty = dy !== 0 ? (dy > 0 ? rh : -rh) / Math.sin(rad) : Infinity;
+
+        const t = Math.min(Math.abs(tx), Math.abs(ty));
+
+        return {
+            x: cx + t * Math.cos(rad),
+            y: cy + t * Math.sin(rad)
+        };
+    }
+
+    private calculateConnectorLayout(
+        fromShapeId: string,
+        toShapeId: string,
+        shapeHierarchy: Map<string, { shape: any; parent: any }>
+    ) {
+        let beginX = 0, beginY = 0, endX = 0, endY = 0;
+        let sourceGeom: { x: number, y: number, w: number, h: number } | null = null;
+        let targetGeom: { x: number, y: number, w: number, h: number } | null = null;
+
+        const sourceEntry = shapeHierarchy.get(fromShapeId);
+        const targetEntry = shapeHierarchy.get(toShapeId);
+
+        if (sourceEntry) {
+            const abs = this.getAbsolutePos(fromShapeId, shapeHierarchy);
+            const w = parseFloat(this.getCellVal(sourceEntry.shape, 'Width'));
+            const h = parseFloat(this.getCellVal(sourceEntry.shape, 'Height'));
+            sourceGeom = { x: abs.x, y: abs.y, w, h };
+            beginX = abs.x;
+            beginY = abs.y;
+        }
+
+        if (targetEntry) {
+            const abs = this.getAbsolutePos(toShapeId, shapeHierarchy);
+            const w = parseFloat(this.getCellVal(targetEntry.shape, 'Width'));
+            const h = parseFloat(this.getCellVal(targetEntry.shape, 'Height'));
+            targetGeom = { x: abs.x, y: abs.y, w, h };
+            endX = abs.x;
+            endY = abs.y;
+        }
+
+        if (sourceGeom && targetGeom) {
+            const startNode = this.getEdgePoint(sourceGeom.x, sourceGeom.y, sourceGeom.w, sourceGeom.h, targetGeom.x, targetGeom.y);
+            const endNode = this.getEdgePoint(targetGeom.x, targetGeom.y, targetGeom.w, targetGeom.h, sourceGeom.x, sourceGeom.y);
+            beginX = startNode.x;
+            beginY = startNode.y;
+            endX = endNode.x;
+            endY = endNode.y;
+        }
+
+        const dx = endX - beginX;
+        const dy = endY - beginY;
+        const width = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+
+        return { beginX, beginY, endX, endY, width, angle };
+    }
+
+    private createConnectorShapeObject(id: string, layout: any, beginArrow?: string, endArrow?: string) {
+        const { beginX, beginY, endX, endY, width, angle } = layout;
+
+        return {
+            '@_ID': id,
+            '@_NameU': 'Dynamic connector',
+            '@_Name': 'Dynamic connector',
+            '@_Type': 'Shape',
+            Cell: [
+                { '@_N': 'BeginX', '@_V': beginX.toString() },
+                { '@_N': 'BeginY', '@_V': beginY.toString() },
+                { '@_N': 'EndX', '@_V': endX.toString() },
+                { '@_N': 'EndY', '@_V': endY.toString() },
+                { '@_N': 'PinX', '@_V': ((beginX + endX) / 2).toString(), '@_F': '(BeginX+EndX)/2' },
+                { '@_N': 'PinY', '@_V': ((beginY + endY) / 2).toString(), '@_F': '(BeginY+EndY)/2' },
+                { '@_N': 'Width', '@_V': width.toString(), '@_F': 'SQRT((EndX-BeginX)^2+(EndY-BeginY)^2)' },
+                { '@_N': 'Height', '@_V': '0' },
+                { '@_N': 'Angle', '@_V': angle.toString(), '@_F': 'ATAN2(EndY-BeginY,EndX-BeginX)' },
+                { '@_N': 'LocPinX', '@_V': (width * 0.5).toString(), '@_F': 'Width*0.5' },
+                { '@_N': 'LocPinY', '@_V': '0', '@_F': 'Height*0.5' },
+                { '@_N': 'ObjType', '@_V': '2' },
+                { '@_N': 'ShapePermeableX', '@_V': '0' },
+                { '@_N': 'ShapePermeableY', '@_V': '0' },
+                { '@_N': 'ShapeRouteStyle', '@_V': '1' },
+                { '@_N': 'ConFixedCode', '@_V': '0' }
+            ],
+            Section: [
+                createLineSection({
+                    color: '#000000',
+                    weight: '0.01',
+                    beginArrow: beginArrow || '0',
+                    beginArrowSize: '2',
+                    endArrow: endArrow || '0',
+                    endArrowSize: '2'
+                }),
+                {
+                    '@_N': 'Geometry',
+                    '@_IX': '0',
+                    Row: [
+                        { '@_T': 'MoveTo', '@_IX': '1', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
+                        { '@_T': 'LineTo', '@_IX': '2', Cell: [{ '@_N': 'X', '@_V': width.toString(), '@_F': 'Width' }, { '@_N': 'Y', '@_V': '0', '@_F': 'Height*0' }] }
+                    ]
+                }
+            ]
+        };
+    }
+
+    private addConnectorToConnects(parsed: any, connectorId: string, fromShapeId: string, toShapeId: string) {
+        if (!parsed.PageContents.Connects) {
+            parsed.PageContents.Connects = { Connect: [] };
+        }
+
+        let connectCollection = parsed.PageContents.Connects.Connect;
+        // Ensure it's an array if it was a single object or undefined
+        if (!Array.isArray(connectCollection)) {
+            connectCollection = connectCollection ? [connectCollection] : [];
+            parsed.PageContents.Connects.Connect = connectCollection;
+        }
+
+        connectCollection.push({
+            '@_FromSheet': connectorId,
+            '@_FromCell': 'BeginX',
+            '@_FromPart': '9',
+            '@_ToSheet': fromShapeId,
+            '@_ToCell': 'PinX',
+            '@_ToPart': '3'
+        });
+
+        connectCollection.push({
+            '@_FromSheet': connectorId,
+            '@_FromCell': 'EndX',
+            '@_FromPart': '12',
+            '@_ToSheet': toShapeId,
+            '@_ToCell': 'PinX',
+            '@_ToPart': '3'
+        });
+    }
 
     async addConnector(pageId: string, fromShapeId: string, toShapeId: string, beginArrow?: string, endArrow?: string): Promise<string> {
         const pagePath = `visio/pages/page${pageId}.xml`;
@@ -86,230 +277,19 @@ export class ShapeModifier {
             parsed.PageContents.Shapes.Shape = [parsed.PageContents.Shapes.Shape];
         }
 
-        // Generate ID
         const newId = this.getNextId(parsed);
+        const shapeHierarchy = this.buildShapeHierarchy(parsed);
 
-        // Recursive Find Helper for Source/Target (since they might be inside Groups)
-        const allShapes = this.getAllShapes(parsed);
-        const findShape = (id: string) => allShapes.find((s: any) => s['@_ID'] == id);
+        const layout = this.calculateConnectorLayout(fromShapeId, toShapeId, shapeHierarchy);
+        const connectorShape = this.createConnectorShapeObject(newId, layout, beginArrow, endArrow);
 
-        const sourceShape = findShape(fromShapeId);
-        const targetShape = findShape(toShapeId);
-
-        let beginX = '0';
-        let beginY = '0';
-        let endX = '0';
-        let endY = '0';
-
-        // Build Parent Map
-        const shapeHierarchy = new Map<string, { shape: any; parent: any }>();
-        const mapHierarchy = (shapes: any[], parent: any | null) => {
-            for (const s of shapes) {
-                shapeHierarchy.set(s['@_ID'], { shape: s, parent });
-                if (s.Shapes && s.Shapes.Shape) {
-                    const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
-                    mapHierarchy(children, s);
-                }
-            }
-        };
-        const topShapes = parsed.PageContents.Shapes ? (Array.isArray(parsed.PageContents.Shapes.Shape) ? parsed.PageContents.Shapes.Shape : [parsed.PageContents.Shapes.Shape]) : [];
-        mapHierarchy(topShapes, null);
-
-        const getCellVal = (shape: any, name: string) => {
-            if (!shape || !shape.Cell) return '0';
-            const cell = shape.Cell.find((c: any) => c['@_N'] === name);
-            return cell ? cell['@_V'] : '0';
-        };
-
-        const getAbsolutePos = (id: string): { x: number, y: number } => {
-            const entry = shapeHierarchy.get(id);
-            if (!entry) return { x: 0, y: 0 };
-
-            const shape = entry.shape;
-            const pinX = parseFloat(getCellVal(shape, 'PinX'));
-            const pinY = parseFloat(getCellVal(shape, 'PinY'));
-
-            if (!entry.parent) {
-                return { x: pinX, y: pinY };
-            }
-
-            // Parent Origin
-            const parentPos = getAbsolutePos(entry.parent['@_ID']);
-            const parentLocPinX = parseFloat(getCellVal(entry.parent, 'LocPinX'));
-            const parentLocPinY = parseFloat(getCellVal(entry.parent, 'LocPinY'));
-
-            // Parent Origin (Bottom-Left usually) = ParentPin - ParentLocPin
-            const parentOriginX = parentPos.x - parentLocPinX;
-            const parentOriginY = parentPos.y - parentLocPinY;
-
-            return {
-                x: parentOriginX + pinX,
-                y: parentOriginY + pinY
-            };
-        };
-
-        let sourceGeom: { x: number, y: number, w: number, h: number } | null = null;
-        let targetGeom: { x: number, y: number, w: number, h: number } | null = null;
-
-        if (sourceShape) {
-            const abs = getAbsolutePos(fromShapeId);
-            const w = parseFloat(getCellVal(sourceShape, 'Width'));
-            const h = parseFloat(getCellVal(sourceShape, 'Height'));
-            // Start at center (temporary)
-            beginX = abs.x.toString();
-            beginY = abs.y.toString();
-
-            // Store geometry for edge calc
-            sourceGeom = { x: abs.x, y: abs.y, w, h };
-        }
-        if (targetShape) {
-            const abs = getAbsolutePos(toShapeId);
-            const w = parseFloat(getCellVal(targetShape, 'Width'));
-            const h = parseFloat(getCellVal(targetShape, 'Height'));
-            // End at center
-            endX = abs.x.toString();
-            endY = abs.y.toString();
-
-            targetGeom = { x: abs.x, y: abs.y, w, h };
-        }
-
-        // Calculate Edge Points
-        const getEdgePoint = (cx: number, cy: number, w: number, h: number, targetX: number, targetY: number) => {
-            const dx = targetX - cx;
-            const dy = targetY - cy;
-
-            if (dx === 0 && dy === 0) return { x: cx, y: cy };
-
-            // Angle of line
-            const rad = Math.atan2(dy, dx);
-
-            // Intersect with vertical sides (x = +/- w/2)
-            // if cos(rad) > 0, intersect right side.
-            // distance to x edge = (w/2) / cos(rad)
-            const rw = w / 2;
-            const rh = h / 2;
-
-            // Potential t values (distance from center)
-            const tx = dx !== 0 ? (dx > 0 ? rw : -rw) / Math.cos(rad) : Infinity;
-            const ty = dy !== 0 ? (dy > 0 ? rh : -rh) / Math.sin(rad) : Infinity;
-
-            // We want the smallest positive t that hits the box
-            // Note: tx, ty calculated above are "distance along the ray".
-            // Since we directionally chose side based on sign of dx/dy, they should be positive.
-            // We take the min.
-
-            const t = Math.min(Math.abs(tx), Math.abs(ty));
-
-            return {
-                x: cx + t * Math.cos(rad),
-                y: cy + t * Math.sin(rad)
-            };
-        };
-
-        if (sourceGeom && targetGeom) {
-            const startNode = getEdgePoint(sourceGeom.x, sourceGeom.y, sourceGeom.w, sourceGeom.h, targetGeom.x, targetGeom.y);
-            const endNode = getEdgePoint(targetGeom.x, targetGeom.y, targetGeom.w, targetGeom.h, sourceGeom.x, sourceGeom.y);
-
-            beginX = startNode.x.toString();
-            beginY = startNode.y.toString();
-            endX = endNode.x.toString();
-            endY = endNode.y.toString();
-        }
-
-        const dx = parseFloat(endX) - parseFloat(beginX);
-        const dy = parseFloat(endY) - parseFloat(beginY);
-        const widthVal = Math.sqrt(dx * dx + dy * dy);
-        const angleVal = Math.atan2(dy, dx);
-
-        // 1. Create Connector Shape
-        const connectorShape: any = {
-            '@_ID': newId,
-            '@_NameU': 'Dynamic connector',
-            '@_Name': 'Dynamic connector',
-            '@_Type': 'Shape',
-            // '@_Master': '2', // Removed: We don't have masters in blank templates yet
-            Cell: [
-                { '@_N': 'BeginX', '@_V': beginX },
-                { '@_N': 'BeginY', '@_V': beginY },
-                { '@_N': 'EndX', '@_V': endX },
-                { '@_N': 'EndY', '@_V': endY },
-                { '@_N': 'PinX', '@_V': ((parseFloat(beginX) + parseFloat(endX)) / 2).toString(), '@_F': '(BeginX+EndX)/2' },
-                { '@_N': 'PinY', '@_V': ((parseFloat(beginY) + parseFloat(endY)) / 2).toString(), '@_F': '(BeginY+EndY)/2' },
-                // 1D Transform requires standard cells
-                { '@_N': 'Width', '@_V': widthVal.toString(), '@_F': 'SQRT((EndX-BeginX)^2+(EndY-BeginY)^2)' },
-                { '@_N': 'Height', '@_V': '0' },
-                { '@_N': 'Angle', '@_V': angleVal.toString(), '@_F': 'ATAN2(EndY-BeginY,EndX-BeginX)' },
-                { '@_N': 'LocPinX', '@_V': (widthVal * 0.5).toString(), '@_F': 'Width*0.5' }, // Center pivot
-                { '@_N': 'LocPinY', '@_V': '0', '@_F': 'Height*0.5' },
-                { '@_N': 'ObjType', '@_V': '2' }, // 1D Shape
-                { '@_N': 'ShapePermeableX', '@_V': '0' }, // Recommended for connectors
-                { '@_N': 'ShapePermeableY', '@_V': '0' },
-                { '@_N': 'ShapeRouteStyle', '@_V': '1' }, // Right-Angle
-                { '@_N': 'ConFixedCode', '@_V': '0' }
-            ],
-            Section: [
-                createLineSection({
-                    color: '#000000',
-                    weight: '0.01',
-                    beginArrow: beginArrow || '0',
-                    beginArrowSize: '2', // Medium
-                    endArrow: endArrow || '0',
-                    endArrowSize: '2' // Medium
-                }),
-                {
-                    '@_N': 'Geometry',
-                    '@_IX': '0',
-                    Row: [
-                        { '@_T': 'MoveTo', '@_IX': '1', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
-                        { '@_T': 'LineTo', '@_IX': '2', Cell: [{ '@_N': 'X', '@_V': widthVal.toString(), '@_F': 'Width' }, { '@_N': 'Y', '@_V': '0', '@_F': 'Height*0' }] }
-                    ]
-                }
-            ]
-        };
-
-        const topLevelShapes = parsed.PageContents.Shapes.Shape; // Always array due to Ensure Shapes above
+        const topLevelShapes = parsed.PageContents.Shapes.Shape;
         topLevelShapes.push(connectorShape);
 
-        // 2. Add to Connects collection
-        if (!parsed.PageContents.Connects) {
-            parsed.PageContents.Connects = { Connect: [] };
-        }
-
-        let connectCollection = parsed.PageContents.Connects.Connect;
-        // Ensure it's an array if it was a single object or undefined
-        if (!Array.isArray(connectCollection)) {
-            // If it was valid object but not array, wrap it. Else init empty.
-            connectCollection = connectCollection ? [connectCollection] : [];
-            parsed.PageContents.Connects.Connect = connectCollection;
-        }
-
-        // Add Tail Connection (BeginX -> FromShape)
-        connectCollection.push({
-            '@_FromSheet': newId,
-            '@_FromCell': 'BeginX',
-            '@_FromPart': '9', // constant for BeginX
-            '@_ToSheet': fromShapeId,
-            '@_ToCell': 'PinX', // Walking glue
-            '@_ToPart': '3'     // constant for PinX connection
-        });
-
-        // Add Head Connection (EndX -> ToShape)
-        connectCollection.push({
-            '@_FromSheet': newId,
-            '@_FromCell': 'EndX',
-            '@_FromPart': '12', // constant for EndX
-            '@_ToSheet': toShapeId,
-            '@_ToCell': 'PinX',
-            '@_ToPart': '3'
-        });
+        this.addConnectorToConnects(parsed, newId, fromShapeId, toShapeId);
 
         // Save back
-        const builder = new XMLBuilder({
-            ignoreAttributes: false,
-            attributeNamePrefix: "@_",
-            format: true
-        });
-        const newXml = builder.build(parsed);
+        const newXml = this.builder.build(parsed);
         this.pkg.updateFile(pagePath, newXml);
 
         return newId;
