@@ -12,6 +12,7 @@ export interface NewShapeProps {
     fillColor?: string;
     fontColor?: string;
     bold?: boolean;
+    type?: string;
 }
 
 export class ShapeModifier {
@@ -172,7 +173,7 @@ export class ShapeModifier {
         return newId;
     }
 
-    async addShape(pageId: string, props: NewShapeProps): Promise<string> {
+    async addShape(pageId: string, props: NewShapeProps, parentId?: string): Promise<string> {
         const pagePath = this.getPagePath(pageId);
         let content: string;
         try {
@@ -187,18 +188,32 @@ export class ShapeModifier {
         if (!parsed.PageContents.Shapes) {
             parsed.PageContents.Shapes = { Shape: [] };
         }
-        let shapes = parsed.PageContents.Shapes.Shape;
-        if (!Array.isArray(shapes)) {
-            // If single object or undefined, normalize to array
-            shapes = shapes ? [shapes] : [];
-            parsed.PageContents.Shapes.Shape = shapes;
+        let topLevelShapes = parsed.PageContents.Shapes.Shape;
+        if (!Array.isArray(topLevelShapes)) {
+            topLevelShapes = topLevelShapes ? [topLevelShapes] : [];
+            parsed.PageContents.Shapes.Shape = topLevelShapes;
         }
+
+        // Helper to gather all shapes recursively
+        const getAllShapes = (shapeList: any[]): any[] => {
+            let all: any[] = [];
+            for (const s of shapeList) {
+                all.push(s);
+                if (s.Shapes && s.Shapes.Shape) {
+                    const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
+                    all = all.concat(getAllShapes(children));
+                }
+            }
+            return all;
+        };
+
+        const allShapes = getAllShapes(topLevelShapes);
 
         // Auto-generate ID if not provided
         let newId = props.id;
         if (!newId) {
             let maxId = 0;
-            for (const s of shapes) {
+            for (const s of allShapes) {
                 const id = parseInt(s['@_ID']);
                 if (!isNaN(id) && id > maxId) maxId = id;
             }
@@ -208,7 +223,7 @@ export class ShapeModifier {
         const newShape: any = {
             '@_ID': newId,
             '@_Name': `Sheet.${newId}`,
-            '@_Type': 'Shape',
+            '@_Type': props.type || 'Shape', // Allow specifying Group type
             Cell: [
                 { '@_N': 'PinX', '@_V': props.x.toString() },
                 { '@_N': 'PinY', '@_V': props.y.toString() },
@@ -236,10 +251,6 @@ export class ShapeModifier {
         if (props.fillColor) {
             // Add Fill Section
             newShape.Section.push(createFillSection(props.fillColor));
-
-            // Note: Visio might require a default Line section too if we want borders,
-            // but for now we essentially rely on defaults or minimal injection.
-            // Let's ensure there's at least a place for it.
         }
 
         if (props.fontColor || props.bold) {
@@ -249,7 +260,31 @@ export class ShapeModifier {
             }));
         }
 
-        shapes.push(newShape);
+        if (parentId) {
+            // Add to Parent Group
+            const parent = allShapes.find((s: any) => s['@_ID'] == parentId);
+            if (!parent) {
+                throw new Error(`Parent shape ${parentId} not found`);
+            }
+
+            // Ensure Parent has Shapes collection
+            if (!parent.Shapes) {
+                parent.Shapes = { Shape: [] };
+            }
+            if (!Array.isArray(parent.Shapes.Shape)) {
+                parent.Shapes.Shape = parent.Shapes.Shape ? [parent.Shapes.Shape] : [];
+            }
+
+            // Mark parent as Group if not already
+            if (parent['@_Type'] !== 'Group') {
+                parent['@_Type'] = 'Group';
+            }
+
+            parent.Shapes.Shape.push(newShape);
+        } else {
+            // Add to Page
+            topLevelShapes.push(newShape);
+        }
 
         const newXml = this.builder.build(parsed);
         this.pkg.updateFile(pagePath, newXml);
