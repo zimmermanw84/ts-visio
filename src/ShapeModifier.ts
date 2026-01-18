@@ -252,36 +252,31 @@ export class ShapeModifier {
                 { '@_N': 'LocPinY', '@_V': (props.height / 2).toString() }
             ],
             Text: { '#text': props.text },
-            Section: [
-                {
-                    '@_N': 'Geometry',
-                    '@_IX': '0',
-                    Row: [
-                        { '@_T': 'MoveTo', '@_IX': '1', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
-                        { '@_T': 'LineTo', '@_IX': '2', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': '0' }] },
-                        { '@_T': 'LineTo', '@_IX': '3', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': props.height.toString() }] },
-                        { '@_T': 'LineTo', '@_IX': '4', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': props.height.toString() }] },
-                        { '@_T': 'LineTo', '@_IX': '5', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] }
-                    ]
-                }
-            ]
+            Section: []
         };
+
+        // Only add Geometry if NOT a Group
+        // Groups should be pure containers for the Table parts (Header/Body)
+        // This prevents the Group's own background/border from obscuring children
+        if (props.type !== 'Group') {
+            newShape.Section.push({
+                '@_N': 'Geometry',
+                '@_IX': '0',
+                Row: [
+                    { '@_T': 'MoveTo', '@_IX': '1', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
+                    { '@_T': 'LineTo', '@_IX': '2', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': '0' }] },
+                    { '@_T': 'LineTo', '@_IX': '3', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': props.height.toString() }] },
+                    { '@_T': 'LineTo', '@_IX': '4', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': props.height.toString() }] },
+                    { '@_T': 'LineTo', '@_IX': '5', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] }
+                ]
+            });
+        }
 
         if (props.fillColor) {
             // Add Fill Section
             newShape.Section.push(createFillSection(props.fillColor));
-        } else if (props.type === 'Group') {
-            // Force NoFill for Groups to prevent obscuring children
-            newShape.Section.push({
-                '@_N': 'Fill',
-                '@_IX': '0',
-                Cell: [
-                    { '@_N': 'FillForegnd', '@_V': '#FFFFFF' },
-                    { '@_N': 'FillBkgnd', '@_V': '#FFFFFF' },
-                    { '@_N': 'FillPattern', '@_V': '0' } // 0 = None (Transparent)
-                ]
-            });
         }
+        // Removed: Explicit NoFill for Group is valid, but removing Geometry is cleaner.
 
         if (props.fontColor || props.bold) {
             newShape.Section.push(createCharacterSection({
