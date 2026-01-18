@@ -76,7 +76,32 @@ console.log(`Shape ID: ${shape.id}`);
 
 
 
-#### 4. Fluent API & Chaining
+#### 4. Groups & Nesting
+Create Group shapes and add children to them.
+
+```typescript
+// 1. Create a Group container
+const group = await page.addShape({
+    text: "Group",
+    x: 5,
+    y: 5,
+    width: 4,
+    height: 4,
+    type: 'Group'
+});
+
+// 2. Add child shape directly to the group
+// Coordinates are relative to the Group's bottom-left corner
+await page.addShape({
+    text: "Child",
+    x: 1, // Relative X
+    y: 1, // Relative Y
+    width: 1,
+    height: 1
+}, group.id);
+```
+
+#### 5. Fluent API & Chaining
 Combine creation, styling, and connection in a clean syntax.
 
 ```typescript
@@ -113,7 +138,6 @@ const tableShape = await page.addTable(
     ["ID: int", "Name: varchar", "Email: varchar"]
 );
 console.log(tableShape.id); // Access ID
-```
 ```
 
 #### 7. Save the Document
