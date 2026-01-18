@@ -30,6 +30,110 @@ export class ShapeModifier {
         return `visio/pages/page${pageId}.xml`;
     }
 
+    async addConnector(pageId: string, fromShapeId: string, toShapeId: string): Promise<string> {
+        const pagePath = `visio/pages/page${pageId}.xml`;
+        let content = '';
+
+        try {
+            content = this.pkg.getFileText(pagePath);
+        } catch {
+            throw new Error(`Could not find page file for ID ${pageId}. Expected at ${pagePath}`);
+        }
+
+        const parsed = this.parser.parse(content);
+
+        // Ensure Shapes collection exists
+        if (!parsed.PageContents.Shapes) {
+            parsed.PageContents.Shapes = { Shape: [] };
+        }
+        if (!Array.isArray(parsed.PageContents.Shapes.Shape)) {
+            parsed.PageContents.Shapes.Shape = [parsed.PageContents.Shapes.Shape];
+        }
+
+        // Generate ID
+        const shapes = parsed.PageContents.Shapes.Shape;
+        const maxId = shapes.reduce((max: number, s: any) => Math.max(max, Number(s['@_ID'] || 0)), 0);
+        const newId = (maxId + 1).toString();
+
+        // 1. Create Connector Shape
+        const connectorShape = {
+            '@_ID': newId,
+            '@_NameU': 'Dynamic connector',
+            '@_Type': 'Shape',
+            '@_Master': '2', // Often implies a standard connector master if present, but we define geometry locally
+            Cell: [
+                { '@_N': 'BeginX', '@_V': '0' },
+                { '@_N': 'BeginY', '@_V': '0' },
+                { '@_N': 'EndX', '@_V': '0' },
+                { '@_N': 'EndY', '@_V': '0' },
+                { '@_N': 'PinX', '@_V': '0' },
+                { '@_N': 'PinY', '@_V': '0' },
+                // 1D Transform requires standard cells
+                { '@_N': 'Width', '@_V': '0' },
+                { '@_N': 'Height', '@_V': '0' },
+                { '@_N': 'LocPinX', '@_V': '0' },
+                { '@_N': 'LocPinY', '@_V': '0' },
+                // ObjType = 2 (No scaling/No group properties necessarily, often used for connectors)
+                // Just keeping it simple for now
+            ],
+            Section: [
+                {
+                    '@_N': 'Geometry',
+                    Row: [
+                        { '@_T': 'MoveTo', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
+                        { '@_T': 'LineTo', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] }
+                    ]
+                }
+            ]
+        };
+
+        shapes.push(connectorShape);
+
+        // 2. Add to Connects collection
+        if (!parsed.PageContents.Connects) {
+            parsed.PageContents.Connects = { Connect: [] };
+        }
+
+        let connectCollection = parsed.PageContents.Connects.Connect;
+        // Ensure it's an array if it was a single object or undefined
+        if (!Array.isArray(connectCollection)) {
+            // If it was valid object but not array, wrap it. Else init empty.
+            connectCollection = connectCollection ? [connectCollection] : [];
+            parsed.PageContents.Connects.Connect = connectCollection;
+        }
+
+        // Add Tail Connection (BeginX -> FromShape)
+        connectCollection.push({
+            '@_FromSheet': newId,
+            '@_FromCell': 'BeginX',
+            '@_FromPart': '9', // constant for BeginX
+            '@_ToSheet': fromShapeId,
+            '@_ToCell': 'PinX', // Walking glue
+            '@_ToPart': '3'     // constant for PinX connection
+        });
+
+        // Add Head Connection (EndX -> ToShape)
+        connectCollection.push({
+            '@_FromSheet': newId,
+            '@_FromCell': 'EndX',
+            '@_FromPart': '12', // constant for EndX
+            '@_ToSheet': toShapeId,
+            '@_ToCell': 'PinX',
+            '@_ToPart': '3'
+        });
+
+        // Save back
+        const builder = new XMLBuilder({
+            ignoreAttributes: false,
+            attributeNamePrefix: "@_",
+            format: true
+        });
+        const newXml = builder.build(parsed);
+        this.pkg.updateFile(pagePath, newXml);
+
+        return newId;
+    }
+
     async addShape(pageId: string, props: NewShapeProps): Promise<string> {
         const pagePath = this.getPagePath(pageId);
         let content: string;

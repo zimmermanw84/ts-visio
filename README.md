@@ -19,6 +19,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Modular Architecture**: Use specialized components for loading, page management, shape reading, and modification.
 - **Modify Content**: Update text content of shapes.
 - **Create Shapes**: Add new rectangular shapes with text to pages.
+- **Connect Shapes**: Create dynamic connectors between shapes.
 
 ## Installation
 
@@ -70,7 +71,20 @@ await shape.setText("Updated Text");
 console.log(`Shape ID: ${shape.id}`);
 ```
 
-#### 4. Save the Document
+console.log(`Shape ID: ${shape.id}`);
+```
+
+#### 4. Connect Shapes
+Link two shapes with a dynamic connector.
+
+```typescript
+const shape1 = await page.addShape({ text: "From", x: 2, y: 4, width: 2, height: 1 });
+const shape2 = await page.addShape({ text: "To", x: 6, y: 4, width: 2, height: 1 });
+
+await page.connectShapes(shape1, shape2);
+```
+
+#### 5. Save the Document
 Save the modified document back to disk.
 
 ```typescript
