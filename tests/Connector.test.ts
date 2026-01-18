@@ -99,5 +99,7 @@ describe('Connectors', () => {
         const xCell = lineToRow?.Cells['X'];
         expect(xCell).toBeDefined();
         expect(xCell?.F).toBe('Width');
+        // Ensure static value is also set for immediate visibility
+        expect(xCell?.V).toBe('4');
     });
 });

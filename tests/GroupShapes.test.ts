@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { VisioDocument } from '../src/VisioDocument';
+import { VisioPackage } from '../src/VisioPackage';
+import { ShapeReader } from '../src/ShapeReader';
 import fs from 'fs';
 import path from 'path';
 
@@ -52,5 +54,25 @@ describe('Group Shapes', () => {
 
         await doc.save(testFile);
         expect(fs.existsSync(testFile)).toBe(true);
+    });
+
+    it('should create group shapes without geometry (transparent container)', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        await page.addTable(0, 0, 'TransparencyTest', ['col1']);
+        await doc.save(testFile);
+
+        const buffer = fs.readFileSync(testFile);
+        const pkg = new VisioPackage();
+        await pkg.load(buffer);
+        const reader = new ShapeReader(pkg);
+        const shapes = reader.readShapes('visio/pages/page1.xml');
+
+        const group = shapes.find(s => s.Type === 'Group');
+        expect(group).toBeDefined();
+
+        // Ensure NO Geometry section
+        expect(group?.Sections['Geometry']).toBeUndefined();
     });
 });
