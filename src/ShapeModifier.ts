@@ -116,6 +116,11 @@ export class ShapeModifier {
             endY = getCellVal(targetShape, 'PinY');
         }
 
+        const dx = parseFloat(endX) - parseFloat(beginX);
+        const dy = parseFloat(endY) - parseFloat(beginY);
+        const widthVal = Math.sqrt(dx * dx + dy * dy);
+        const angleVal = Math.atan2(dy, dx);
+
         // 1. Create Connector Shape
         const connectorShape: any = {
             '@_ID': newId,
@@ -133,10 +138,10 @@ export class ShapeModifier {
                 { '@_N': 'BeginArrow', '@_V': beginArrow || '0' },
                 { '@_N': 'EndArrow', '@_V': endArrow || '0' },
                 // 1D Transform requires standard cells
-                { '@_N': 'Width', '@_V': '0', '@_F': 'SQRT((EndX-BeginX)^2+(EndY-BeginY)^2)' },
+                { '@_N': 'Width', '@_V': widthVal.toString(), '@_F': 'SQRT((EndX-BeginX)^2+(EndY-BeginY)^2)' },
                 { '@_N': 'Height', '@_V': '0' },
-                { '@_N': 'Angle', '@_V': '0', '@_F': 'ATAN2(EndY-BeginY,EndX-BeginX)' },
-                { '@_N': 'LocPinX', '@_V': '0', '@_F': 'Width*0.5' }, // Center pivot
+                { '@_N': 'Angle', '@_V': angleVal.toString(), '@_F': 'ATAN2(EndY-BeginY,EndX-BeginX)' },
+                { '@_N': 'LocPinX', '@_V': (widthVal * 0.5).toString(), '@_F': 'Width*0.5' }, // Center pivot
                 { '@_N': 'LocPinY', '@_V': '0', '@_F': 'Height*0.5' },
                 { '@_N': 'ObjType', '@_V': '2' }, // 1D Shape
                 { '@_N': 'ShapePermeableX', '@_V': '0' }, // Recommended for connectors
@@ -265,6 +270,17 @@ export class ShapeModifier {
         if (props.fillColor) {
             // Add Fill Section
             newShape.Section.push(createFillSection(props.fillColor));
+        } else if (props.type === 'Group') {
+            // Force NoFill for Groups to prevent obscuring children
+            newShape.Section.push({
+                '@_N': 'Fill',
+                '@_IX': '0',
+                Cell: [
+                    { '@_N': 'FillForegnd', '@_V': '#FFFFFF' },
+                    { '@_N': 'FillBkgnd', '@_V': '#FFFFFF' },
+                    { '@_N': 'FillPattern', '@_V': '0' } // 0 = None (Transparent)
+                ]
+            });
         }
 
         if (props.fontColor || props.bold) {

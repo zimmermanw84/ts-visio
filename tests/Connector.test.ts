@@ -47,6 +47,11 @@ describe('Connectors', () => {
         expect(connector?.Cells['EndX']?.V).toBe('6');
         expect(connector?.Cells['EndY']?.V).toBe('4');
 
+        // Check pre-calculated Width/Angle for visibility
+        // dx = 4, dy = 0 -> Width = 4, Angle = 0
+        expect(connector?.Cells['Width']?.V).toBe('4');
+        expect(connector?.Cells['Angle']?.V).toBe('0');
+
         // 2. Check Line Section exists (Visibility)
         // Note: ShapeReader parses Sections into an object map by Name
         expect(connector?.Sections['Line']).toBeDefined();
