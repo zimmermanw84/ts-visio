@@ -160,9 +160,6 @@ const tableShape = await page.addTable(
 console.log(tableShape.id); // Access ID
 ```
 
-await shape4.placeBelow(shape1, { gap: 0.5 });
-```
-
 #### 8. Typed Schema Builder (Facade)
 For ER diagrams, use the `SchemaDiagram` wrapper for simplified semantics.
 
