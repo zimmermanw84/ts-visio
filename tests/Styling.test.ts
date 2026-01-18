@@ -55,4 +55,27 @@ describe('Styling', () => {
         await doc.save(testFile);
         expect(fs.existsSync(testFile)).toBe(true);
     });
+
+    it('should allow fluent chaining of styles', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+        const shape = await page.addShape({ text: 'Fluent', x: 2, y: 2, width: 2, height: 1 });
+
+        // Method Chaining
+        await (await shape.setStyle({ fillColor: '#00FF00' })).setStyle({ bold: true });
+
+        // Verify return value is the shape instance
+        const s2 = await shape.setStyle({ fontColor: '#0000FF' });
+        expect(s2).toBe(shape);
+    });
+
+    it('should allow linking with connectTo and chaining', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+        const s1 = await page.addShape({ text: 'A', x: 0, y: 0, width: 1, height: 1 });
+        const s2 = await page.addShape({ text: 'B', x: 4, y: 4, width: 1, height: 1 });
+
+        const ret = await s1.connectTo(s2);
+        expect(ret).toBe(s1);
+    });
 });

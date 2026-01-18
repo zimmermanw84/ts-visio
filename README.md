@@ -76,22 +76,33 @@ console.log(`Shape ID: ${shape.id}`);
 
 
 
-#### 4. Connect Shapes
-Link two shapes with a dynamic connector.
+#### 4. Fluent API & Chaining
+Combine creation, styling, and connection in a clean syntax.
 
 ```typescript
-const shape1 = await page.addShape({ text: "From", x: 2, y: 4, width: 2, height: 1 });
-const shape2 = await page.addShape({ text: "To", x: 6, y: 4, width: 2, height: 1 });
+const shape1 = await page.addShape({ text: "Start", x: 2, y: 4, width: 2, height: 1 });
+const shape2 = await page.addShape({ text: "End", x: 6, y: 4, width: 2, height: 1 });
 
-await page.connectShapes(shape1, shape2);
+// Fluent Connection
+await shape1.connectTo(shape2);
 
-// OR with arrowheads (Crow's Foot, etc.)
-import { ArrowHeads } from 'ts-visio/utils/StyleHelpers';
-await page.connectShapes(shape1, shape2, ArrowHeads.One, ArrowHeads.CrowsFoot);
-await page.connectShapes(shape1, shape2, ArrowHeads.One, ArrowHeads.CrowsFoot);
+// Chaining Styles & Connections
+await shape1.setStyle({ fillColor: '#00FF00' })
+            .connectTo(shape2);
 ```
 
-#### 5. Add Tables
+#### 5. Advanced Connections
+Use specific arrowheads (Crow's Foot, etc.)
+
+```typescript
+import { ArrowHeads } from 'ts-visio/utils/StyleHelpers';
+
+await page.connectShapes(shape1, shape2, ArrowHeads.One, ArrowHeads.CrowsFoot);
+// OR
+await shape1.connectTo(shape2, ArrowHeads.One, ArrowHeads.CrowsFoot);
+```
+
+#### 6. Database Tables
 Create a compound stacked shape for database tables.
 
 ```typescript
@@ -105,7 +116,7 @@ console.log(tableShape.id); // Access ID
 ```
 ```
 
-#### 6. Save the Document
+#### 7. Save the Document
 Save the modified document back to disk.
 
 ```typescript

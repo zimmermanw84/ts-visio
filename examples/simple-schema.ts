@@ -38,17 +38,15 @@ async function run() {
     // 2. Retrieve Shapes to connect them
     // Refactored: addTable now returns the Shape object directly.
 
-    // 3. Connect Tables
+    // 3. Connect Tables (Fluent API)
     // Users -> Posts (One to Many)
-    await page.connectShapes(usersTable, postsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
+    await usersTable.connectTo(postsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
 
     // Posts -> Comments (One to Many)
-    await page.connectShapes(postsTable, commentsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
+    await postsTable.connectTo(commentsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
 
     // Users -> Comments (One to Many)
-    // Connecting from Users to Comments as well (optional, but typical)
-    // Note: This might overlap with Posts connection visually without routing logic, but Visio 'Dynamic connector' should handle basic routing.
-    await page.connectShapes(usersTable, commentsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
+    await usersTable.connectTo(commentsTable, ArrowHeads.One, ArrowHeads.CrowsFoot);
 
     // 4. Save
     const outPath = path.resolve(__dirname, 'simple-schema.vsdx');
