@@ -64,7 +64,7 @@ export class ShapeModifier {
             '@_ID': newId,
             '@_NameU': 'Dynamic connector',
             '@_Type': 'Shape',
-            '@_Master': '2', // Often implies a standard connector master if present, but we define geometry locally
+            // '@_Master': '2', // Removed: We don't have masters in blank templates yet
             Cell: [
                 { '@_N': 'BeginX', '@_V': '0' },
                 { '@_N': 'BeginY', '@_V': '0' },
@@ -77,17 +77,21 @@ export class ShapeModifier {
                 // 1D Transform requires standard cells
                 { '@_N': 'Width', '@_V': '0' },
                 { '@_N': 'Height', '@_V': '0' },
-                { '@_N': 'LocPinX', '@_V': '0' },
+                { '@_N': 'LocPinX', '@_V': '0' }, // Will be recalculated by Visio
                 { '@_N': 'LocPinY', '@_V': '0' },
-                // ObjType = 2 (No scaling/No group properties necessarily, often used for connectors)
-                // Just keeping it simple for now
+                { '@_N': 'ObjType', '@_V': '2' }, // 1D Shape
+                { '@_N': 'ShapePermeableX', '@_V': '0' }, // Recommended for connectors
+                { '@_N': 'ShapePermeableY', '@_V': '0' },
+                { '@_N': 'ShapeRouteStyle', '@_V': '1' }, // Right-Angle
+                { '@_N': 'ConFixedCode', '@_V': '0' }
             ],
             Section: [
                 {
                     '@_N': 'Geometry',
+                    '@_IX': '0',
                     Row: [
-                        { '@_T': 'MoveTo', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
-                        { '@_T': 'LineTo', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] }
+                        { '@_T': 'MoveTo', '@_IX': '1', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
+                        { '@_T': 'LineTo', '@_IX': '2', Cell: [{ '@_N': 'X', '@_V': '0', '@_F': 'Width' }, { '@_N': 'Y', '@_V': '0', '@_F': 'Height*0' }] }
                     ]
                 }
             ]
