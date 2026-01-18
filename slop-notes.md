@@ -103,5 +103,5 @@ Here are the specific, technical AI prompts you can use to build these features.
 > 2. Call `addShape` for the Header at `(x, y)`.
 > 3. Call `addShape` for the Body at `(x, y - headerHeight)` (since Visio coordinates start from bottom-left).
 > 4. Return the ID of the main container shape."
->
->
+> 5. Update README.md with the new features.
+> 6. Update tests to reflect the new features.
