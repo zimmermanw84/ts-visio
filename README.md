@@ -17,7 +17,6 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **ShapeSheet Access**: Read `Cells`, `Rows`, and `Sections` directly.
 - **Connections**: Analyze connectivity between shapes.
 - **Modular Architecture**: Use specialized components for loading, page management, shape reading, and modification.
-- **Modular Architecture**: Use specialized components for loading, page management, shape reading, and modification.
 - **Modify Content**: Update text content of shapes.
 - **Create Shapes**: Add new rectangular shapes with text to pages.
 
@@ -85,8 +84,7 @@ shapes.forEach(shape => {
         console.log(`  Width: ${shape.Cells['Width'].V}`);
     }
 });
-    }
-});
+
 ```
 
 #### 5. Update Shapes
@@ -109,9 +107,17 @@ await modifier.addShape('1', {
     height: 1
 });
 
-// Save the changes to a new buffer
-const newBuffer = await pkg.save();
-fs.writeFileSync('updated_diagram.vsdx', newBuffer);
+```
+
+#### 6. Save the Package
+You can generate a buffer or write directly to a file.
+
+```typescript
+// Save to a file asynchronously
+await pkg.save('updated_diagram.vsdx');
+
+// OR Generate a buffer
+const buffer = await pkg.save();
 ```
 
 ## Development

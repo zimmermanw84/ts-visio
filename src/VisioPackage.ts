@@ -50,11 +50,18 @@ export class VisioPackage {
         this.zip.file(path, content);
     }
 
-    async save(): Promise<Buffer> {
+    async save(filename?: string): Promise<Buffer> {
         if (!this.zip) {
             throw new Error("Package not loaded");
         }
-        return await this.zip.generateAsync({ type: 'nodebuffer' });
+        const buffer = await this.zip.generateAsync({ type: 'nodebuffer' });
+
+        if (filename) {
+            const fs = await import('fs/promises');
+            await fs.writeFile(filename, buffer);
+        }
+
+        return buffer;
     }
 
     getFileText(path: string): string {
