@@ -66,3 +66,15 @@ export function createCharacterSection(props: { bold?: boolean; color?: string }
         ]
     };
 }
+
+export function createLineSection(props: { color?: string; pattern?: string; weight?: string }): VisioSection {
+    return {
+        '@_N': 'Line',
+        '@_IX': '0',
+        Cell: [
+            { '@_N': 'LineColor', '@_V': props.color || '#000000' },
+            { '@_N': 'LinePattern', '@_V': props.pattern || '1' }, // 1 = Solid
+            { '@_N': 'LineWeight', '@_V': props.weight || '0.01' } // ~0.72pt
+        ]
+    };
+}

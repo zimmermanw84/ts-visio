@@ -14,6 +14,7 @@ export interface VisioRow {
 export interface VisioSection {
     N: string; // Name (e.g. "Geometry")
     Rows: VisioRow[];
+    Cells?: { [name: string]: VisioCell }; // Direct cells for sections like Line/Fill
 }
 
 export interface VisioShape {

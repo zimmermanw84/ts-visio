@@ -38,6 +38,7 @@ export const parseSection = (sectionData: any): VisioSection => {
 
     return {
         N: sectionData['@_N'],
-        Rows: rows
+        Rows: rows,
+        Cells: parseCells(sectionData) // Attempt to parse direct cells
     };
 };
