@@ -42,8 +42,6 @@ const buffer = fs.readFileSync('diagram.vsdx');
 await pkg.load(buffer);
 ```
 
-
-
 #### 2. Create a Blank Package
 You can also create a new, empty Visio document.
 
