@@ -1,5 +1,6 @@
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { VisioPackage } from './VisioPackage';
+import { createFillSection } from './utils/StyleHelpers';
 
 export interface NewShapeProps {
     text: string;
@@ -8,6 +9,7 @@ export interface NewShapeProps {
     width: number;
     height: number;
     id?: string;
+    fillColor?: string;
 }
 
 export class ShapeModifier {
@@ -194,6 +196,15 @@ export class ShapeModifier {
                 }
             ]
         };
+
+        if (props.fillColor) {
+            // Add Fill Section
+            newShape.Section.push(createFillSection(props.fillColor));
+
+            // Note: Visio might require a default Line section too if we want borders,
+            // but for now we essentially rely on defaults or minimal injection.
+            // Let's ensure there's at least a place for it.
+        }
 
         shapes.push(newShape);
 
