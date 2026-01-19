@@ -26,13 +26,32 @@ describe('Shape Data Integration', () => {
         const reloadedShapes = await reloadedPage.getShapes();
         const serverShape = reloadedShapes[0];
 
-        // Note: We don't have a `getData()` API yet to verify easily from the high level.
-        // We verified the internal XML writing in unit tests.
-        // Here we just ensure the file is valid and can be loaded, and maybe check internal XML if we really want to be sure,
-        // but `getShapes()` returning successfully implies no corruption.
-
         expect(serverShape).toBeDefined();
-        // Additional: We could implement `getData()` later, but for now this confirms the API usage doesn't crash
-        // and produces a parseable file.
+
+        // Verify internal mapped structure (ShapeReader transforms raw XML)
+        const internal = (serverShape as any).internalShape;
+        const propSection = internal.Sections['Property'];
+        expect(propSection).toBeDefined();
+        const rows = propSection.Rows || [];
+
+        // 1. Check IP (String)
+        const ipRow = rows.find((r: any) => r.N === 'Prop.IP'); // Using added 'N' property
+        expect(ipRow).toBeDefined();
+        expect(ipRow.Cells['Value'].V).toBe('192.168.1.5');
+        expect(ipRow.Cells['Label'].V).toBe('IP Address');
+
+        // 2. Check Cost (Currency/Number)
+        const costRow = rows.find((r: any) => r.N === 'Prop.Cost');
+        expect(costRow.Cells['Type'].V).toBe('7'); // Currency=7
+        expect(costRow.Cells['Value'].V).toBe('2500');
+
+        // 3. Check InstallDate (Date)
+        const dateRow = rows.find((r: any) => r.N === 'Prop.InstallDate');
+        expect(dateRow.Cells['Value'].V).toContain('2024-01-01T10:00:00');
+
+        // 4. Check IsActive (Hidden Boolean)
+        const activeRow = rows.find((r: any) => r.N === 'Prop.IsActive');
+        expect(activeRow.Cells['Invisible'].V).toBe('1');
+        expect(activeRow.Cells['Value'].V).toBe('1');
     });
 });

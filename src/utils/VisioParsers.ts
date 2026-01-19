@@ -31,6 +31,7 @@ export const parseSection = (sectionData: any): VisioSection => {
         const row = r as any;
         rows.push({
             T: row['@_T'],
+            N: row['@_N'],
             IX: row['@_IX'],
             Cells: parseCells(row)
         });

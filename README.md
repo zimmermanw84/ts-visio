@@ -224,6 +224,18 @@ await page2.addShape({ text: "Server", x: 4, y: 4 });
 await doc.save("multipage.vsdx");
 ```
 
+#### 12. Shape Data (Custom Properties)
+Add metadata to shapes, which is crucial for "Smart" diagrams like visual databases or inventories.
+
+```typescript
+const shape = await page.addShape({ text: "Server DB-01", x: 2, y: 2 });
+
+await shape.addData("IP", { value: "192.168.1.10", label: "IP Address" })
+           .addData("Status", { value: "Active" })
+           .addData("LastRefreshed", { value: new Date() }) // Auto-serialized as Visio Date
+           .addData("ConfigID", { value: 1024, hidden: true }); // Invisible to user
+```
+
 ## Examples
 
 Check out the [examples](./examples) directory for complete scripts.
