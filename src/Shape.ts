@@ -1,6 +1,14 @@
 import { VisioShape } from './types/VisioTypes';
 import { VisioPackage } from './VisioPackage';
 import { ShapeModifier, ShapeStyle } from './ShapeModifier';
+import { VisioPropType } from './types/VisioTypes';
+
+export interface ShapeData {
+    value: string | number | boolean | Date;
+    label?: string;
+    hidden?: boolean;
+    type?: VisioPropType;
+}
 
 export class Shape {
     constructor(
@@ -91,6 +99,45 @@ export class Shape {
 
         if (this.internalShape.Cells['PinY']) this.internalShape.Cells['PinY'].V = newY.toString();
         else this.internalShape.Cells['PinY'] = { V: newY.toString(), N: 'PinY' };
+
+        return this;
+    }
+
+    async addPropertyDefinition(name: string, type: number, options: { label?: string, invisible?: boolean } = {}): Promise<this> {
+        const modifier = new ShapeModifier(this.pkg);
+        await modifier.addPropertyDefinition(this.pageId, this.id, name, type, options);
+        return this;
+    }
+
+    async setPropertyValue(name: string, value: string | number | boolean | Date): Promise<this> {
+        const modifier = new ShapeModifier(this.pkg);
+        await modifier.setPropertyValue(this.pageId, this.id, name, value);
+        return this;
+    }
+
+    async addData(key: string, data: ShapeData): Promise<this> {
+        // Auto-detect type if not provided
+        let type = data.type;
+        if (type === undefined) {
+            if (data.value instanceof Date) {
+                type = VisioPropType.Date;
+            } else if (typeof data.value === 'number') {
+                type = VisioPropType.Number;
+            } else if (typeof data.value === 'boolean') {
+                type = VisioPropType.Boolean;
+            } else {
+                type = VisioPropType.String;
+            }
+        }
+
+        // 1. Define Property
+        await this.addPropertyDefinition(key, type, {
+            label: data.label,
+            invisible: data.hidden
+        });
+
+        // 2. Set Value
+        await this.setPropertyValue(key, data.value);
 
         return this;
     }

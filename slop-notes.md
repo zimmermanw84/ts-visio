@@ -390,3 +390,124 @@ Here is the itemized prompt plan to implement **Multi-Page Support**. This logic
 > * **Checklist:** Confirm existing single-page tests pass (Regression)."
 >
 >
+
+---
+
+Here is the itemized prompt plan to implement **Shape Data (Custom Properties)**. This feature turns a drawing into a database by allowing shapes to hold invisible or visible metadata.
+
+### Phase 1: The Property Section (Schema & Definition)
+
+*Goal: Create the structure to hold data. In Visio, you cannot just "set a value"; you must first define the property row (Label, Type, Format) in the ShapeSheet.*
+
+**Prompt 1: Understanding Property XML**
+
+> "I need to implement Custom Properties (Shape Data).
+> 1. Explain the XML structure of the `<Section N='Property'>` in the ShapeSheet.
+> 2. specifically, detail the roles of these Cells:
+> * `Prop.Name` (The row reference)
+> * `Label` (The display name, e.g., 'IP Address')
+> * `Value` (The data)
+> * `Type` (String vs Int vs Date)
+> * `Invisible` (Hidden metadata)
+>
+>
+> 3. Provide a sample XML snippet of a Shape that has a visible 'Cost' property and a hidden 'ID' property."
+>
+>
+
+**Prompt 2: Implementing `addPropertyDefinition**`
+
+> "Implement a method `addPropertyDefinition` on the `Shape` class.
+> 1. Arguments: `name: string` (internal key), `label: string` (display name), `type: VisioPropType`.
+> 2. **Logic:**
+> * Check if `<Section N='Property'>` exists. If not, create it.
+> * Create a new `<Row>` with `N='Prop.{name}'`.
+> * Add `<Cell N='Label' V='{label}'/>`.
+> * Add `<Cell N='Type' V='{type}'/>`.
+>
+>
+> 3. **Return:** The newly created Row object or ID."
+>
+>
+
+**Prompt 3: PR Generation (Phase 1)**
+
+> "Generate a Markdown PR description.
+> * **Title:** feat: Core Logic for Shape Data Definitions
+> * **Description:** Adds support for `<Section N='Property'>`.
+> * **Technical Detail:** Explain how we map TypeScript types to Visio Property Types (0=String, 2=Number, etc.).
+> * **Test Plan:** Verify XML output contains correct `<Row>` structure."
+>
+>
+
+(You are here) ---
+
+### Phase 2: Visibility & Data Types (The Logic)
+
+*Goal: Handle the specific use case of "Hidden" data and ensuring Dates/Numbers are formatted correctly so Excel exports work.*
+
+**Prompt 4: Handling Visibility (Hidden Data)**
+
+> "Refactor `addPropertyDefinition` to accept an options object: `{ invisible: boolean }`.
+> 1. If `invisible` is true, add the `<Cell N='Invisible' V='1'/>` to the property Row.
+> 2. **Test Requirement:** Create a test case 'Hidden Metadata' where we add an 'EmployeeID' field with `invisible: true`. Assert that the XML has `Invisible` set to 1."
+>
+>
+
+**Prompt 5: Setting Values**
+
+> "Implement `setPropertyValue(key: string, value: any)`.
+> 1. Locate the `<Row N='Prop.{key}'>`.
+> 2. Update the `<Cell N='Value'>`.
+> 3. **Critical:** Visio stores values as formulae or strings.
+> * If string: `V='StringContent'`.
+> * If number: `V='100'`.
+> * If date: Visio uses a specific floating point date format or ISO string. How should we handle JS Date objects?
+>
+>
+> 4. Implement the Date serialization logic for Visio."
+>
+>
+
+**Prompt 6: PR Generation (Phase 2)**
+
+> "Generate a PR description for Data Types & Visibility.
+> * **Title:** feat: Support for Hidden Properties and Typed Values
+> * **Context:** Necessary for 'Visual Database' use cases where metadata shouldn't clutter the diagram.
+> * **Changes:** Added Invisible cell support and Date serialization helper."
+>
+>
+
+---
+
+### Phase 3: Developer Experience (Fluent API)
+
+*Goal: Make it one line of code to add metadata.*
+
+**Prompt 7: High-Level Abstraction**
+
+> "Create a fluent API for this feature.
+> 1. Create a `ShapeData` interface: `{ label?: string, value: string | number, hidden?: boolean }`.
+> 2. Add a method `shape.addData(key: string, data: ShapeData)`.
+> 3. **Example Usage:**
+> ```typescript
+> shape.addData('ip', { label: 'IP Address', value: '192.168.1.1' })
+>      .addData('id', { value: 12345, hidden: true });
+>
+> ```
+>
+>
+> 4. Ensure this calls the low-level definition and value setters we built in previous phases."
+>
+>
+
+**Prompt 8: Integration Test & PR**
+
+> "Write an integration test:
+> 1. Create a shape.
+> 2. Add 3 data fields (String, Number, Hidden).
+> 3. Save the file.
+> 4. **Verification:** Start a mock XML parser to read the saved file and verify that the `Property` section contains exactly 3 rows with the correct attributes.
+> 5. Generate the final PR description."
+>
+>
