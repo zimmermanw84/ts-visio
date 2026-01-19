@@ -52,3 +52,14 @@ export interface VisioPage {
         Sections: { [name: string]: VisioSection };
     };
 }
+
+export enum VisioPropType {
+    String = 0,
+    FixedList = 1,
+    Number = 2,
+    Boolean = 3,
+    VariableList = 4,
+    Date = 5,
+    Duration = 6,
+    Currency = 7
+}

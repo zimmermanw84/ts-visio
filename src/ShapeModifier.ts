@@ -576,6 +576,157 @@ export class ShapeModifier {
         const newXml = this.builder.build(parsed);
         this.pkg.updateFile(pagePath, newXml);
     }
+    async addPropertyDefinition(pageId: string, shapeId: string, name: string, type: number, options: { label?: string, invisible?: boolean } = {}): Promise<void> {
+        const pagePath = this.getPagePath(pageId);
+        let content: string;
+        try {
+            content = this.pkg.getFileText(pagePath);
+        } catch {
+            throw new Error(`Could not find page file for ID ${pageId}`);
+        }
+
+        const parsed = this.parser.parse(content);
+        let found = false;
+
+        const findAndUpdate = (shapes: any[]) => {
+            for (const shape of shapes) {
+                if (shape['@_ID'] == shapeId) {
+                    found = true;
+                    // Ensure Section array exists
+                    if (!shape.Section) shape.Section = [];
+                    if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
+
+                    // Find or Create Property Section
+                    let propSection = shape.Section.find((s: any) => s['@_N'] === 'Property');
+                    if (!propSection) {
+                        propSection = { '@_N': 'Property', Row: [] };
+                        shape.Section.push(propSection);
+                    }
+
+                    // Ensure Row array exists
+                    if (!propSection.Row) propSection.Row = [];
+                    if (!Array.isArray(propSection.Row)) propSection.Row = [propSection.Row];
+
+                    // Check if property already exists
+                    const existingRow = propSection.Row.find((r: any) => r['@_N'] === `Prop.${name}`);
+                    if (existingRow) {
+                        // Update existing Definition
+                        const updateCell = (n: string, v: string) => {
+                            let c = existingRow.Cell.find((x: any) => x['@_N'] === n);
+                            if (c) c['@_V'] = v;
+                            else existingRow.Cell.push({ '@_N': n, '@_V': v });
+                        };
+                        if (options.label !== undefined) updateCell('Label', options.label);
+                        updateCell('Type', type.toString());
+                        if (options.invisible !== undefined) updateCell('Invisible', options.invisible ? '1' : '0');
+                    } else {
+                        // Create New Row
+                        propSection.Row.push({
+                            '@_N': `Prop.${name}`,
+                            Cell: [
+                                { '@_N': 'Label', '@_V': options.label || name }, // Default label to name
+                                { '@_N': 'Type', '@_V': type.toString() },
+                                { '@_N': 'Invisible', '@_V': options.invisible ? '1' : '0' },
+                                { '@_N': 'Value', '@_V': '0' } // Initialize with default
+                            ]
+                        });
+                    }
+                    return;
+                }
+            }
+        };
+
+        const shapesData = parsed.PageContents?.Shapes?.Shape;
+        if (shapesData) {
+            const shapesArray = Array.isArray(shapesData) ? shapesData : [shapesData];
+            findAndUpdate(shapesArray);
+        }
+
+        if (!found) {
+            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        }
+
+        const newXml = this.builder.build(parsed);
+        this.pkg.updateFile(pagePath, newXml);
+    }
+    private dateToVisioString(date: Date): string {
+        // Visio typically accepts ISO 8601 strings for Type 5
+        // Example: 2022-01-01T00:00:00
+        return date.toISOString().split('.')[0]; // remove milliseconds
+    }
+
+    async setPropertyValue(pageId: string, shapeId: string, name: string, value: string | number | boolean | Date): Promise<void> {
+        const pagePath = this.getPagePath(pageId);
+        let content: string;
+        try {
+            content = this.pkg.getFileText(pagePath);
+        } catch {
+            throw new Error(`Could not find page file for ID ${pageId}`);
+        }
+
+        const parsed = this.parser.parse(content);
+        let found = false;
+
+        const findAndUpdate = (shapes: any[]) => {
+            for (const shape of shapes) {
+                if (shape['@_ID'] == shapeId) {
+                    found = true;
+                    // Ensure Section array exists
+                    const sections = shape.Section ? (Array.isArray(shape.Section) ? shape.Section : [shape.Section]) : [];
+                    const propSection = sections.find((s: any) => s['@_N'] === 'Property');
+
+                    if (!propSection) {
+                        throw new Error(`Property definition 'Prop.${name}' does not exist on shape ${shapeId}. Call addPropertyDefinition first.`);
+                    }
+
+                    const rows = propSection.Row ? (Array.isArray(propSection.Row) ? propSection.Row : [propSection.Row]) : [];
+                    const row = rows.find((r: any) => r['@_N'] === `Prop.${name}`);
+
+                    if (!row) {
+                        throw new Error(`Property definition 'Prop.${name}' does not exist on shape ${shapeId}. Call addPropertyDefinition first.`);
+                    }
+
+                    // Determine Visio Value String
+                    let visioValue = '';
+                    if (value instanceof Date) {
+                        visioValue = this.dateToVisioString(value);
+                    } else if (typeof value === 'boolean') {
+                        visioValue = value ? '1' : '0'; // Should boolean be V='TRUE' or 1? Standard practice is often 1/0 or TRUE/FALSE. Cells are formulaic.
+                        // However, if the Type is 3 (Boolean), Visio often expects 0/1 or TRUE/FALSE.
+                        // Let's stick to '1'/'0' for safety in formulas if generic.
+                    } else {
+                        visioValue = value.toString();
+                    }
+
+                    // Update or Add Value Cell
+                    // Note: If Type is String (0), V="String". If Number (2), V="123".
+                    // Visio often puts string values in formulae as "String", but in XML V attribute it's raw text?
+                    // Actually, for String props, V usually contains the string.
+
+                    let valCell = row.Cell.find((c: any) => c['@_N'] === 'Value');
+                    if (valCell) {
+                        valCell['@_V'] = visioValue;
+                    } else {
+                        row.Cell.push({ '@_N': 'Value', '@_V': visioValue });
+                    }
+                    return;
+                }
+            }
+        };
+
+        const shapesData = parsed.PageContents?.Shapes?.Shape;
+        if (shapesData) {
+            const shapesArray = Array.isArray(shapesData) ? shapesData : [shapesData];
+            findAndUpdate(shapesArray);
+        }
+
+        if (!found) {
+            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        }
+
+        const newXml = this.builder.build(parsed);
+        this.pkg.updateFile(pagePath, newXml);
+    }
 }
 
 export interface ShapeStyle {
