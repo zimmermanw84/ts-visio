@@ -178,3 +178,118 @@ I suggest running the prompts in this exact order: **1 → 3 → 2 → 4 → 5**
 * You need the **Objects (1)** to exist before you can **Group (3)** them.
 * You need the **Group (3)** logic working before you add **Chaining (2)** methods to it.
 * **Layout (4)** relies on the unified coordinates of the Group, so it must come after.
+
+
+---
+
+This is a significant architectural shift. Moving from "drawing lines" to "instantiating masters" is the correct way to handle Visio files, as it dramatically reduces file size and enables the use of complex icons (like network gear or AWS symbols).
+
+Here is the itemized prompt plan to execute this transition cleanly.
+
+### Phase 1: Parsing Existing Masters (`masters.xml`)
+
+*Goal: Before we can use a Master, we must identify what Masters already exist in the template file.*
+
+**Prompt 1: The Master Manager**
+
+> "Create a `MasterManager` class in `src/core/MasterManager.ts`.
+> 1. It should accept the unzipped `VisioPackage`.
+> 2. Implement `load()`: Read `visio/masters/masters.xml` to find all registered masters.
+> 3. Return an array of objects: `{ id: string, name: string, type: string, xmlPath: string }`.
+> 4. Use `fast-xml-parser` to handle the XML.
+> 5. **Test Requirement:** Create `tests/MasterManager.test.ts` that mocks a `masters.xml` string and asserts that the parser correctly extracts the ID and Name (e.g., 'Rectangle')."
+>
+>
+
+**Prompt 2: PR Generation (Phase 1)**
+
+> "I have implemented the `MasterManager`. Please generate a Markdown PR description.
+> * **Title:** feat: Core MasterManager for parsing stencil data
+> * **Description:** Explain that this reads the `masters.xml` index.
+> * **Changes:** List the new class and the interface changes.
+> * **Verification:** Mention the unit tests."
+>
+>
+
+---
+
+### Phase 2: Instantiating a Master (The "Drop" Logic)
+
+*Goal: Modify `addShape` to link to a Master ID instead of drawing raw geometry.*
+
+**Prompt 3: Refactoring `addShape` Strategy**
+
+> "I need to refactor `Page.addShape` to support 'Dropping' a master.
+> 1. Update the signature to accept an optional `masterId: string`.
+> 2. **Logic Change:**
+> * **If `masterId` is present:** Create a `<Shape Master='ID'>` tag. **Do not** generate `<Geom>` or `<Section>` tags (geometry is inherited). Only set `PinX`, `PinY`, `Width`, and `Height`.
+> * **If `masterId` is missing:** Keep the existing logic that draws the rectangle manually (Regression support).
+>
+>
+> 3. **Test Requirement:** Write a test case `should drop master shape` that verifies the output XML contains the `Master` attribute and *excludes* the `<Geom>` section."
+>
+>
+
+**Prompt 4: Regression Testing**
+
+> "Write a regression test suite for `addShape`.
+> 1. **Test A (Legacy):** Call `addShape` without a master ID. Assert that `<Geom>` and `<MoveTo>` tags still exist in the output.
+> 2. **Test B (New):** Call `addShape` with a master ID. Assert `Master` attribute exists and `<Geom>` tags are absent.
+> 3. Ensure both shapes can exist on the same page."
+>
+>
+
+**Prompt 5: PR Generation (Phase 2)**
+
+> "Generate a PR description for the `addShape` refactor.
+> * **Title:** feat: Enable Shape Instantiation via Master ID
+> * **Description:** Detail how this reduces file size by inheriting geometry.
+> * **Breaking Changes:** None (backward compatible).
+> * **Documentation:** Provide a code snippet for the `README.md` showing how to find a master by name and drop it."
+>
+>
+
+---
+
+### Phase 3: Handling Relationships (The `.rels` File)
+
+*Goal: Visio is strict. You cannot just use a Master ID in `page1.xml`. You must also declare the dependency in `page1.xml.rels`.*
+
+**Prompt 6: The Rels Manager**
+
+> "Visio requires a relationship link between the Page and the Master.
+> 1. Create `src/core/RelsManager.ts` to handle `.rels` files (OPC relationships).
+> 2. When `addShape(masterId)` is called:
+> * Check if `page1.xml.rels` already has a relationship to that Master's file (e.g., `../masters/master1.xml`).
+> * If not, generate a new `Relationship` ID (e.g., `rId5`) and append it to the `.rels` file.
+>
+>
+> 3. **Critical:** The `addShape` function must now wait for this Relationship ID and using *that* might be required in some contexts, though typically the Master ID `(e.g. '2')` is used in the Shape attribute. Verify this constraint: Does the Shape tag use the Master's *internal ID* or the *Relationship ID*?"
+>
+>
+
+**Prompt 7: Integration Test (The Full Loop)**
+
+> "Write a full integration test:
+> 1. Load a template `.vsdx` that has a 'Router' master inside it.
+> 2. Drop the 'Router' master onto Page 1.
+> 3. Save the file.
+> 4. **Verification:** Inspect the ZIP contents. Ensure `page1.xml` has a shape with `Master='X'` and `page1.xml.rels` is valid."
+>
+>
+
+**Prompt 8: Final Documentation & PR**
+
+> "Generate the final PR description for the `.rels` management.
+> * **Title:** fix: Manage OPC Relationships for Masters
+> * **Context:** Explain that without updating `.rels`, Visio considers the file corrupt.
+> * **Updates:** Update the root `README.md` to include a complete example: 'Loading a Template & Dropping Stencils'."
+>
+>
+
+---
+
+### Recommended Execution Order
+
+1. **Phase 1 (Reading)** allows you to see what you are working with.
+2. **Phase 3 (Rels)** is actually required *before* Phase 2 will produce a valid file, but you can code Phase 2's logic first. I recommend doing **1 -> 3 -> 2** if you want the tests to pass immediately, or **1 -> 2 -> 3** if you want to implement the logic before the plumbing.
