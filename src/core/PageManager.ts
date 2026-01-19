@@ -1,5 +1,6 @@
-import { XMLParser } from 'fast-xml-parser';
+import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { VisioPackage } from '../VisioPackage';
+import { RelsManager } from './RelsManager';
 
 export interface PageEntry {
     id: number;
@@ -10,6 +11,8 @@ export interface PageEntry {
 
 export class PageManager {
     private parser: XMLParser;
+    private builder: XMLBuilder;
+    private relsManager: RelsManager;
     private pages: PageEntry[] = [];
 
     constructor(private pkg: VisioPackage) {
@@ -17,6 +20,12 @@ export class PageManager {
             ignoreAttributes: false,
             attributeNamePrefix: "@_"
         });
+        this.builder = new XMLBuilder({
+            ignoreAttributes: false,
+            attributeNamePrefix: "@_",
+            format: true
+        });
+        this.relsManager = new RelsManager(pkg);
     }
 
     load(): PageEntry[] {
@@ -72,5 +81,81 @@ export class PageManager {
         });
 
         return this.pages;
+    }
+
+    async createPage(name: string): Promise<string> {
+        this.load(); // Refresh state
+
+        // 1. Calculate ID
+        let maxId = 0;
+        for (const p of this.pages) {
+            if (p.id > maxId) maxId = p.id;
+        }
+        const newId = maxId + 1;
+        const fileName = `page${newId}.xml`;
+        const relativePath = `visio/pages/${fileName}`;
+
+        // 2. Create Page File
+        const pageContent = `<PageContents xmlns="http://schemas.microsoft.com/office/visio/2012/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xml:space="preserve">
+    <PageSheet LineStyle="0" FillStyle="0" TextStyle="0">
+        <Cell N="PageWidth" V="8.5"/>
+        <Cell N="PageHeight" V="11"/>
+        <Cell N="PageScale" V="1" Unit="MSG"/>
+        <Cell N="DrawingScale" V="1" Unit="MSG"/>
+        <Cell N="DrawingSizeType" V="0"/>
+        <Cell N="DrawingScaleType" V="0"/>
+        <Cell N="Inhibited" V="0"/>
+        <Cell N="UIVisibility" V="0"/>
+        <Cell N="PageDrawSizeType" V="0"/>
+    </PageSheet>
+    <Shapes/>
+    <Connects/>
+</PageContents>`;
+        this.pkg.updateFile(relativePath, pageContent);
+
+        // 3. Update Content Types
+        const ctPath = '[Content_Types].xml';
+        const ctContent = this.pkg.getFileText(ctPath);
+        const parsedCt = this.parser.parse(ctContent);
+
+        // Format: <Override PartName="/visio/pages/page2.xml" ContentType="application/vnd.ms-visio.page+xml"/>
+        // Ensure Types.Override array exists
+        if (!parsedCt.Types.Override) parsedCt.Types.Override = [];
+        if (!Array.isArray(parsedCt.Types.Override)) parsedCt.Types.Override = [parsedCt.Types.Override];
+
+        parsedCt.Types.Override.push({
+            '@_PartName': `/${relativePath}`,
+            '@_ContentType': 'application/vnd.ms-visio.page+xml'
+        });
+        this.pkg.updateFile(ctPath, this.builder.build(parsedCt));
+
+        // 4. Update Relationships (pages.xml -> new page file)
+        // Source is "visio/pages/pages.xml", Target is "page{ID}.xml" (relative to source dir)
+        const rId = await this.relsManager.ensureRelationship(
+            'visio/pages/pages.xml',
+            fileName,
+            'http://schemas.microsoft.com/visio/2010/relationships/page'
+        );
+
+        // 5. Update Pages Index (visio/pages/pages.xml)
+        const pagesPath = 'visio/pages/pages.xml';
+        const pagesContent = this.pkg.getFileText(pagesPath);
+        const parsedPages = this.parser.parse(pagesContent);
+
+        if (!parsedPages.Pages.Page) parsedPages.Pages.Page = [];
+        if (!Array.isArray(parsedPages.Pages.Page)) parsedPages.Pages.Page = [parsedPages.Pages.Page];
+
+        parsedPages.Pages.Page.push({
+            '@_ID': newId.toString(),
+            '@_Name': name,
+            '@_r:id': rId
+        });
+
+        this.pkg.updateFile(pagesPath, this.builder.build(parsedPages));
+
+        // Reload to include new page
+        this.load();
+
+        return newId.toString();
     }
 }
