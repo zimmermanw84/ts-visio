@@ -230,10 +230,11 @@ Add metadata to shapes, which is crucial for "Smart" diagrams like visual databa
 ```typescript
 const shape = await page.addShape({ text: "Server DB-01", x: 2, y: 2 });
 
-await shape.addData("IP", { value: "192.168.1.10", label: "IP Address" })
-           .addData("Status", { value: "Active" })
-           .addData("LastRefreshed", { value: new Date() }) // Auto-serialized as Visio Date
-           .addData("ConfigID", { value: 1024, hidden: true }); // Invisible to user
+// Synchronous Fluent API
+shape.addData("IP", { value: "192.168.1.10", label: "IP Address" })
+     .addData("Status", { value: "Active" })
+     .addData("LastRefreshed", { value: new Date() }) // Auto-serialized as Visio Date
+     .addData("ConfigID", { value: 1024, hidden: true }); // Invisible to user
 ```
 
 ## Examples
