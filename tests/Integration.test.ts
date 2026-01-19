@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { VisioPackage } from '../src/VisioPackage';
 import { ShapeModifier } from '../src/ShapeModifier';
+import { VisioDocument } from '../src/VisioDocument';
 import { XMLParser } from 'fast-xml-parser';
 
-describe('Integration: Master Drops', () => {
+describe('Integration Tests', () => {
     it('should successfully load a template, drop a master, and save valid structure', async () => {
         // 1. Setup "Template" Package
         const pkg = await VisioPackage.create();
@@ -25,9 +26,6 @@ describe('Integration: Master Drops', () => {
         });
 
         // 3. Save (simulated) and Inspect
-        // We can inspect the internal map directly to avoid actual disk I/O,
-        // effectively treating the "saved" state as the current state of the package.
-
         const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
 
         // Verify Page XML
@@ -36,17 +34,13 @@ describe('Integration: Master Drops', () => {
         const shapes = parsedPage.PageContents.Shapes.Shape;
 
         // Find our shape
-        // Note: VisioPackage.create() creates default page with known ID structure, our new one should be at the end
         const shapeList = Array.isArray(shapes) ? shapes : [shapes];
         const routerShape = shapeList.find((s: any) => s['@_Master'] === '5');
 
         expect(routerShape).toBeDefined();
-        // console.log(JSON.stringify(routerShape, null, 2));
-        // fast-xml-parser might merge simple text nodes differently depending on options
         const textVal = routerShape.Text['#text'] || routerShape.Text;
         expect(textVal).toBe('My Router');
-        // Ensure NO Geometry
-        expect(routerShape.Section).toBeUndefined(); // Or empty/missing geometry section
+        expect(routerShape.Section).toBeUndefined();
 
         // Verify Relationships
         const relsXml = pkg.getFileText('visio/pages/_rels/page1.xml.rels');
@@ -60,7 +54,33 @@ describe('Integration: Master Drops', () => {
         );
 
         expect(masterRel).toBeDefined();
-        // The ID of the relationship is less important than its existence,
-        // as the Shape uses the Master ID (5), not the rId.
+    });
+
+    it('should support multi-page creation and persistence', async () => {
+        const doc = await VisioDocument.create();
+
+        // Default page should exist
+        expect(doc.pages).toHaveLength(1);
+        expect(doc.pages[0].id).toBe('1'); // Template default start ID is 1
+
+        // Add New Page
+        const newId = await doc.addPage('Analysis Page');
+        expect(newId).toBe('2');
+
+        // Refresh properties
+        expect(doc.pages).toHaveLength(2);
+        const p2 = doc.pages.find(p => p.id === newId);
+        expect(p2).toBeDefined();
+        expect(p2!.name).toBe('Analysis Page');
+
+        // Save and Reload
+        const saved = await doc.save();
+        const reloaded = await VisioDocument.load(saved);
+
+        expect(reloaded.pages).toHaveLength(2);
+        const reloadedP2 = reloaded.pages.find(p => p.name === 'Analysis Page');
+        expect(reloadedP2).toBeDefined();
+        expect(reloadedP2).toBeDefined();
+        expect(reloadedP2!.id).toBe('2');
     });
 });

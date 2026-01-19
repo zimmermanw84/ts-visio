@@ -1,5 +1,5 @@
 import { VisioPackage } from './VisioPackage';
-import { PageManager } from './PageManager';
+import { PageManager } from './core/PageManager';
 import { Page } from './Page';
 
 export class VisioDocument {
@@ -24,10 +24,24 @@ export class VisioDocument {
         return new VisioDocument(pkg);
     }
 
+    async addPage(name: string): Promise<string> {
+        const pm = new PageManager(this.pkg);
+        return pm.createPage(name);
+    }
+
     get pages(): Page[] {
         const pm = new PageManager(this.pkg);
-        const internalPages = pm.getPages();
-        return internalPages.map(p => new Page(p, this.pkg));
+        const internalPages = pm.load();
+        return internalPages.map(p => {
+            // Adapter for VisioPage interface
+            const pageStub = {
+                ID: p.id.toString(),
+                Name: p.name,
+                Shapes: [],
+                Connects: []
+            };
+            return new Page(pageStub as any, this.pkg);
+        });
     }
 
     async save(filename?: string): Promise<Buffer> {
