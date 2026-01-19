@@ -293,3 +293,100 @@ Here is the itemized prompt plan to execute this transition cleanly.
 
 1. **Phase 1 (Reading)** allows you to see what you are working with.
 2. **Phase 3 (Rels)** is actually required *before* Phase 2 will produce a valid file, but you can code Phase 2's logic first. I recommend doing **1 -> 3 -> 2** if you want the tests to pass immediately, or **1 -> 2 -> 3** if you want to implement the logic before the plumbing.
+
+
+---
+
+Here is the itemized prompt plan to implement **Multi-Page Support**. This logic is critical because if you miss registering a page in any of the three required locations (`[Content_Types]`, `pages.xml`, or `.rels`), Visio will declare the file corrupt.
+
+### Phase 1: The Page Index (Reading `pages.xml`)
+
+*Goal: Stop assuming `page1.xml` exists. We need to dynamically load the list of pages from the index.*
+
+**Prompt 1: PageManager Implementation**
+
+> "Create a `PageManager` class in `src/core/PageManager.ts`.
+> 1. In the constructor, accept the `VisioPackage` (JSZip instance).
+> 2. Implement `load()`: Parse `visio/pages/pages.xml` to build a registry of existing pages.
+> 3. Store them as an array of objects: `{ id: number, name: string, relId: string, xmlPath: string }`.
+> 4. **Important:** Determine the `xmlPath` by looking up the `relId` in `visio/pages/_rels/pages.xml.rels`.
+> 5. **Test Requirement:** Create `tests/PageManager.test.ts` that loads a sample 3-page Visio file and correctly identifies the IDs and Names of all pages."
+>
+>
+
+**Prompt 2: PR Generation (Phase 1)**
+
+> "Generate a Markdown PR description for the `PageManager` read logic.
+> * **Title:** feat: Parse dynamic page list from pages.xml
+> * **Description:** Explain that we are removing the hardcoded `page1.xml` dependency.
+> * **Changes:** New `PageManager` class and `rels` lookup logic.
+> * **Verification:** Unit tests for parsing multi-page indexes."
+>
+>
+
+---
+
+### Phase 2: Page Creation (The "Corrupt File" Avoidance Protocol)
+
+*Goal: Create the physical XML files and register them in the global Content Types. If this step fails, the file breaks.*
+
+**Prompt 3: Generating the Page XML**
+
+> "I need to implement `PageManager.createPage(name: string)`.
+> 1. Calculate the next available Page ID (e.g., if ID 1 exists, use ID 2).
+> 2. Generate a new empty page XML string (standard `<PageContents>` header).
+> 3. Write this string to the zip at `visio/pages/page{ID}.xml`.
+> 4. **Critical:** You must also register this new XML file in the root `[Content_Types].xml` file with `Override PartName='/visio/pages/page{ID}.xml' ContentType='application/vnd.ms-visio.page+xml'`.
+> 5. **Test Requirement:** Write a test that adds a page and verifies the file exists in the ZIP and the entry exists in `[Content_Types].xml`."
+>
+>
+
+**Prompt 4: Updating the Page Index & Rels**
+
+> "Now link the new page file to the document structure.
+> 1. In `visio/pages/_rels/pages.xml.rels`, add a new Relationship pointing to `page{ID}.xml`. Generate a new `rId`.
+> 2. In `visio/pages/pages.xml`, append a new `<Page>` element.
+> * Set `ID` to the new ID.
+> * Set `Name` to the function argument.
+> * Set `r:id` to the new relationship ID you just generated.
+>
+>
+> 3. **Validation:** Ensure the `PageSheet` (page properties) inside the new XML inherits default dimensions."
+>
+>
+
+**Prompt 5: PR Generation (Phase 2)**
+
+> "Generate a PR description for the Page Creation logic.
+> * **Title:** feat: Implement physical page creation and registration
+> * **Context:** Creating a page requires updates to 4 different XML files.
+> * **Risks:** Mention that `[Content_Types].xml` validation is included to prevent file corruption.
+> * **Tests:** Unit tests verifying ZIP structure integrity."
+>
+>
+
+---
+
+### Phase 3: Public API & Regression Testing
+
+*Goal: expose `doc.addPage()` and ensure we didn't break the single-page use case.*
+
+**Prompt 6: High-Level API Refactor**
+
+> "Refactor `VisioDocument` to use `PageManager`.
+> 1. Expose `doc.addPage(name: string): Page`. This should return the object-oriented `Page` wrapper we built previously.
+> 2. Expose `doc.getPages(): Page[]`.
+> 3. **Regression Requirement:** Ensure `doc.pages[0]` still works for the default page so existing code examples don't break.
+> 4. **Test Requirement:** Write a `MultiPage.test.ts` that creates a document, adds 'Architecture', adds 'Database', and draws a shape on both. Save and Validate."
+>
+>
+
+**Prompt 7: Final Documentation & PR**
+
+> "Generate the final PR description.
+> * **Title:** feat: Public API for Multi-Page Documents
+> * **Changes:** `VisioDocument` now exposes `addPage()`.
+> * **Example:** Provide a markdown code snippet showing how to create a 2-page document.
+> * **Checklist:** Confirm existing single-page tests pass (Regression)."
+>
+>
