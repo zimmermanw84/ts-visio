@@ -207,6 +207,23 @@ await page.addShape({
 // The library automatically handles the relationships so the file stays valid.
 ```
 
+#### 11. Multi-Page Documents
+Create multiple pages and organize your diagram across them.
+
+```typescript
+const doc = await VisioDocument.create();
+
+// Page 1 (Default)
+const page1 = doc.pages[0];
+await page1.addShape({ text: "Home", x: 1, y: 1 });
+
+// Page 2 (New)
+const page2 = await doc.addPage("Architecture Diagram");
+await page2.addShape({ text: "Server", x: 4, y: 4 });
+
+await doc.save("multipage.vsdx");
+```
+
 ## Examples
 
 Check out the [examples](./examples) directory for complete scripts.
