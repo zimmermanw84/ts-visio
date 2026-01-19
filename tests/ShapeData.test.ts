@@ -86,6 +86,27 @@ describe('Shape Data Schema (ShapeModifier)', () => {
         expect(invisibleCell['@_V']).toBe('1');
     });
 
+    it('Hidden Metadata', async () => {
+        // Requirement: Add 'EmployeeID' field with invisible: true. Assert XML has Invisible set to 1.
+        await modifier.addPropertyDefinition(pageId, shapeId, 'EmployeeID', 0, { invisible: true });
+
+        const calls = vi.mocked(mockPkg.updateFile).mock.calls;
+        const newXml = calls[0][1];
+        const parsed = parser.parse(newXml);
+        const shape = parsed.PageContents.Shapes.Shape;
+
+        const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
+        const propSection = sections.find((s: any) => s['@_N'] === 'Property');
+        const rows = Array.isArray(propSection.Row) ? propSection.Row : [propSection.Row];
+
+        const employeeRow = rows.find((r: any) => r['@_N'] === 'Prop.EmployeeID');
+        expect(employeeRow).toBeDefined();
+
+        const invisibleCell = employeeRow.Cell.find((c: any) => c['@_N'] === 'Invisible');
+        expect(invisibleCell).toBeDefined();
+        expect(invisibleCell['@_V']).toBe('1');
+    });
+
     it('should update existing definition if called again', async () => {
         // 1. Create first
         await modifier.addPropertyDefinition(pageId, shapeId, 'Cost', 2, { label: 'Cost' });
@@ -161,5 +182,45 @@ describe('Shape Data Schema (ShapeModifier)', () => {
         const valueCell = row.Cell.find((c: any) => c['@_N'] === 'Value');
         // Check standard ISO string format that Visio accepts
         expect(valueCell['@_V']).toContain('2023-12-25T12:00:00');
+    });
+
+    it('should handle String and Boolean values', async () => {
+        // Setup IsActive
+        await modifier.addPropertyDefinition(pageId, shapeId, 'IsActive', 3);
+        const xmlWithIfActive = vi.mocked(mockPkg.updateFile).mock.calls[0][1];
+
+        // Test Boolean (IsActive)
+        vi.mocked(mockPkg.getFileText).mockReturnValue(xmlWithIfActive);
+        vi.mocked(mockPkg.updateFile).mockClear();
+
+        await modifier.setPropertyValue(pageId, shapeId, 'IsActive', true);
+
+        const boolXml = vi.mocked(mockPkg.updateFile).mock.calls[0][1];
+        const parsedBool = parser.parse(boolXml);
+        const boolShape = parsedBool.PageContents.Shapes.Shape;
+        const boolRows = (Array.isArray(boolShape.Section) ? boolShape.Section : [boolShape.Section])
+            .find((s: any) => s['@_N'] === 'Property').Row;
+        const boolRow = (Array.isArray(boolRows) ? boolRows : [boolRows]).find((r: any) => r['@_N'] === 'Prop.IsActive');
+        expect(boolRow.Cell.find((c: any) => c['@_N'] === 'Value')['@_V']).toBe('1');
+
+        // Test String (Role) - Clean slate to avoid dependency on previous mock state
+        vi.mocked(mockPkg.getFileText).mockReturnValue(initialXml);
+        vi.mocked(mockPkg.updateFile).mockClear();
+
+        await modifier.addPropertyDefinition(pageId, shapeId, 'Role', 0);
+        const xmlWithRole = vi.mocked(mockPkg.updateFile).mock.calls[0][1];
+
+        vi.mocked(mockPkg.getFileText).mockReturnValue(xmlWithRole);
+        vi.mocked(mockPkg.updateFile).mockClear();
+
+        await modifier.setPropertyValue(pageId, shapeId, 'Role', 'Manager');
+
+        const strXml = vi.mocked(mockPkg.updateFile).mock.calls[0][1];
+        const parsedStr = parser.parse(strXml);
+        const strShape = parsedStr.PageContents.Shapes.Shape;
+        const strRows = (Array.isArray(strShape.Section) ? strShape.Section : [strShape.Section])
+            .find((s: any) => s['@_N'] === 'Property').Row;
+        const strRow = (Array.isArray(strRows) ? strRows : [strRows]).find((r: any) => r['@_N'] === 'Prop.Role');
+        expect(strRow.Cell.find((c: any) => c['@_N'] === 'Value')['@_V']).toBe('Manager');
     });
 });

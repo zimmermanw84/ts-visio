@@ -440,8 +440,6 @@ Here is the itemized prompt plan to implement **Shape Data (Custom Properties)**
 >
 >
 
-(You are here) ---
-
 ### Phase 2: Visibility & Data Types (The Logic)
 
 *Goal: Handle the specific use case of "Hidden" data and ensuring Dates/Numbers are formatted correctly so Excel exports work.*
@@ -475,7 +473,8 @@ Here is the itemized prompt plan to implement **Shape Data (Custom Properties)**
 > * **Title:** feat: Support for Hidden Properties and Typed Values
 > * **Context:** Necessary for 'Visual Database' use cases where metadata shouldn't clutter the diagram.
 > * **Changes:** Added Invisible cell support and Date serialization helper."
->
+> Double check to ensure we're not missing any test cases
+> Ensure that the PR is copy pastable for github
 >
 
 ---
