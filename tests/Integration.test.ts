@@ -64,8 +64,9 @@ describe('Integration Tests', () => {
         expect(doc.pages[0].id).toBe('1'); // Template default start ID is 1
 
         // Add New Page
-        const newId = await doc.addPage('Analysis Page');
-        expect(newId).toBe('2');
+        const page2 = await doc.addPage('Analysis Page');
+        expect(page2.id).toBe('2');
+        const newId = page2.id;
 
         // Refresh properties
         expect(doc.pages).toHaveLength(2);

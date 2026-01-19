@@ -24,9 +24,17 @@ export class VisioDocument {
         return new VisioDocument(pkg);
     }
 
-    async addPage(name: string): Promise<string> {
+    async addPage(name: string): Promise<Page> {
         const pm = new PageManager(this.pkg);
-        return pm.createPage(name);
+        const newId = await pm.createPage(name);
+
+        const pageStub = {
+            ID: newId,
+            Name: name,
+            Shapes: [],
+            Connects: []
+        };
+        return new Page(pageStub as any, this.pkg);
     }
 
     get pages(): Page[] {
