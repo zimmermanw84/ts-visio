@@ -1,5 +1,6 @@
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { VisioPackage } from './VisioPackage';
+import { RelsManager } from './core/RelsManager';
 import { createFillSection, createCharacterSection, createLineSection } from './utils/StyleHelpers';
 
 export interface NewShapeProps {
@@ -19,6 +20,7 @@ export interface NewShapeProps {
 export class ShapeModifier {
     private parser: XMLParser;
     private builder: XMLBuilder;
+    private relsManager: RelsManager;
 
     constructor(private pkg: VisioPackage) {
         this.parser = new XMLParser({
@@ -30,6 +32,7 @@ export class ShapeModifier {
             attributeNamePrefix: "@_",
             format: true
         });
+        this.relsManager = new RelsManager(pkg);
     }
 
     private getPagePath(pageId: string): string {
@@ -343,6 +346,17 @@ export class ShapeModifier {
 
         if (props.masterId) {
             newShape['@_Master'] = props.masterId;
+
+            // Phase 3: Ensure Relationship
+            // We assume the Page needs a link to the central Masters part to resolve IDs
+            // Target path is relative to the *package root* mostly, but in .rels it's relative to the page folder?
+            // "visio/pages/_rels/page1.xml.rels" -> Target="../masters/masters.xml"
+            // Standard Visio relationship to Masters:
+            await this.relsManager.ensureRelationship(
+                `visio/pages/page${pageId}.xml`,
+                '../masters/masters.xml',
+                'http://schemas.microsoft.com/visio/2010/relationships/masters'
+            );
         }
 
         // Only add Geometry if NOT a Group AND NOT a Master Instance
