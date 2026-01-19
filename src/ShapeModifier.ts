@@ -13,6 +13,7 @@ export interface NewShapeProps {
     fontColor?: string;
     bold?: boolean;
     type?: string;
+    masterId?: string;
 }
 
 export class ShapeModifier {
@@ -340,10 +341,14 @@ export class ShapeModifier {
             Section: []
         };
 
-        // Only add Geometry if NOT a Group
+        if (props.masterId) {
+            newShape['@_Master'] = props.masterId;
+        }
+
+        // Only add Geometry if NOT a Group AND NOT a Master Instance
         // Groups should be pure containers for the Table parts (Header/Body)
-        // This prevents the Group's own background/border from obscuring children
-        if (props.type !== 'Group') {
+        // Master instances inherit geometry from the Stencil
+        if (props.type !== 'Group' && !props.masterId) {
             newShape.Section.push({
                 '@_N': 'Geometry',
                 '@_IX': '0',
