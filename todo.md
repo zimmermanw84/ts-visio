@@ -1,6 +1,6 @@
 Based on the current implementation and typical business requirements for diagramming, here are the most significant missing use cases for the Visio SDK:
 
-(In progress) v1. Masters and Stencils (Top Priority)
+(Done) v1. Masters and Stencils (Top Priority)
 Currently,
 
 addShape
@@ -9,11 +9,12 @@ addShape
 Use Case: "Drop a 'Router' icon here" instead of "Draw a box with these dimensions."
 Technical Gap: Need to handle visio/masters/master*.xml and link shapes via the Master attribute.
 
-2. Multi-Page Support
+(In progress) 2. Multi-Page Support
 The current implementation hardcodes page1.xml. Most professional diagrams (like database schemas or floor plans) span multiple tabs.
 
 Use Case: "Create a 'Summary' page and a 'Details' page in the same document."
 Technical Gap: Need PageManager to handle visio/pages/page*.xml creation and update visio/pages/pages.xml.
+
 3. Shape Data (Custom Properties)
 Visio is often used as a "visual database." Shapes usually contain metadata (e.g., a "Server" shape having "IP Address", "Cost", "OS").
 
