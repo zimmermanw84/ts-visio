@@ -23,7 +23,10 @@ describe('Master Shape Instantiation', () => {
         modifier = new ShapeModifier(mockPkg);
         parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
 
-        vi.mocked(mockPkg.getFileText).mockReturnValue(mockPageXml);
+        vi.mocked(mockPkg.getFileText).mockImplementation((path: string) => {
+            if (path.includes('.rels')) return '<Relationships></Relationships>';
+            return mockPageXml;
+        });
     });
 
     it('should create legacy shape with Geometry when no masterId provided', async () => {
@@ -60,8 +63,10 @@ describe('Master Shape Instantiation', () => {
             masterId: '5'
         });
 
-        const updateCall = vi.mocked(mockPkg.updateFile).mock.calls[0];
-        const newXml = updateCall[1];
+        const calls = vi.mocked(mockPkg.updateFile).mock.calls;
+        const pageCall = calls.find(c => c[0] && c[0].includes('visio/pages/page'));
+        if (!pageCall) throw new Error("No page updated");
+        const newXml = pageCall[1];
         const parsed = parser.parse(newXml);
         const shape = parsed.PageContents.Shapes.Shape;
 

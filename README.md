@@ -185,6 +185,28 @@ Save the modified document back to disk.
 await doc.save('updated_diagram.vsdx');
 ```
 
+#### 10. Using Stencils (Masters)
+Load a template that already contains stencils (like "Network" or "Flowchart") and drop shapes by their Master ID.
+
+```typescript
+// 1. Load a template with stencils
+const doc = await VisioDocument.load('template_with_masters.vsdx');
+const page = doc.pages[0];
+
+// 2. Drop a shape using a Master ID
+// (You can find IDs in visio/masters/masters.xml of the template)
+await page.addShape({
+    text: "Router 1",
+    x: 2,
+    y: 2,
+    width: 1,
+    height: 1,
+    masterId: "5" // ID of the 'Router' master in the template
+});
+
+// The library automatically handles the relationships so the file stays valid.
+```
+
 ## Examples
 
 Check out the [examples](./examples) directory for complete scripts.
