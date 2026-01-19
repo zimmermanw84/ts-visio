@@ -507,6 +507,7 @@ Here is the itemized prompt plan to implement **Shape Data (Custom Properties)**
 > 2. Add 3 data fields (String, Number, Hidden).
 > 3. Save the file.
 > 4. **Verification:** Start a mock XML parser to read the saved file and verify that the `Property` section contains exactly 3 rows with the correct attributes.
-> 5. Generate the final PR description."
+> 5. Double check to ensure we're not missing any test cases
+> 6. Generate the final PR description in github markdown format for easy copy pasting
 >
 >

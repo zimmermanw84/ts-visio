@@ -576,7 +576,7 @@ export class ShapeModifier {
         const newXml = this.builder.build(parsed);
         this.pkg.updateFile(pagePath, newXml);
     }
-    async addPropertyDefinition(pageId: string, shapeId: string, name: string, type: number, options: { label?: string, invisible?: boolean } = {}): Promise<void> {
+    addPropertyDefinition(pageId: string, shapeId: string, name: string, type: number, options: { label?: string, invisible?: boolean } = {}): void {
         const pagePath = this.getPagePath(pageId);
         let content: string;
         try {
@@ -655,7 +655,7 @@ export class ShapeModifier {
         return date.toISOString().split('.')[0]; // remove milliseconds
     }
 
-    async setPropertyValue(pageId: string, shapeId: string, name: string, value: string | number | boolean | Date): Promise<void> {
+    setPropertyValue(pageId: string, shapeId: string, name: string, value: string | number | boolean | Date): void {
         const pagePath = this.getPagePath(pageId);
         let content: string;
         try {

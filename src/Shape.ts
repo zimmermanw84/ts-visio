@@ -103,19 +103,19 @@ export class Shape {
         return this;
     }
 
-    async addPropertyDefinition(name: string, type: number, options: { label?: string, invisible?: boolean } = {}): Promise<this> {
+    addPropertyDefinition(name: string, type: number, options: { label?: string, invisible?: boolean } = {}): this {
         const modifier = new ShapeModifier(this.pkg);
-        await modifier.addPropertyDefinition(this.pageId, this.id, name, type, options);
+        modifier.addPropertyDefinition(this.pageId, this.id, name, type, options);
         return this;
     }
 
-    async setPropertyValue(name: string, value: string | number | boolean | Date): Promise<this> {
+    setPropertyValue(name: string, value: string | number | boolean | Date): this {
         const modifier = new ShapeModifier(this.pkg);
-        await modifier.setPropertyValue(this.pageId, this.id, name, value);
+        modifier.setPropertyValue(this.pageId, this.id, name, value);
         return this;
     }
 
-    async addData(key: string, data: ShapeData): Promise<this> {
+    addData(key: string, data: ShapeData): this {
         // Auto-detect type if not provided
         let type = data.type;
         if (type === undefined) {
@@ -131,13 +131,13 @@ export class Shape {
         }
 
         // 1. Define Property
-        await this.addPropertyDefinition(key, type, {
+        this.addPropertyDefinition(key, type, {
             label: data.label,
             invisible: data.hidden
         });
 
         // 2. Set Value
-        await this.setPropertyValue(key, data.value);
+        this.setPropertyValue(key, data.value);
 
         return this;
     }
