@@ -1,18 +1,27 @@
 export interface VisioSection {
     '@_N': string;
-    '@_IX': string;
+    '@_IX'?: string;
     Row?: any[];
     Cell?: any[];
 }
 
+const hexToRgb = (hex: string): string => {
+    // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+    const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+    hex = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
+
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? `RGB(${parseInt(result[1], 16)},${parseInt(result[2], 16)},${parseInt(result[3], 16)})` : 'RGB(0,0,0)';
+};
+
 export function createFillSection(hexColor: string): VisioSection {
     // Visio uses FillForegnd for the main background color.
     // Ideally we should sanitize hexColor to be #RRGGBB.
+    const rgbFormula = hexToRgb(hexColor);
     return {
         '@_N': 'Fill',
-        '@_IX': '0', // Standard index for unique sections
         Cell: [
-            { '@_N': 'FillForegnd', '@_V': hexColor },
+            { '@_N': 'FillForegnd', '@_V': hexColor, '@_F': rgbFormula },
             { '@_N': 'FillBkgnd', '@_V': '#FFFFFF' }, // Default background pattern color usually white
             { '@_N': 'FillPattern', '@_V': '1' }      // 1 = Solid fill
         ]
@@ -52,13 +61,12 @@ export function createCharacterSection(props: { bold?: boolean; color?: string }
 
     return {
         '@_N': 'Character',
-        '@_IX': '0',
         Row: [
             {
                 '@_T': 'Character',
                 '@_IX': '0',
                 Cell: [
-                    { '@_N': 'Color', '@_V': colorVal },
+                    { '@_N': 'Color', '@_V': colorVal, '@_F': hexToRgb(colorVal) },
                     { '@_N': 'Style', '@_V': styleVal.toString() },
                     // Size, Font, etc could go here
                     { '@_N': 'Font', '@_V': '1' } // Default font (Calibri usually)
@@ -98,7 +106,6 @@ export function createLineSection(props: {
 
     return {
         '@_N': 'Line',
-        '@_IX': '0',
         Cell: cells
     };
 }
