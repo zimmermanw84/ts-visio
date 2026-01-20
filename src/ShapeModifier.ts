@@ -387,7 +387,7 @@ export class ShapeModifier {
             newShape.Section.push({
                 '@_N': 'Geometry',
                 '@_IX': '0',
-                Cell: [{ '@_N': 'NoFill', '@_V': '0' }],
+                Cell: [{ '@_N': 'NoFill', '@_V': props.fillColor ? '0' : '1' }],
                 Row: [
                     { '@_T': 'MoveTo', '@_IX': '1', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
                     { '@_T': 'LineTo', '@_IX': '2', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': '0' }] },
