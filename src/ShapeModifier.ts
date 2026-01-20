@@ -330,8 +330,9 @@ export class ShapeModifier {
 
         const newShape: any = {
             '@_ID': newId,
+            '@_NameU': `Sheet.${newId}`,
             '@_Name': `Sheet.${newId}`,
-            '@_Type': props.type || 'Shape', // Allow specifying Group type
+            '@_Type': props.type || 'Shape',
             Cell: [
                 { '@_N': 'PinX', '@_V': props.x.toString() },
                 { '@_N': 'PinY', '@_V': props.y.toString() },
@@ -340,8 +341,8 @@ export class ShapeModifier {
                 { '@_N': 'LocPinX', '@_V': (props.width / 2).toString() },
                 { '@_N': 'LocPinY', '@_V': (props.height / 2).toString() }
             ],
-            Text: { '#text': props.text },
             Section: []
+            // Text added at end
         };
 
         if (props.masterId) {
@@ -362,10 +363,31 @@ export class ShapeModifier {
         // Only add Geometry if NOT a Group AND NOT a Master Instance
         // Groups should be pure containers for the Table parts (Header/Body)
         // Master instances inherit geometry from the Stencil
+        if (props.fillColor) {
+            // Add Fill Section
+            newShape.Section.push(createFillSection(props.fillColor));
+
+            // Ensure Line section exists if we have fill (Standard practice: shapes have lines)
+            // Even if default color, explicit section helps validity
+            newShape.Section.push(createLineSection({
+                color: '#000000',
+                weight: '0.01' // Standard weight
+            }));
+        }
+
+        if (props.fontColor || props.bold) {
+            newShape.Section.push(createCharacterSection({
+                bold: props.bold,
+                color: props.fontColor
+            }));
+        }
+
+        // Only add Geometry if NOT a Group AND NOT a Master Instance
         if (props.type !== 'Group' && !props.masterId) {
             newShape.Section.push({
                 '@_N': 'Geometry',
                 '@_IX': '0',
+                Cell: [{ '@_N': 'NoFill', '@_V': '0' }],
                 Row: [
                     { '@_T': 'MoveTo', '@_IX': '1', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
                     { '@_T': 'LineTo', '@_IX': '2', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': '0' }] },
@@ -374,19 +396,6 @@ export class ShapeModifier {
                     { '@_T': 'LineTo', '@_IX': '5', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] }
                 ]
             });
-        }
-
-        if (props.fillColor) {
-            // Add Fill Section
-            newShape.Section.push(createFillSection(props.fillColor));
-        }
-        // Removed: Explicit NoFill for Group is valid, but removing Geometry is cleaner.
-
-        if (props.fontColor || props.bold) {
-            newShape.Section.push(createCharacterSection({
-                bold: props.bold,
-                color: props.fontColor
-            }));
         }
 
         if (parentId) {
@@ -414,6 +423,9 @@ export class ShapeModifier {
             // Add to Page
             topLevelShapes.push(newShape);
         }
+
+        // Ensure Text is at the end
+        newShape.Text = { '#text': props.text };
 
         const newXml = this.builder.build(parsed);
         this.pkg.updateFile(pagePath, newXml);
