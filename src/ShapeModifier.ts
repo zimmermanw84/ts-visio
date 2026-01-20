@@ -425,7 +425,9 @@ export class ShapeModifier {
         }
 
         // Ensure Text is at the end
-        newShape.Text = { '#text': props.text };
+        if (props.text !== undefined && props.text !== null) {
+            newShape.Text = { '#text': props.text };
+        }
 
         const newXml = this.builder.build(parsed);
         this.pkg.updateFile(pagePath, newXml);
