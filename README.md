@@ -242,6 +242,7 @@ shape.addData("IP", { value: "192.168.1.10", label: "IP Address" })
 Check out the [examples](./examples) directory for complete scripts.
 
 - **[Simple Schema](./examples/simple-schema.ts)**: Generates a database schema ERD with tables, styling, and Crow's Foot connectors.
+- **[Network Topology](./examples/network-diagram.ts)**: Demonstrates the **Fluent Shape Data API** to build a network map with hidden metadata, typed properties, and connections.
 
 ## Development
 

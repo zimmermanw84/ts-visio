@@ -7,6 +7,7 @@ export interface VisioCell {
 
 export interface VisioRow {
     T?: string; // Type
+    N?: string; // Name (e.g. Prop.Name)
     IX?: number; // Index
     Cells: { [name: string]: VisioCell }; // Named cells within the row
 }
