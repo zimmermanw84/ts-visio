@@ -15,17 +15,18 @@ The current implementation hardcodes page1.xml. Most professional diagrams (like
 Use Case: "Create a 'Summary' page and a 'Details' page in the same document."
 Technical Gap: Need PageManager to handle visio/pages/page*.xml creation and update visio/pages/pages.xml.
 
-(In Progress) 3. Shape Data (Custom Properties)
+(Done) 3. Shape Data (Custom Properties)
 Visio is often used as a "visual database." Shapes usually contain metadata (e.g., a "Server" shape having "IP Address", "Cost", "OS").
 
 Use Case: "Add an 'Employee ID' field to this box that exports to Excel but isn't visible on the drawing."
 Technical Gap: Need to verify serialization of <Section N="Property">.
 
-4. Images
+(In Progress) 4. Images
 There is no support for embedding images.
 
 Use Case: "Add a company logo to the header" or "Paste a screenshot of the UI."
 Technical Gap: Need to embed binary image data into the ZIP package (visio/media/image1.png) and create a shape that references it using ForeignData.
+
 5. Hyperlinks
 Shapes often link to other pages or external URLs.
 
