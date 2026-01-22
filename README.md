@@ -237,6 +237,19 @@ shape.addData("IP", { value: "192.168.1.10", label: "IP Address" })
      .addData("ConfigID", { value: 1024, hidden: true }); // Invisible to user
 ```
 
+#### 13. Image Embedding
+Embed PNG or JPEG images directly into the diagram.
+
+```typescript
+import * as fs from 'fs';
+
+const buffer = fs.readFileSync('logo.png');
+const page = doc.pages[0];
+
+// Add image at (x=2, y=5) with width=3, height=2
+await page.addImage(buffer, 'logo.png', 2, 5, 3, 2);
+```
+
 ## Examples
 
 Check out the [examples](./examples) directory for complete scripts.

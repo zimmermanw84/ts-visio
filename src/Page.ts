@@ -3,6 +3,8 @@ import { VisioPackage } from './VisioPackage';
 import { ShapeReader } from './ShapeReader';
 import { ShapeModifier, NewShapeProps } from './ShapeModifier';
 import { Shape } from './Shape';
+import { MediaManager } from './core/MediaManager';
+import { RelsManager } from './core/RelsManager';
 
 export class Page {
     constructor(
@@ -59,6 +61,40 @@ export class Page {
     async connectShapes(fromShape: Shape, toShape: Shape, beginArrow?: string, endArrow?: string): Promise<void> {
         const modifier = new ShapeModifier(this.pkg);
         await modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow);
+    }
+
+    async addImage(data: Buffer, name: string, x: number, y: number, width: number, height: number): Promise<Shape> {
+        const media = new MediaManager(this.pkg);
+        const rels = new RelsManager(this.pkg);
+        const modifier = new ShapeModifier(this.pkg);
+
+        // 1. Upload Media
+        const mediaPath = media.addMedia(name, data);
+
+        // 2. Link Page to Media
+        const rId = await rels.addPageImageRel(this.id, mediaPath);
+
+        // 3. Create Shape
+        const newId = await modifier.addShape(this.id, {
+            text: '',
+            x, y, width, height,
+            type: 'Foreign',
+            imgRelId: rId
+        });
+
+        const internalStub: any = {
+            ID: newId,
+            Name: `Sheet.${newId}`,
+            Text: '',
+            Cells: {
+                'Width': { V: width.toString() },
+                'Height': { V: height.toString() },
+                'PinX': { V: x.toString() },
+                'PinY': { V: y.toString() }
+            }
+        };
+
+        return new Shape(internalStub, this.id, this.pkg);
     }
 
     async addTable(x: number, y: number, title: string, columns: string[]): Promise<Shape> {
