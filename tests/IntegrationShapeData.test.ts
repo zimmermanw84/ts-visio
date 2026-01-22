@@ -33,7 +33,7 @@ describe('Shape Data Integration', () => {
         // In a real environment we might unzip, but here we trust the in-memory state matches saved state
         // OR we can read the file back via VisioPackage if we wanted to be 100% strict,
         // but accessing the internal file map is sufficient for logic verification.
-        const pageXml = (doc as any).pkg.files.get('visio/pages/page1.xml');
+        const pageXml = (doc as any).pkg.filesMap.get('visio/pages/page1.xml');
         expect(pageXml).toBeDefined();
 
         const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });

@@ -4,7 +4,11 @@ import { isBinaryExtension } from './core/MediaConstants';
 
 export class VisioPackage {
     private zip: JSZip | null = null;
-    private files: Map<string, string | Buffer> = new Map();
+    private _files: Map<string, string | Buffer> = new Map();
+
+    get filesMap(): Map<string, string | Buffer> {
+        return this._files;
+    }
 
     static async create(): Promise<VisioPackage> {
         const pkg = new VisioPackage();
@@ -26,7 +30,7 @@ export class VisioPackage {
     }
 
     async load(buffer: Buffer | ArrayBuffer | Uint8Array): Promise<void> {
-        this.files.clear();
+        this._files.clear();
         this.zip = await JSZip.loadAsync(buffer);
 
         const promises: Promise<void>[] = [];
@@ -38,7 +42,7 @@ export class VisioPackage {
 
                 promises.push(
                     file.async(type as any).then(content => {
-                        this.files.set(relativePath, content);
+                        this._files.set(relativePath, content);
                     })
                 );
             }
@@ -51,7 +55,7 @@ export class VisioPackage {
         if (!this.zip) {
             throw new Error("Package not loaded");
         }
-        this.files.set(path, content);
+        this._files.set(path, content);
         this.zip.file(path, content);
     }
 
@@ -70,7 +74,7 @@ export class VisioPackage {
     }
 
     getFileText(path: string): string {
-        const content = this.files.get(path);
+        const content = this._files.get(path);
         if (content === undefined) {
             throw new Error(`File not found: ${path}`);
         }

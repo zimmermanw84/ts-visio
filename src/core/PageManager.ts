@@ -1,4 +1,5 @@
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
+import { XML_NAMESPACES, RELATIONSHIP_TYPES, CONTENT_TYPES } from './VisioConstants';
 import { VisioPackage } from '../VisioPackage';
 import { RelsManager } from './RelsManager';
 
@@ -96,7 +97,7 @@ export class PageManager {
         const relativePath = `visio/pages/${fileName}`;
 
         // 2. Create Page File
-        const pageContent = `<PageContents xmlns="http://schemas.microsoft.com/office/visio/2012/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xml:space="preserve">
+        const pageContent = `<PageContents xmlns="${XML_NAMESPACES.VISIO_MAIN}" xmlns:r="${XML_NAMESPACES.RELATIONSHIPS_OFFICE}" xml:space="preserve">
     <PageSheet LineStyle="0" FillStyle="0" TextStyle="0">
         <Cell N="PageWidth" V="8.5"/>
         <Cell N="PageHeight" V="11"/>
@@ -125,7 +126,7 @@ export class PageManager {
 
         parsedCt.Types.Override.push({
             '@_PartName': `/${relativePath}`,
-            '@_ContentType': 'application/vnd.ms-visio.page+xml'
+            '@_ContentType': CONTENT_TYPES.VISIO_PAGE
         });
         this.pkg.updateFile(ctPath, this.builder.build(parsedCt));
 
@@ -134,7 +135,7 @@ export class PageManager {
         const rId = await this.relsManager.ensureRelationship(
             'visio/pages/pages.xml',
             fileName,
-            'http://schemas.microsoft.com/visio/2010/relationships/page'
+            RELATIONSHIP_TYPES.PAGE
         );
 
         // 5. Update Pages Index (visio/pages/pages.xml)

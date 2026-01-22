@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { VisioDocument } from '../src/VisioDocument';
 import { XMLParser } from 'fast-xml-parser';
+import * as crypto from 'crypto';
 
 describe('Image Embedding (E2E)', () => {
     it('should embedding an image via public API', async () => {
@@ -10,6 +11,8 @@ describe('Image Embedding (E2E)', () => {
 
         const dummyBuffer = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]); // PNG Header
         const x = 5, y = 5, w = 3, h = 2;
+        const hash = crypto.createHash('sha1').update(dummyBuffer).digest('hex');
+        const expectedName = `logo_${hash.substring(0, 8)}.png`;
 
         // Act: Add Image
         const imageShape = await page.addImage(dummyBuffer, 'logo.png', x, y, w, h);
@@ -28,8 +31,8 @@ describe('Image Embedding (E2E)', () => {
         // We can inspect the internal package of the doc directly for verification
 
         // Let's use the internal files map to check persistence
-        const filesMap = (pkg as any).files as Map<string, string | Buffer>;
-        const storedBuffer = filesMap.get('visio/media/logo.png');
+        const filesMap = (doc as any).pkg.filesMap as Map<string, string | Buffer>;
+        const storedBuffer = filesMap.get(`visio/media/${expectedName}`);
         expect(Buffer.isBuffer(storedBuffer)).toBe(true);
         expect((storedBuffer as Buffer).equals(dummyBuffer)).toBe(true);
 
@@ -41,7 +44,7 @@ describe('Image Embedding (E2E)', () => {
             ? relsParsed.Relationships.Relationship
             : [relsParsed.Relationships.Relationship];
 
-        const imageRel = rels.find((r: any) => r['@_Target'] === '../media/logo.png');
+        const imageRel = rels.find((r: any) => r['@_Target'] === `../media/${expectedName}`);
         expect(imageRel).toBeDefined();
         const rId = imageRel['@_Id'];
 

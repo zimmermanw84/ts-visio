@@ -33,7 +33,7 @@ describe('Shape Fluent API', () => {
         // We can use proper XML inspection or just trust the 'not throwing' for chaining + previous tests covering logic.
         // Let's do a quick verify of the XML content to be robust.
 
-        const pageXml = (doc as any).pkg.files.get('visio/pages/page1.xml');
+        const pageXml = (doc as any).pkg.filesMap.get('visio/pages/page1.xml');
         expect(pageXml).toBeDefined();
 
         expect(pageXml).toMatch(/Prop\.ip/);
