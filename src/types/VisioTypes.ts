@@ -64,3 +64,18 @@ export enum VisioPropType {
     Duration = 6,
     Currency = 7
 }
+
+export interface NewShapeProps {
+    text: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    id?: string;
+    fillColor?: string;
+    fontColor?: string;
+    bold?: boolean;
+    type?: string;
+    masterId?: string;
+    imgRelId?: string;
+}

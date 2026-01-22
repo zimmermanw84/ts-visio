@@ -1,16 +1,29 @@
 import { VisioPage } from './types/VisioTypes';
 import { VisioPackage } from './VisioPackage';
 import { ShapeReader } from './ShapeReader';
-import { ShapeModifier, NewShapeProps } from './ShapeModifier';
+import { ShapeModifier } from './ShapeModifier';
+import { NewShapeProps } from './types/VisioTypes';
 import { Shape } from './Shape';
 import { MediaManager } from './core/MediaManager';
 import { RelsManager } from './core/RelsManager';
+import { createVisioShapeStub } from './utils/StubHelpers';
 
 export class Page {
+    private media: MediaManager;
+    private rels: RelsManager;
+    private modifier: ShapeModifier;
+
     constructor(
         private internalPage: VisioPage,
-        private pkg: VisioPackage
-    ) { }
+        private pkg: VisioPackage,
+        media?: MediaManager,
+        rels?: RelsManager,
+        modifier?: ShapeModifier
+    ) {
+        this.media = media || new MediaManager(pkg);
+        this.rels = rels || new RelsManager(pkg);
+        this.modifier = modifier || new ShapeModifier(pkg);
+    }
 
     get id(): string {
         return this.internalPage.ID;
@@ -36,63 +49,55 @@ export class Page {
     }
 
     async addShape(props: NewShapeProps, parentId?: string): Promise<Shape> {
-        const modifier = new ShapeModifier(this.pkg);
-        const newId = await modifier.addShape(this.id, props, parentId);
+        const newId = await this.modifier.addShape(this.id, props, parentId);
 
         // Return a fresh Shape object representing the new shape
         // We construct a minimal internal shape to satisfy the wrapper
         // In a real scenario, we might want to re-read the shape from disk to get full defaults
-        const internalStub: any = {
+        const internalStub = createVisioShapeStub({
             ID: newId,
-            Name: `Sheet.${newId}`,
             Text: props.text,
             Cells: {
-                'Width': { V: props.width.toString() },
-                'Height': { V: props.height.toString() },
-                'PinX': { V: props.x.toString() },
-                'PinY': { V: props.y.toString() },
-                'LocPinX': { V: (props.width / 2).toString() },
-                'LocPinY': { V: (props.height / 2).toString() }
+                'Width': props.width,
+                'Height': props.height,
+                'PinX': props.x,
+                'PinY': props.y,
+                'LocPinX': props.width / 2,
+                'LocPinY': props.height / 2
             }
-        };
+        });
 
         return new Shape(internalStub, this.id, this.pkg);
     }
     async connectShapes(fromShape: Shape, toShape: Shape, beginArrow?: string, endArrow?: string): Promise<void> {
-        const modifier = new ShapeModifier(this.pkg);
-        await modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow);
+        await this.modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow);
     }
 
     async addImage(data: Buffer, name: string, x: number, y: number, width: number, height: number): Promise<Shape> {
-        const media = new MediaManager(this.pkg);
-        const rels = new RelsManager(this.pkg);
-        const modifier = new ShapeModifier(this.pkg);
-
         // 1. Upload Media
-        const mediaPath = media.addMedia(name, data);
+        const mediaPath = this.media.addMedia(name, data);
 
         // 2. Link Page to Media
-        const rId = await rels.addPageImageRel(this.id, mediaPath);
+        const rId = await this.rels.addPageImageRel(this.id, mediaPath);
 
         // 3. Create Shape
-        const newId = await modifier.addShape(this.id, {
+        const newId = await this.modifier.addShape(this.id, {
             text: '',
             x, y, width, height,
             type: 'Foreign',
             imgRelId: rId
         });
 
-        const internalStub: any = {
+        const internalStub = createVisioShapeStub({
             ID: newId,
-            Name: `Sheet.${newId}`,
             Text: '',
             Cells: {
-                'Width': { V: width.toString() },
-                'Height': { V: height.toString() },
-                'PinX': { V: x.toString() },
-                'PinY': { V: y.toString() }
+                'Width': width,
+                'Height': height,
+                'PinX': x,
+                'PinY': y
             }
-        };
+        });
 
         return new Shape(internalStub, this.id, this.pkg);
     }

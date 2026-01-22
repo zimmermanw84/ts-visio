@@ -1,5 +1,6 @@
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { VisioPackage } from '../VisioPackage';
+import { XML_NAMESPACES, RELATIONSHIP_TYPES } from './VisioConstants';
 
 export class RelsManager {
     private parser: XMLParser;
@@ -35,7 +36,7 @@ export class RelsManager {
         } catch {
             // If .rels doesn't exist, start fresh
             content = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationships xmlns="${XML_NAMESPACES.RELATIONSHIPS}">
 </Relationships>`;
         }
 
@@ -86,7 +87,6 @@ export class RelsManager {
     }
 
     async addImageRelationship(sourcePath: string, target: string): Promise<string> {
-        const IMAGE_REL_TYPE = 'http://schemas.microsoft.com/office/2006/relationships/image';
-        return this.ensureRelationship(sourcePath, target, IMAGE_REL_TYPE);
+        return this.ensureRelationship(sourcePath, target, RELATIONSHIP_TYPES.IMAGE);
     }
 }

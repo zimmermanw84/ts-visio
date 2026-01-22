@@ -1,38 +1,24 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ShapeModifier } from '../src/ShapeModifier';
-import { VisioPackage } from '../src/VisioPackage';
+import { describe, it, expect } from 'vitest';
+import { ConnectorBuilder } from '../src/shapes/ConnectorBuilder';
 
-// Mock VisioPackage since we only test internal helpers that don't use it directly
-// or use it only for file validtion (which we might skip or mock)
-const mockPkg = {
-    getFileText: vi.fn(),
-    updateFile: vi.fn(),
-} as unknown as VisioPackage;
-
-describe('ShapeModifier Helpers', () => {
-    let modifier: ShapeModifier;
-
-    beforeEach(() => {
-        modifier = new ShapeModifier(mockPkg);
-    });
-
+describe('ConnectorBuilder Helpers', () => {
     describe('getEdgePoint', () => {
         it('should return center if start and target are the same', () => {
-            const result = (modifier as any).getEdgePoint(10, 10, 4, 2, 10, 10);
+            const result = (ConnectorBuilder as any).getEdgePoint(10, 10, 4, 2, 10, 10);
             expect(result).toEqual({ x: 10, y: 10 });
         });
 
         it('should intersect right edge when target is directly right', () => {
             // Box Center (10, 10), Size 4x2.
             // Right edge x = 10 + 2 = 12.
-            const result = (modifier as any).getEdgePoint(10, 10, 4, 2, 20, 10);
+            const result = (ConnectorBuilder as any).getEdgePoint(10, 10, 4, 2, 20, 10);
             expect(result.x).toBeCloseTo(12);
             expect(result.y).toBeCloseTo(10);
         });
 
         it('should intersect left edge when target is directly left', () => {
             // Left edge x = 10 - 2 = 8.
-            const result = (modifier as any).getEdgePoint(10, 10, 4, 2, 0, 10);
+            const result = (ConnectorBuilder as any).getEdgePoint(10, 10, 4, 2, 0, 10);
             expect(result.x).toBeCloseTo(8);
             expect(result.y).toBeCloseTo(10);
         });
@@ -40,14 +26,14 @@ describe('ShapeModifier Helpers', () => {
         it('should intersect top edge when target is directly above', () => {
             // Top edge y = 10 + 1 = 11. (Assuming y grows upwards? Visio coords usually valid cartesian or inverted depending on perspective, logic assumes math standard)
             // Visio (0,0) is bottom-left usually. So "up" is +y.
-            const result = (modifier as any).getEdgePoint(10, 10, 4, 2, 10, 20);
+            const result = (ConnectorBuilder as any).getEdgePoint(10, 10, 4, 2, 10, 20);
             expect(result.x).toBeCloseTo(10);
             expect(result.y).toBeCloseTo(11);
         });
 
         it('should intersect bottom edge when target is directly below', () => {
             // Bottom edge y = 10 - 1 = 9.
-            const result = (modifier as any).getEdgePoint(10, 10, 4, 2, 10, 0);
+            const result = (ConnectorBuilder as any).getEdgePoint(10, 10, 4, 2, 10, 0);
             expect(result.x).toBeCloseTo(10);
             expect(result.y).toBeCloseTo(9);
         });
@@ -56,7 +42,7 @@ describe('ShapeModifier Helpers', () => {
             // Box 2x2 (Square). Half-width = 1.
             // Vector (1, 1) angle.
             // Should hit (11, 11).
-            const result = (modifier as any).getEdgePoint(10, 10, 2, 2, 15, 15);
+            const result = (ConnectorBuilder as any).getEdgePoint(10, 10, 2, 2, 15, 15);
             expect(result.x).toBeCloseTo(11);
             expect(result.y).toBeCloseTo(11);
         });
@@ -86,7 +72,7 @@ describe('ShapeModifier Helpers', () => {
             mockHierarchy.clear();
             mockHierarchy.set('1', createEntry('1', '10', '20'));
 
-            const result = (modifier as any).getAbsolutePos('1', mockHierarchy);
+            const result = (ConnectorBuilder as any).getAbsolutePos('1', mockHierarchy);
             expect(result).toEqual({ x: 10, y: 20 });
         });
 
@@ -98,7 +84,7 @@ describe('ShapeModifier Helpers', () => {
             mockHierarchy.set('1', createEntry('1', '10', '10')); // Parent
             mockHierarchy.set('2', createEntry('2', '2', '3', '1')); // Child
 
-            const result = (modifier as any).getAbsolutePos('2', mockHierarchy);
+            const result = (ConnectorBuilder as any).getAbsolutePos('2', mockHierarchy);
             expect(result).toEqual({ x: 12, y: 13 });
         });
 
@@ -115,7 +101,7 @@ describe('ShapeModifier Helpers', () => {
             mockHierarchy.set('2', createEntry('2', '10', '10', '1', '5', '5'));
             mockHierarchy.set('3', createEntry('3', '1', '1', '2'));
 
-            const result = (modifier as any).getAbsolutePos('3', mockHierarchy);
+            const result = (ConnectorBuilder as any).getAbsolutePos('3', mockHierarchy);
             expect(result).toEqual({ x: 106, y: 106 });
         });
     });
@@ -132,10 +118,10 @@ describe('ShapeModifier Helpers', () => {
                     }
                 }
             };
-            const map = (modifier as any).buildShapeHierarchy(parsed);
+            const map = ConnectorBuilder.buildShapeHierarchy(parsed);
             expect(map.size).toBe(2);
-            expect(map.get('1').parent).toBeNull();
-            expect(map.get('2').parent).toBeNull();
+            expect(map.get('1')!.parent).toBeNull();
+            expect(map.get('2')!.parent).toBeNull();
         });
 
         it('should build nested hierarchy correctly', () => {
@@ -155,11 +141,11 @@ describe('ShapeModifier Helpers', () => {
                     }
                 }
             };
-            const map = (modifier as any).buildShapeHierarchy(parsed);
+            const map = ConnectorBuilder.buildShapeHierarchy(parsed);
             expect(map.size).toBe(2);
 
-            const p1 = map.get('1');
-            const p2 = map.get('2');
+            const p1 = map.get('1')!;
+            const p2 = map.get('2')!;
 
             expect(p1.parent).toBeNull();
             expect(p2.parent).toBe(p1.shape);
