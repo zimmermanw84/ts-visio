@@ -1,9 +1,10 @@
 import JSZip from 'jszip';
 import * as T from './templates/MinimalVsdx';
+import { isBinaryExtension } from './core/MediaConstants';
 
 export class VisioPackage {
     private zip: JSZip | null = null;
-    private files: Map<string, string> = new Map();
+    private files: Map<string, string | Buffer> = new Map();
 
     static async create(): Promise<VisioPackage> {
         const pkg = new VisioPackage();
@@ -31,8 +32,12 @@ export class VisioPackage {
         const promises: Promise<void>[] = [];
         this.zip.forEach((relativePath, file) => {
             if (!file.dir) {
+                const ext = relativePath.split('.').pop() || '';
+                const isBinary = isBinaryExtension(ext);
+                const type = isBinary ? 'nodebuffer' : 'string';
+
                 promises.push(
-                    file.async('string').then(content => {
+                    file.async(type as any).then(content => {
                         this.files.set(relativePath, content);
                     })
                 );
@@ -42,7 +47,7 @@ export class VisioPackage {
         await Promise.all(promises);
     }
 
-    updateFile(path: string, content: string): void {
+    updateFile(path: string, content: string | Buffer): void {
         if (!this.zip) {
             throw new Error("Package not loaded");
         }
@@ -69,6 +74,9 @@ export class VisioPackage {
         if (content === undefined) {
             throw new Error(`File not found: ${path}`);
         }
-        return content;
+        if (Buffer.isBuffer(content)) {
+            throw new Error(`File is binary: ${path}`);
+        }
+        return content as string;
     }
 }

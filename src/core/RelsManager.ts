@@ -79,4 +79,14 @@ export class RelsManager {
 
         return newId;
     }
+
+    async addPageImageRel(pageId: string, mediaPath: string): Promise<string> {
+        const pagePath = `visio/pages/page${pageId}.xml`;
+        return this.addImageRelationship(pagePath, mediaPath);
+    }
+
+    async addImageRelationship(sourcePath: string, target: string): Promise<string> {
+        const IMAGE_REL_TYPE = 'http://schemas.microsoft.com/office/2006/relationships/image';
+        return this.ensureRelationship(sourcePath, target, IMAGE_REL_TYPE);
+    }
 }

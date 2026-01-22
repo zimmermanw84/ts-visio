@@ -511,3 +511,115 @@ Here is the itemized prompt plan to implement **Shape Data (Custom Properties)**
 > 6. Generate the final PR description in github markdown format for easy copy pasting
 >
 >
+
+Here is the itemized prompt plan to implement **Image Support**. This is complex because it bridges two worlds: binary file handling (saving the PNG/JPG) and XML referencing (displaying it).
+
+### Phase 1: Binary Storage & Content Types (The Plumbing)
+
+*Goal: Successfully save an image file into the ZIP container and ensure Visio recognizes the file format.*
+
+**Prompt 1: The Media Manager**
+
+> "Create a `MediaManager` class in `src/core/MediaManager.ts`.
+> 1. Implement `addMedia(filename: string, data: Buffer): string`.
+> 2. **Logic:**
+> * Write the buffer to `visio/media/{filename}` in the JSZip object.
+> * Return the internal path (e.g., `../media/image1.png`).
+>
+>
+> 3. **Content Types:** Check `[Content_Types].xml`. Ensure that a `<Default Extension="png" ...>` (and jpg/jpeg) exists. If not, append it.
+> 4. **Test Requirement:** Write a test that adds a PNG buffer, saves the ZIP, and verifies the file exists in the `visio/media/` folder."
+>
+>
+
+**Prompt 2: PR Generation (Phase 1)**
+
+> "Generate a Markdown PR description.
+> * **Title:** feat: Core Media Handling & Content Type Registration
+> * **Description:** Sets up the binary storage layer for images.
+> * **Changes:** `MediaManager` class, updates to global `[Content_Types]`.
+> * **Verification:** Binary integrity test."
+>
+>
+
+---
+
+### Phase 2: Relationships & The "Foreign" Shape
+
+*Goal: Link the page to the image file and create the container shape.*
+
+**Prompt 3: Linking Page to Media (.rels)**
+
+> "I need to link a specific Page to a Media file.
+> 1. Extend `PageManager` or `RelsManager`.
+> 2. Create a method `addPageImageRel(pageId: string, mediaPath: string): string`.
+> 3. **Logic:**
+> * Open `visio/pages/_rels/page{id}.xml.rels`.
+> * Create a new `<Relationship>` pointing to the media path.
+> * Type: `http://schemas.microsoft.com/office/2006/relationships/image`.
+> * Return the generated `rId` (e.g., `rId5`)."
+>
+>
+>
+>
+
+**Prompt 4: The ForeignData Shape XML**
+
+> "Implement the shape generation for images.
+> 1. Create a helper `createImageShapeXML(id: number, rId: string, x, y, w, h)`.
+> 2. **XML Structure:**
+> * The `<Shape>` element must have `Type='Foreign'`.
+> * It must contain a `<ForeignData r:id='{rId}'>` element.
+> * It *usually* implies a specific line/fill style (invisible borders).
+>
+>
+> 3. **Geometry:** Does a Foreign shape need a `<Geom>` section? Check the Visio schema and advise/implement if necessary."
+>
+>
+
+**Prompt 5: PR Generation (Phase 2)**
+
+> "Generate a PR description.
+> * **Title:** feat: ForeignData Shape Support
+> * **Context:** Images in Visio are treated as 'Foreign Objects'.
+> * **Technical Detail:** Explain the relationship linkage (`rId`) between the Page XML and the Media file.
+> * **Test Plan:** Verify the generated XML includes `<ForeignData>`."
+>
+>
+
+---
+
+### Phase 3: Public API & Regression
+
+*Goal: A simple API that handles the complexity of "Upload -> Link -> Draw".*
+
+**Prompt 6: The `addImage` API**
+
+> "Refactor the `Page` class to expose `addImage`.
+> 1. Signature: `addImage(data: Buffer, name: string, x: number, y: number, width: number, height: number)`.
+> 2. **Orchestration:**
+> * Call `MediaManager.addMedia()` -> Get Path.
+> * Call `RelsManager.addRel()` -> Get rId.
+> * Call `createImageShapeXML()` -> Get Shape.
+>
+>
+> 3. **Return:** The new `Shape` object.
+> 4. **Test Requirement:** Create `ImageEmbedding.test.ts`. Load a dummy buffer. Add it to a page. Assert that the resulting `.vsdx` file contains the image in the media folder AND the correct XML tags in the page."
+>
+>
+
+**Prompt 7: Final Documentation & PR**
+
+> "Generate the final PR description.
+> * **Title:** feat: Public API for Image Embedding
+> * **Usage:** Provide a code example:
+> ```typescript
+> const logo = fs.readFileSync('logo.png');
+> page.addImage(logo, 'logo.png', 1, 10, 2, 1);
+>
+> ```
+>
+>
+> * **Checklist:** Ensure regression tests for standard shapes (Boxes/Lines) still pass."
+>
+>

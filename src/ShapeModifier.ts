@@ -15,6 +15,7 @@ export interface NewShapeProps {
     bold?: boolean;
     type?: string;
     masterId?: string;
+    imgRelId?: string;
 }
 
 export class ShapeModifier {
@@ -299,6 +300,49 @@ export class ShapeModifier {
         return newId;
     }
 
+
+    private createImageShapeObject(id: string, rId: string, props: NewShapeProps): any {
+        return {
+            '@_ID': id,
+            '@_NameU': `Sheet.${id}`,
+            '@_Name': `Sheet.${id}`,
+            '@_Type': 'Foreign',
+            ForeignData: { '@_r:id': rId },
+            Cell: [
+                { '@_N': 'PinX', '@_V': props.x.toString() },
+                { '@_N': 'PinY', '@_V': props.y.toString() },
+                { '@_N': 'Width', '@_V': props.width.toString() },
+                { '@_N': 'Height', '@_V': props.height.toString() },
+                { '@_N': 'LocPinX', '@_V': (props.width / 2).toString() },
+                { '@_N': 'LocPinY', '@_V': (props.height / 2).toString() }
+            ],
+            Section: [
+                // Foreign shapes typically have no border (LinePattern=0)
+                {
+                    '@_N': 'Line',
+                    Cell: [
+                        { '@_N': 'LinePattern', '@_V': '0' }, // 0 = Null/No Line
+                        { '@_N': 'LineColor', '@_V': '#000000' },
+                        { '@_N': 'LineWeight', '@_V': '0' }
+                    ]
+                },
+                // Geometry is required for selection bounds
+                {
+                    '@_N': 'Geometry',
+                    '@_IX': '0',
+                    Cell: [{ '@_N': 'NoFill', '@_V': '1' }], // Images usually don't have a fill behind them
+                    Row: [
+                        { '@_T': 'MoveTo', '@_IX': '1', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
+                        { '@_T': 'LineTo', '@_IX': '2', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': '0' }] },
+                        { '@_T': 'LineTo', '@_IX': '3', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': props.height.toString() }] },
+                        { '@_T': 'LineTo', '@_IX': '4', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': props.height.toString() }] },
+                        { '@_T': 'LineTo', '@_IX': '5', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] }
+                    ]
+                }
+            ]
+        };
+    }
+
     async addShape(pageId: string, props: NewShapeProps, parentId?: string): Promise<string> {
         const pagePath = this.getPagePath(pageId);
         let content: string;
@@ -328,74 +372,81 @@ export class ShapeModifier {
             newId = this.getNextId(parsed);
         }
 
-        const newShape: any = {
-            '@_ID': newId,
-            '@_NameU': `Sheet.${newId}`,
-            '@_Name': `Sheet.${newId}`,
-            '@_Type': props.type || 'Shape',
-            Cell: [
-                { '@_N': 'PinX', '@_V': props.x.toString() },
-                { '@_N': 'PinY', '@_V': props.y.toString() },
-                { '@_N': 'Width', '@_V': props.width.toString() },
-                { '@_N': 'Height', '@_V': props.height.toString() },
-                { '@_N': 'LocPinX', '@_V': (props.width / 2).toString() },
-                { '@_N': 'LocPinY', '@_V': (props.height / 2).toString() }
-            ],
-            Section: []
-            // Text added at end
-        };
+        let newShape: any;
 
-        if (props.masterId) {
-            newShape['@_Master'] = props.masterId;
+        if (props.type === 'Foreign' && props.imgRelId) {
+            newShape = this.createImageShapeObject(newId, props.imgRelId, props);
+        } else {
+            // Standard Shape creation logic
+            newShape = {
+                '@_ID': newId,
+                '@_NameU': `Sheet.${newId}`,
+                '@_Name': `Sheet.${newId}`,
+                '@_Type': props.type || 'Shape',
+                Cell: [
+                    { '@_N': 'PinX', '@_V': props.x.toString() },
+                    { '@_N': 'PinY', '@_V': props.y.toString() },
+                    { '@_N': 'Width', '@_V': props.width.toString() },
+                    { '@_N': 'Height', '@_V': props.height.toString() },
+                    { '@_N': 'LocPinX', '@_V': (props.width / 2).toString() },
+                    { '@_N': 'LocPinY', '@_V': (props.height / 2).toString() }
+                ],
+                Section: []
+                // Text added at end
+            };
 
-            // Phase 3: Ensure Relationship
-            // We assume the Page needs a link to the central Masters part to resolve IDs
-            // Target path is relative to the *package root* mostly, but in .rels it's relative to the page folder?
-            // "visio/pages/_rels/page1.xml.rels" -> Target="../masters/masters.xml"
-            // Standard Visio relationship to Masters:
-            await this.relsManager.ensureRelationship(
-                `visio/pages/page${pageId}.xml`,
-                '../masters/masters.xml',
-                'http://schemas.microsoft.com/visio/2010/relationships/masters'
-            );
-        }
+            if (props.masterId) {
+                newShape['@_Master'] = props.masterId;
 
-        // Only add Geometry if NOT a Group AND NOT a Master Instance
-        // Groups should be pure containers for the Table parts (Header/Body)
-        // Master instances inherit geometry from the Stencil
-        if (props.fillColor) {
-            // Add Fill Section
-            newShape.Section.push(createFillSection(props.fillColor));
+                // Phase 3: Ensure Relationship
+                // We assume the Page needs a link to the central Masters part to resolve IDs
+                // Target path is relative to the *package root* mostly, but in .rels it's relative to the page folder?
+                // "visio/pages/_rels/page1.xml.rels" -> Target="../masters/masters.xml"
+                // Standard Visio relationship to Masters:
+                await this.relsManager.ensureRelationship(
+                    `visio/pages/page${pageId}.xml`,
+                    '../masters/masters.xml',
+                    'http://schemas.microsoft.com/visio/2010/relationships/masters'
+                );
+            }
 
-            // Ensure Line section exists if we have fill (Standard practice: shapes have lines)
-            // Even if default color, explicit section helps validity
-            newShape.Section.push(createLineSection({
-                color: '#000000',
-                weight: '0.01' // Standard weight
-            }));
-        }
+            // Only add Geometry if NOT a Group AND NOT a Master Instance
+            // Groups should be pure containers for the Table parts (Header/Body)
+            // Master instances inherit geometry from the Stencil
+            if (props.fillColor) {
+                // Add Fill Section
+                newShape.Section.push(createFillSection(props.fillColor));
 
-        if (props.fontColor || props.bold) {
-            newShape.Section.push(createCharacterSection({
-                bold: props.bold,
-                color: props.fontColor
-            }));
-        }
+                // Ensure Line section exists if we have fill (Standard practice: shapes have lines)
+                // Even if default color, explicit section helps validity
+                newShape.Section.push(createLineSection({
+                    color: '#000000',
+                    weight: '0.01' // Standard weight
+                }));
+            }
 
-        // Only add Geometry if NOT a Group AND NOT a Master Instance
-        if (props.type !== 'Group' && !props.masterId) {
-            newShape.Section.push({
-                '@_N': 'Geometry',
-                '@_IX': '0',
-                Cell: [{ '@_N': 'NoFill', '@_V': props.fillColor ? '0' : '1' }],
-                Row: [
-                    { '@_T': 'MoveTo', '@_IX': '1', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
-                    { '@_T': 'LineTo', '@_IX': '2', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': '0' }] },
-                    { '@_T': 'LineTo', '@_IX': '3', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': props.height.toString() }] },
-                    { '@_T': 'LineTo', '@_IX': '4', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': props.height.toString() }] },
-                    { '@_T': 'LineTo', '@_IX': '5', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] }
-                ]
-            });
+            if (props.fontColor || props.bold) {
+                newShape.Section.push(createCharacterSection({
+                    bold: props.bold,
+                    color: props.fontColor
+                }));
+            }
+
+            // Only add Geometry if NOT a Group AND NOT a Master Instance
+            if (props.type !== 'Group' && !props.masterId) {
+                newShape.Section.push({
+                    '@_N': 'Geometry',
+                    '@_IX': '0',
+                    Cell: [{ '@_N': 'NoFill', '@_V': props.fillColor ? '0' : '1' }],
+                    Row: [
+                        { '@_T': 'MoveTo', '@_IX': '1', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
+                        { '@_T': 'LineTo', '@_IX': '2', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': '0' }] },
+                        { '@_T': 'LineTo', '@_IX': '3', Cell: [{ '@_N': 'X', '@_V': props.width.toString() }, { '@_N': 'Y', '@_V': props.height.toString() }] },
+                        { '@_T': 'LineTo', '@_IX': '4', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': props.height.toString() }] },
+                        { '@_T': 'LineTo', '@_IX': '5', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] }
+                    ]
+                });
+            }
         }
 
         if (parentId) {
