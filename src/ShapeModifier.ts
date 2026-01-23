@@ -52,10 +52,8 @@ export class ShapeModifier {
     }
 
     private getNextId(parsed: any): string {
-        // Determine the next shape ID based on existing shapes and keep PageSheet.NextShapeID in sync.
-        // Visio says: "If your library adds a shape but fails to increment this counter... Visio will try to assign a new shape the same ID"
-        // So we should try to honor it if it exists, OR calculate max+1 and UPDATE it.
-        // For robustness, calculating max+1 is safer against drift, but we MUST write it back to PageSheet.
+        // Updates PageSheet.NextShapeID to prevent ID conflicts.
+        // Calculates the next ID from existing shapes and increments the counter.
 
         const allShapes = this.getAllShapes(parsed);
         let maxId = 0;
