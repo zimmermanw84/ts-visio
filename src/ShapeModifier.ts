@@ -52,13 +52,43 @@ export class ShapeModifier {
     }
 
     private getNextId(parsed: any): string {
+        // 1. Check PageSheet for NextShapeID first?
+        // Visio says: "If your library adds a shape but fails to increment this counter... Visio will try to assign a new shape the same ID"
+        // So we should try to honor it if it exists, OR calculate max+1 and UPDATE it.
+        // For robustness, calculating max+1 is safer against drift, but we MUST write it back to PageSheet.
+
         const allShapes = this.getAllShapes(parsed);
         let maxId = 0;
         for (const s of allShapes) {
             const id = parseInt(s['@_ID']);
             if (!isNaN(id) && id > maxId) maxId = id;
         }
-        return (maxId + 1).toString();
+        const nextId = maxId + 1;
+
+        // Update PageSheet immediately with nextId + 1 (so Visio knows the NEXT one to use)
+        this.updateNextShapeId(parsed, nextId + 1);
+
+        return nextId.toString();
+    }
+
+    private ensurePageSheet(parsed: any) {
+        if (!parsed.PageContents.PageSheet) {
+            parsed.PageContents.PageSheet = { Cell: [] };
+        }
+        if (!Array.isArray(parsed.PageContents.PageSheet.Cell)) {
+            parsed.PageContents.PageSheet.Cell = parsed.PageContents.PageSheet.Cell ? [parsed.PageContents.PageSheet.Cell] : [];
+        }
+    }
+
+    private updateNextShapeId(parsed: any, nextVal: number) {
+        this.ensurePageSheet(parsed);
+        const cells = parsed.PageContents.PageSheet.Cell;
+        const cell = cells.find((c: any) => c['@_N'] === 'NextShapeID');
+        if (cell) {
+            cell['@_V'] = nextVal.toString();
+        } else {
+            cells.push({ '@_N': 'NextShapeID', '@_V': nextVal.toString() });
+        }
     }
     async addConnector(pageId: string, fromShapeId: string, toShapeId: string, beginArrow?: string, endArrow?: string): Promise<string> {
         const pagePath = this.getPagePath(pageId);
