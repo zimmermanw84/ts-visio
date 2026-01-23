@@ -255,9 +255,6 @@ describe('Shape Data Schema (ShapeModifier)', () => {
         expect(nextShapeIdCell).toBeDefined();
         const nextIdValue = parseInt(nextShapeIdCell['@_V']);
 
-        console.log(`Current Shape ID: ${shapeId}`);
-        console.log(`NextShapeID in XML: ${nextIdValue}`);
-
         expect(nextIdValue).toBeGreaterThan(shapeId);
     });
 });
