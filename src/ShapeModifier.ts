@@ -65,7 +65,7 @@ export class ShapeModifier {
         }
         const nextId = maxId + 1;
 
-        // Update PageSheet immediately with nextId + 1 (so Visio knows the NEXT one to use)
+        // Update PageSheet so that NextShapeID always points to the next available shape ID (store nextId + 1)
         this.updateNextShapeId(parsed, nextId + 1);
 
         return nextId.toString();
