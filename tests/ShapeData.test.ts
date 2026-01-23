@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ShapeModifier } from '../src/ShapeModifier';
 import { VisioPackage } from '../src/VisioPackage';
+import { VisioDocument } from '../src/VisioDocument';
 import { XMLParser } from 'fast-xml-parser';
 
 describe('Shape Data Schema (ShapeModifier)', () => {
@@ -222,5 +223,38 @@ describe('Shape Data Schema (ShapeModifier)', () => {
             .find((s: any) => s['@_N'] === 'Property').Row;
         const strRow = (Array.isArray(strRows) ? strRows : [strRows]).find((r: any) => r['@_N'] === 'Prop.Role');
         expect(strRow.Cell.find((c: any) => c['@_N'] === 'Value')['@_V']).toBe('Manager');
+    });
+
+    // bugfix
+    it('should update NextShapeID in PageSheet when adding a shape', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        // 1. Add a shape (ID should be 1, usually)
+        const shape = await page.addShape({ text: 'Test', x: 1, y: 1, width: 1, height: 1 });
+        const shapeId = parseInt(shape.id);
+
+        // 2. Save and inspect XML
+        const buffer = await doc.save();
+        const pkg = (doc as any).pkg; // Access internal package
+        const pageXml = pkg.getFileText('visio/pages/page1.xml');
+
+        const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
+        const parsed = parser.parse(pageXml);
+
+        // 3. Find PageSheet
+        const pageSheet = parsed.PageContents.PageSheet;
+        expect(pageSheet).toBeDefined();
+
+        // 4. Find NextShapeID cell
+        const cells = Array.isArray(pageSheet.Cell) ? pageSheet.Cell : [pageSheet.Cell];
+        const nextShapeIdCell = cells.find((c: any) => c['@_N'] === 'NextShapeID');
+
+        // 5. Assert existence and value
+        // NextShapeID must be greater than the current shape ID to prevent ID conflicts
+        expect(nextShapeIdCell).toBeDefined();
+        const nextIdValue = parseInt(nextShapeIdCell['@_V']);
+
+        expect(nextIdValue).toBeGreaterThan(shapeId);
     });
 });
