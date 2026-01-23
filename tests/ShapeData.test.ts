@@ -251,7 +251,7 @@ describe('Shape Data Schema (ShapeModifier)', () => {
         const nextShapeIdCell = cells.find((c: any) => c['@_N'] === 'NextShapeID');
 
         // 5. Assert existence and value
-        // If we added shape ID 1, NextShapeID should probably be 2 (or > 1)
+        // NextShapeID must be greater than the current shape ID to prevent ID conflicts
         expect(nextShapeIdCell).toBeDefined();
         const nextIdValue = parseInt(nextShapeIdCell['@_V']);
 
