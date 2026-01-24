@@ -15,6 +15,7 @@ export class PageManager {
     private builder: XMLBuilder;
     private relsManager: RelsManager;
     private pages: PageEntry[] = [];
+    private loaded: boolean = false;
 
     constructor(private pkg: VisioPackage) {
         this.parser = new XMLParser({
@@ -29,7 +30,11 @@ export class PageManager {
         this.relsManager = new RelsManager(pkg);
     }
 
-    load(): PageEntry[] {
+    load(force: boolean = false): PageEntry[] {
+        if (!force && this.loaded) {
+            return this.pages;
+        }
+
         // 1. Load Pages Index
         let pagesContent: string;
         try {
@@ -44,7 +49,11 @@ export class PageManager {
             pageNodes = pageNodes ? [pageNodes] : [];
         }
 
-        if (pageNodes.length === 0) return [];
+        if (pageNodes.length === 0) {
+            this.pages = [];
+            this.loaded = true;
+            return [];
+        }
 
         // 2. Load Relationships to resolve paths
         let relsContent: string;
@@ -81,6 +90,7 @@ export class PageManager {
             };
         });
 
+        this.loaded = true;
         return this.pages;
     }
 
@@ -155,7 +165,7 @@ export class PageManager {
         this.pkg.updateFile(pagesPath, this.builder.build(parsedPages));
 
         // Reload to include new page
-        this.load();
+        this.load(true);
 
         return newId.toString();
     }
