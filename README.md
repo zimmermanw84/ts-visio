@@ -331,6 +331,7 @@ Check out the [examples](./examples) directory for complete scripts.
 - **[Lists Demo](./examples/lists_demo.ts)**: Demonstrates Vertical and Horizontal List stacks.
 - **[Hyperlinks Demo](./examples/hyperlinks_demo.ts)**: Demonstrates Internal and External navigation.
 - **[Layers Demo](./examples/layers_demo.ts)**: Shows how to create layers and toggle visibility.
+- **[Image Embedding Demo](./examples/images_demo.ts)**: Demonstrates how to embed PNG or JPEG images into a diagram.
 
 ## Development
 
