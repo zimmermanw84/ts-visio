@@ -5,6 +5,7 @@ import { MediaManager } from './core/MediaManager';
 
 export class VisioDocument {
     private pageManager: PageManager;
+    private _pageCache: Page[] | null = null;
     private mediaManager: MediaManager;
 
     private constructor(private pkg: VisioPackage) {
@@ -33,6 +34,7 @@ export class VisioDocument {
 
     async addPage(name: string): Promise<Page> {
         const newId = await this.pageManager.createPage(name);
+        this._pageCache = null;
 
         const pageStub = {
             ID: newId,
@@ -44,17 +46,21 @@ export class VisioDocument {
     }
 
     get pages(): Page[] {
-        const internalPages = this.pageManager.load();
-        return internalPages.map(p => {
-            // Adapter for VisioPage interface
-            const pageStub = {
-                ID: p.id.toString(),
-                Name: p.name,
-                Shapes: [],
-                Connects: []
-            };
-            return new Page(pageStub as any, this.pkg, this.mediaManager);
-        });
+        if (!this._pageCache) {
+            const internalPages = this.pageManager.load();
+            this._pageCache = internalPages.map(p => {
+                // Adapter for VisioPage interface
+                const pageStub = {
+                    ID: p.id.toString(),
+                    Name: p.name,
+                    Shapes: [],
+                    Connects: []
+                };
+                return new Page(pageStub as any, this.pkg, this.mediaManager);
+            });
+        }
+
+        return this._pageCache;
     }
 
     async save(filename?: string): Promise<Buffer> {
