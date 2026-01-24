@@ -141,4 +141,10 @@ export class Shape {
 
         return this;
     }
+
+    convertToContainer(): this {
+        const modifier = new ShapeModifier(this.pkg);
+        modifier.addUserDefinedCell(this.pageId, this.id, 'msvStructureType', 'Container');
+        return this;
+    }
 }

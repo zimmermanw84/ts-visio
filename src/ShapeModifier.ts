@@ -430,6 +430,63 @@ export class ShapeModifier {
 
         this.saveParsed(pageId, parsed);
     }
+    addUserDefinedCell(pageId: string, shapeId: string, name: string, value: string, prompt?: string): void {
+        const parsed = this.getParsed(pageId);
+        const allShapes = this.getAllShapes(parsed);
+        const shape = allShapes.find((s: any) => s['@_ID'] == shapeId);
+
+        if (!shape) {
+            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        }
+
+        // Ensure Section array exists
+        if (!shape.Section) shape.Section = [];
+        if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
+
+        // Find or Create User Section
+        let userSection = shape.Section.find((s: any) => s['@_N'] === 'User');
+        if (!userSection) {
+            userSection = { '@_N': 'User', Row: [] };
+            shape.Section.push(userSection);
+        }
+
+        // Ensure Row array exists
+        if (!userSection.Row) userSection.Row = [];
+        if (!Array.isArray(userSection.Row)) userSection.Row = [userSection.Row];
+
+        // Check if row already exists
+        const rowName = `User.${name}`;
+        let existingRow = userSection.Row.find((r: any) => r['@_N'] === rowName);
+
+        if (existingRow) {
+            // Update existing Row
+            const updateCell = (n: string, v: string) => {
+                if (!existingRow.Cell) existingRow.Cell = [];
+                if (!Array.isArray(existingRow.Cell)) existingRow.Cell = [existingRow.Cell];
+
+                let c = existingRow.Cell.find((x: any) => x['@_N'] === n);
+                if (c) c['@_V'] = v;
+                else existingRow.Cell.push({ '@_N': n, '@_V': v });
+            };
+            updateCell('Value', value);
+            if (prompt) updateCell('Prompt', prompt);
+        } else {
+            // Create New Row
+            const cells = [
+                { '@_N': 'Value', '@_V': value }
+            ];
+            if (prompt) {
+                cells.push({ '@_N': 'Prompt', '@_V': prompt });
+            }
+            userSection.Row.push({
+                '@_N': rowName,
+                Cell: cells
+            });
+        }
+
+        this.saveParsed(pageId, parsed);
+    }
+
     private dateToVisioString(date: Date): string {
         // Visio typically accepts ISO 8601 strings for Type 5
         // Example: 2022-01-01T00:00:00

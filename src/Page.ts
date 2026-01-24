@@ -123,6 +123,9 @@ export class Page {
             type: 'Group'
         });
 
+        // Make it a Container so it expands with content
+        groupShape.convertToContainer();
+
         // 2. Header Shape (Inside Group)
         // Coords relative to Group (Bottom-Left is 0,0)
         // Header is at top. Center X is Width/2.
