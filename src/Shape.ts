@@ -2,6 +2,7 @@ import { VisioShape } from './types/VisioTypes';
 import { VisioPackage } from './VisioPackage';
 import { ShapeModifier, ShapeStyle } from './ShapeModifier';
 import { VisioPropType } from './types/VisioTypes';
+import { Layer } from './Layer';
 
 export interface ShapeData {
     value: string | number | boolean | Date;
@@ -218,5 +219,12 @@ export class Shape {
      */
     async toPage(targetPage: { name: string }, description?: string): Promise<this> {
         return this.linkToPage(targetPage, description);
+    }
+
+    async assignLayer(layer: Layer | number): Promise<this> {
+        const index = typeof layer === 'number' ? layer : layer.index;
+        const modifier = new ShapeModifier(this.pkg);
+        await modifier.assignLayer(this.pageId, this.id, index);
+        return this;
     }
 }

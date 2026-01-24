@@ -70,4 +70,36 @@ describe('Layers', () => {
         // Locked Layer (IX=1)
         expect(getCell(rows[1], 'Lock')).toBe('1');
     });
+
+    it('should assign shapes to layers', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        const layerA = await page.addLayer('Layer A');
+        const layerB = await page.addLayer('Layer B'); // IX=1
+
+        const shape = await page.addShape({ text: 'Layered Shape', x: 1, y: 1, width: 1, height: 1 });
+
+        await shape.assignLayer(layerA);
+        await shape.assignLayer(layerB);
+
+        // Verify XML
+        const ShapeModifierStr = (await import('../src/ShapeModifier')).ShapeModifier;
+        const testMod = new ShapeModifierStr((doc as any).pkg);
+        const parsed = (testMod as any).getParsed(page.id);
+        const shapes = (testMod as any).getAllShapes(parsed);
+        const s = shapes.find((x: any) => x['@_ID'] == shape.id);
+
+        const layerMemSec = s.Section.find((x: any) => x['@_N'] === 'LayerMem');
+        expect(layerMemSec).toBeDefined();
+
+        const row = Array.isArray(layerMemSec.Row) ? layerMemSec.Row[0] : layerMemSec.Row;
+        const cell = Array.isArray(row.Cell) ? row.Cell[0] : row.Cell;
+
+        expect(cell['@_N']).toBe('LayerMember');
+        // Visio format: "0;1" (order might vary but my implementation appends)
+        expect(cell['@_V']).toContain('0');
+        expect(cell['@_V']).toContain('1');
+        expect(cell['@_V']).toContain(';'); // "0;1"
+    });
 });
