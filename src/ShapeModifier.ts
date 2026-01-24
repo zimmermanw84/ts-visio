@@ -40,17 +40,26 @@ export class ShapeModifier {
         }
 
         const all: any[] = [];
-        const gather = (shapeList: any[]): void => {
-            for (const s of shapeList) {
-                all.push(s);
-                if (s.Shapes && s.Shapes.Shape) {
-                    const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
-                    gather(children);
+        const stack: any[] = [];
+
+        // Push top-level shapes to stack in reverse order to maintain order when popping
+        for (let i = topLevelShapes.length - 1; i >= 0; i--) {
+            stack.push(topLevelShapes[i]);
+        }
+
+        while (stack.length > 0) {
+            const s = stack.pop();
+            all.push(s);
+
+            if (s.Shapes && s.Shapes.Shape) {
+                const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
+                // Push children to stack in reverse order
+                for (let i = children.length - 1; i >= 0; i--) {
+                    stack.push(children[i]);
                 }
             }
-        };
+        }
 
-        gather(topLevelShapes);
         return all;
     }
 
