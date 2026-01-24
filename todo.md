@@ -21,22 +21,24 @@ Visio is often used as a "visual database." Shapes usually contain metadata (e.g
 Use Case: "Add an 'Employee ID' field to this box that exports to Excel but isn't visible on the drawing."
 Technical Gap: Need to verify serialization of <Section N="Property">.
 
-(In Progress) 4. Images
+(Done) 4. Images
 There is no support for embedding images.
 
 Use Case: "Add a company logo to the header" or "Paste a screenshot of the UI."
 Technical Gap: Need to embed binary image data into the ZIP package (visio/media/image1.png) and create a shape that references it using ForeignData.
 
-5. Hyperlinks
+(In Progress) 5. Hyperlinks
 Shapes often link to other pages or external URLs.
 
 Use Case: "Clicking this 'User' table should open the Jira ticket."
 Technical Gap: Implementation of <Section N="Hyperlink">.
+
 6. Container Shapes vs. Groups
 We implemented "Groups" for tables, but Visio has a special concept called Containers. Containers automatically "grab" shapes dropped into them and resize to fit content.
 
 Use Case: "Drag a new column into the Table, and the Table automatically expands to fit it."
 Technical Gap: Specific User Defined Cells and algorithmic behavior in Visio (often harder to fully replicate without the Visio engine, but the XML structures exist).
+
 7. Layers
 Complex diagrams use layers to toggle visibility (e.g., "Hide all comments").
 

@@ -623,3 +623,130 @@ Here is the itemized prompt plan to implement **Image Support**. This is complex
 > * **Checklist:** Ensure regression tests for standard shapes (Boxes/Lines) still pass."
 >
 >
+
+This is a sophisticated feature. Implementing **Containers** differs significantly from Groups because it relies on specific metadata tags (`User.msvStructureType`) that signal the Visio engine to take over behavior when the user opens the file.
+
+Here is the itemized prompt plan to implement true Visio Containers.
+
+### Phase 1: The Container Definition (ShapeSheet Magic)
+
+*Goal: Create a shape that Visio recognizes as a Container, even if it’s currently empty.*
+
+**Prompt 1: Container Metadata & User Cells**
+
+> "I need to define a shape as a 'Container' according to the Visio specification.
+> 1. Identify the specific `User-Defined Cells` required to activate container behavior. specifically, details on:
+> * `User.msvStructureType` (Should be 'Container')
+> * `User.msvSDContainerMargin`
+> * `User.msvSDContainerResize`
+>
+>
+> 2. Create a helper method `makeContainer(shapeId: string)` that injects these cells into the ShapeSheet of an existing rectangle.
+> 3. **Critical:** Does a Container require a specific `Line` or `Fill` pattern to look like a standard Visio container (e.g., header at top)? Provide the XML for a 'Classic' container geometry."
+>
+>
+
+**Prompt 2: PR Generation (Phase 1)**
+
+> "Generate a Markdown PR description.
+> * **Title:** feat: Core Container Metadata Support
+> * **Description:** Implements the `User.msv*` cells that trigger Visio's native container engine.
+> * **Verification:** Open the generated file in Visio and verify the 'Container Tools' tab appears when the shape is selected."
+>
+>
+
+---
+
+### Phase 2: Membership Logic (The Relationship)
+
+*Goal: Tell Visio, 'These specific shapes belong to this container.'*
+
+**Prompt 3: Defining Membership in XML**
+
+> "I need to programmatically add existing shapes to a Container.
+> 1. Unlike Groups (which nest `<Shape>` tags), Containers use flat relationships. Explain the specific `<Relationship>` tag attributes required in the `page.xml.rels` or the `relationships.xml` part.
+> 2. Implement `Container.addMember(shape: Shape)`.
+> 3. **Logic:**
+> * Is there a specific `User.msvShapeCategories` tag needed on the *member* shapes to allow them to be contained?
+> * How do we define the 'ContainerRelationship' in the XML to ensure that when the user moves the Container, the members move with it?"
+>
+>
+>
+>
+
+**Prompt 4: Test Requirement (Membership)**
+
+> "Write a test case:
+> 1. Create a Container.
+> 2. Create a Box.
+> 3. Call `container.addMember(box)`.
+> 4. **Assertion:** Verify the output XML contains the correct `Relationship` ID linking the two, or the specific ShapeSheet cell (like `User.msvContainerID`) if that is the preferred linkage method in OpenXML."
+>
+>
+
+---
+
+### Phase 3: The "Layout Engine" (Simulating Behavior)
+
+*Goal: Since the Visio engine isn't running during file generation, the library must manually calculate the initial size of the container to fit its contents.*
+
+**Prompt 5: Auto-Resize Logic**
+
+> "Since Visio won't auto-resize the container until the user *opens* the file, my library must calculate the initial geometry.
+> 1. Implement a `resizeToFit()` method on the `ContainerShape` class.
+> 2. **Algorithm:**
+> * Iterate through all member shapes.
+> * Calculate the bounding box (MinX, MinY, MaxX, MaxY) of the collective members.
+> * Add the standard padding defined in `User.msvSDContainerMargin`.
+> * Update the Container's `PinX`, `PinY`, `Width`, and `Height` to wrap them perfectly.
+> * **Constraint:** Ensure the Container's Z-Order is *behind* the members."
+>
+>
+>
+>
+
+**Prompt 6: PR Generation (Phase 3)**
+
+> "Generate a PR description.
+> * **Title:** feat: Container Auto-Resize Logic
+> * **Context:** Visio is a runtime engine; `ts-visio` is a static generator. We must simulate the 'Expand to fit' behavior at generation time.
+> * **Changes:** Added BoundingBox calculation and Z-Order management."
+>
+>
+
+---
+
+### Phase 4: Lists (The "Table" Use Case)
+
+*Goal: Address your specific use case ("Drag a new column"). In Visio, a Table is actually a "List" container, not just a generic Container.*
+
+**Prompt 7: Implementing Lists (Ordered Containers)**
+
+> "My use case is specifically for Database Tables (Columns). In Visio, this is technically a 'List' container (User.msvStructureType = 'List').
+> 1. How does a 'List' differ from a 'Container' in the XML?
+> 2. Implement `addListItem(item: Shape, position: index)`.
+> 3. **Logic:**
+> * Handle `User.msvSDListDirection` (Vertical vs Horizontal).
+> * Automatically calculate the Y-position of the new item based on the previous item's height (stacking).
+> * Update the List Container's height to include the new item."
+>
+>
+>
+>
+
+**Prompt 8: Final Documentation & PR**
+
+> "Generate the final PR description for List Containers.
+> * **Title:** feat: Structured List Containers for Tables
+> * **Usage Example:**
+> ```typescript
+> const table = page.addListContainer('Users');
+> table.addListItem(new Shape('PK: ID'));
+> table.addListItem(new Shape('Username'));
+>
+> ```
+>
+>
+> * **Outcome:** The generated file behaves like a native Visio database table."
+>
+>
