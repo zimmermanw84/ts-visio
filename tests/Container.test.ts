@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { VisioDocument } from '../src/VisioDocument';
 import { XMLParser } from 'fast-xml-parser';
+import { ContainerBuilder } from '../src/shapes/ContainerBuilder';
 
 describe('Visio Containers', () => {
     it('should create a container shape with correct metadata', async () => {
@@ -44,5 +45,30 @@ describe('Visio Containers', () => {
         const textXform = container.Section.find((s: any) => s['@_N'] === 'TextXform');
         expect(textXform).toBeDefined();
         // Just verify it exists for now, detailed cell checks might be brittle if we tweak formulas
+    });
+
+    it('should robustly handle shapes with single-object sections/rows (XML quirk)', () => {
+        // Mock a shape structure that mimics "fast-xml-parser" output when only 1 item exists (no array)
+        const quirkyShape = {
+            Section: {
+                '@_N': 'User',
+                // Non-array Row
+                Row: { '@_N': 'ExistingProperty', Cell: [] }
+            }
+        };
+
+
+
+        // Should not throw
+        ContainerBuilder.makeContainer(quirkyShape);
+
+        // Verification: Should have normalized to Arrays
+        expect(Array.isArray(quirkyShape.Section)).toBe(true);
+        const userSection = (quirkyShape.Section as unknown as any[]).find((s: any) => s['@_N'] === 'User');
+        expect(Array.isArray(userSection.Row)).toBe(true);
+
+        // Should still have successfully added the container metadata
+        const typeRow = userSection.Row.find((r: any) => r['@_N'] === 'msvStructureType');
+        expect(typeRow).toBeDefined();
     });
 });
