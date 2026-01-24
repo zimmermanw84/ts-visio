@@ -24,22 +24,28 @@ export class ContainerBuilder {
     }
 
     static makeContainer(shape: any) {
-        // Ensure User Section exists
+        // Ensure Section array
         if (!shape.Section) shape.Section = [];
+        if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
+
+        // 1. User Section (Metadata)
         let userSection = shape.Section.find((s: any) => s['@_N'] === 'User');
         if (!userSection) {
             userSection = { '@_N': 'User', Row: [] };
             shape.Section.push(userSection);
         }
 
+        // Ensure Row is array (Critical for XML parser edge cases)
+        if (!userSection.Row) userSection.Row = [];
+        if (!Array.isArray(userSection.Row)) userSection.Row = [userSection.Row];
+
         // Helper to add/update user row
-        const addUserRow = (name: string, value: string, type?: string) => {
+        const addUserRow = (name: string, value: string) => {
             const rowIdx = userSection.Row.findIndex((r: any) => r['@_N'] === name);
             const newRow = {
                 '@_N': name,
                 Cell: [{ '@_N': 'Value', '@_V': value }]
             };
-            // Add Type? typically internal types are fine.
 
             if (rowIdx >= 0) {
                 userSection.Row[rowIdx] = newRow;
@@ -49,27 +55,31 @@ export class ContainerBuilder {
         };
 
         // Critical Metadata
-        addUserRow('msvStructureType', '"Container"'); // Quotes are important for string values in Type=0?
-        // Visio Formula Strings often need quotes.
-
+        addUserRow('msvStructureType', '"Container"');
         addUserRow('msvSDContainerMargin', '10 mm');
-        // Default margin
-
-        // Optional: Resize behavior
-        // addUserRow('msvSDContainerResize', '0');
 
         // 2. Adjust Text Position (Simulate Header)
-        // Move text to top of shape:
-        // TxtPinY = Height
-        // TxtLocPinY = TxtHeight (Top of text block matches Top of shape)
-        if (!shape.Section.find((s: any) => s['@_N'] === 'TextXform')) {
-            shape.Section.push({
-                '@_N': 'TextXform',
-                Cell: [
-                    { '@_N': 'TxtPinY', '@_V': 'Height*1', '@_U': 'DY' }, // Using Formula to link to Height
-                    { '@_N': 'TxtLocPinY', '@_V': 'TxtHeight*1', '@_U': 'DY' }
-                ]
-            });
+        // Find or create TextXform
+        let textXform = shape.Section.find((s: any) => s['@_N'] === 'TextXform');
+        if (!textXform) {
+            textXform = { '@_N': 'TextXform', Cell: [] };
+            shape.Section.push(textXform);
         }
+
+        // Ensure Cell is array
+        if (!textXform.Cell) textXform.Cell = [];
+        if (!Array.isArray(textXform.Cell)) textXform.Cell = [textXform.Cell];
+
+        const upsertCell = (name: string, val: string, unit: string) => {
+            const idx = textXform.Cell.findIndex((c: any) => c['@_N'] === name);
+            const cell = { '@_N': name, '@_V': val, '@_U': unit };
+            if (idx >= 0) textXform.Cell[idx] = cell;
+            else textXform.Cell.push(cell);
+        };
+
+        // Move text to top of shape: TxtPinY = Height, TxtLocPinY = TxtHeight
+        // Removed redundant '*1' from formulas
+        upsertCell('TxtPinY', 'Height', 'DY');
+        upsertCell('TxtLocPinY', 'TxtHeight', 'DY');
     }
 }
