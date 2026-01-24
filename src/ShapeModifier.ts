@@ -138,6 +138,27 @@ export class ShapeModifier {
         this.dirtyPages.clear();
     }
 
+    public async batch(action: () => Promise<void>): Promise<void> {
+        const previousAutoSave = this.autoSave;
+        this.autoSave = false;
+        try {
+            await action();
+            this.flush();
+        } finally {
+            this.autoSave = previousAutoSave;
+        }
+    }
+
+    async addShapes(pageId: string, shapes: NewShapeProps[], parentId?: string): Promise<string[]> {
+        const ids: string[] = [];
+        await this.batch(async () => {
+            for (const props of shapes) {
+                ids.push(await this.addShape(pageId, props, parentId));
+            }
+        });
+        return ids;
+    }
+
     async addConnector(pageId: string, fromShapeId: string, toShapeId: string, beginArrow?: string, endArrow?: string): Promise<string> {
         const parsed = this.getParsed(pageId);
 
@@ -169,6 +190,7 @@ export class ShapeModifier {
 
 
     async addShape(pageId: string, props: NewShapeProps, parentId?: string): Promise<string> {
+        // Use getParsed to leverage caching and ensure batching works correctly (object identity preservation)
         const parsed = this.getParsed(pageId);
 
         // Ensure Shapes container exists
