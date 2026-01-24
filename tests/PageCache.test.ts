@@ -25,8 +25,9 @@ describe('PageManager Caching', () => {
         const pages3 = doc.pages;
         expect(pages3).toHaveLength(initialCount + 1);
 
-        // Ensure object identity might be different (new objects created from cache data)
-        // actually, VisioDocument.pages maps internal entries to new Page objects every time.
-        // So they won't be strictly equal objects, but content should match.
+        // Verify Caching Identity
+        // Because of caching, accessing doc.pages again should return the exact same array instance
+        const pages4 = doc.pages;
+        expect(pages3).toBe(pages4);
     });
 });
