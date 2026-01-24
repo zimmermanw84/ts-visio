@@ -54,13 +54,40 @@ export class VisioDocument {
                     ID: p.id.toString(),
                     Name: p.name,
                     Shapes: [],
-                    Connects: []
+                    Connects: [],
+                    isBackground: p.isBackground,
+                    backPageId: p.backPageId
                 };
                 return new Page(pageStub as any, this.pkg, this.mediaManager);
             });
         }
 
         return this._pageCache;
+    }
+
+    /**
+     * Add a background page to the document
+     */
+    async addBackgroundPage(name: string): Promise<Page> {
+        const newId = await this.pageManager.createBackgroundPage(name);
+        this._pageCache = null;
+
+        const pageStub = {
+            ID: newId,
+            Name: name,
+            Shapes: [],
+            Connects: [],
+            isBackground: true
+        };
+        return new Page(pageStub as any, this.pkg, this.mediaManager);
+    }
+
+    /**
+     * Set a background page for a foreground page
+     */
+    async setBackgroundPage(foregroundPage: Page, backgroundPage: Page): Promise<void> {
+        await this.pageManager.setBackgroundPage(foregroundPage.id, backgroundPage.id);
+        this._pageCache = null;
     }
 
     async save(filename?: string): Promise<Buffer> {

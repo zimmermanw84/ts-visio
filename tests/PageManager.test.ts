@@ -44,7 +44,9 @@ describe('PageManager', () => {
             id: 0,
             name: 'Page-1',
             relId: 'rId1',
-            xmlPath: 'visio/pages/page1.xml'
+            xmlPath: 'visio/pages/page1.xml',
+            isBackground: false,
+            backPageId: undefined
         });
     });
 
