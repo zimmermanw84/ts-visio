@@ -12,6 +12,7 @@ export class ShapeModifier {
     private parser: XMLParser;
     private builder: XMLBuilder;
     private relsManager: RelsManager;
+    private pageCache: Map<string, { content: string, parsed: any }> = new Map();
 
     constructor(private pkg: VisioPackage) {
         this.parser = new XMLParser({
@@ -88,17 +89,35 @@ export class ShapeModifier {
             cells.push({ '@_N': 'NextShapeID', '@_V': nextVal.toString() });
         }
     }
-    async addConnector(pageId: string, fromShapeId: string, toShapeId: string, beginArrow?: string, endArrow?: string): Promise<string> {
-        const pagePath = this.getPagePath(pageId);
-        let content = '';
 
+    private getParsed(pageId: string): any {
+        const pagePath = this.getPagePath(pageId);
+        let content: string;
         try {
             content = this.pkg.getFileText(pagePath);
         } catch {
             throw new Error(`Could not find page file for ID ${pageId}. Expected at ${pagePath}`);
         }
 
+        const cached = this.pageCache.get(pagePath);
+        if (cached && cached.content === content) {
+            return cached.parsed;
+        }
+
         const parsed = this.parser.parse(content);
+        this.pageCache.set(pagePath, { content, parsed });
+        return parsed;
+    }
+
+    private saveParsed(pageId: string, parsed: any): void {
+        const pagePath = this.getPagePath(pageId);
+        const newXml = this.builder.build(parsed);
+        this.pkg.updateFile(pagePath, newXml);
+        this.pageCache.set(pagePath, { content: newXml, parsed });
+    }
+
+    async addConnector(pageId: string, fromShapeId: string, toShapeId: string, beginArrow?: string, endArrow?: string): Promise<string> {
+        const parsed = this.getParsed(pageId);
 
         // Ensure Shapes collection exists
         if (!parsed.PageContents.Shapes) {
@@ -119,9 +138,7 @@ export class ShapeModifier {
 
         ConnectorBuilder.addConnectorToConnects(parsed, newId, fromShapeId, toShapeId);
 
-        // Save back
-        const newXml = this.builder.build(parsed);
-        this.pkg.updateFile(pagePath, newXml);
+        this.saveParsed(pageId, parsed);
 
         return newId;
     }
@@ -130,15 +147,7 @@ export class ShapeModifier {
 
 
     async addShape(pageId: string, props: NewShapeProps, parentId?: string): Promise<string> {
-        const pagePath = this.getPagePath(pageId);
-        let content: string;
-        try {
-            content = this.pkg.getFileText(pagePath);
-        } catch {
-            throw new Error(`Could not find page file for ID ${pageId}. Expected at ${pagePath}`);
-        }
-
-        const parsed = this.parser.parse(content);
+        const parsed = this.getParsed(pageId);
 
         // Ensure Shapes container exists
         if (!parsed.PageContents.Shapes) {
@@ -207,27 +216,13 @@ export class ShapeModifier {
             topLevelShapes.push(newShape);
         }
 
-        const newXml = this.builder.build(parsed);
-        this.pkg.updateFile(pagePath, newXml);
+        this.saveParsed(pageId, parsed);
 
         return newId;
     }
 
     async updateShapeText(pageId: string, shapeId: string, newText: string): Promise<void> {
-        const pagePath = this.getPagePath(pageId);
-        let content: string;
-
-        try {
-            content = this.pkg.getFileText(pagePath);
-        } catch {
-            // Fallback: This is a simplification.
-            // In a real robust app, we should use the page mapping logic to find file path.
-            // For now, if exact ID match fails, we throw.
-            // A more complex lookup would require re-accessing PageManager or iterating keys.
-            throw new Error(`Could not find page file for ID ${pageId}. Expected at ${pagePath}`);
-        }
-
-        const parsed = this.parser.parse(content);
+        const parsed = this.getParsed(pageId);
         let found = false;
 
         // Helper to recursively find and update shape
@@ -255,19 +250,10 @@ export class ShapeModifier {
             throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        const newXml = this.builder.build(parsed);
-        this.pkg.updateFile(pagePath, newXml);
+        this.saveParsed(pageId, parsed);
     }
     async updateShapeStyle(pageId: string, shapeId: string, style: ShapeStyle): Promise<void> {
-        const pagePath = this.getPagePath(pageId);
-        let content: string;
-        try {
-            content = this.pkg.getFileText(pagePath);
-        } catch {
-            throw new Error(`Could not find page file for ID ${pageId}`);
-        }
-
-        const parsed = this.parser.parse(content);
+        const parsed = this.getParsed(pageId);
         let found = false;
 
         const findAndUpdate = (shapes: any[]) => {
@@ -312,19 +298,10 @@ export class ShapeModifier {
             throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        const newXml = this.builder.build(parsed);
-        this.pkg.updateFile(pagePath, newXml);
+        this.saveParsed(pageId, parsed);
     }
     async updateShapePosition(pageId: string, shapeId: string, x: number, y: number): Promise<void> {
-        const pagePath = this.getPagePath(pageId);
-        let content: string;
-        try {
-            content = this.pkg.getFileText(pagePath);
-        } catch {
-            throw new Error(`Could not find page file for ID ${pageId}`);
-        }
-
-        const parsed = this.parser.parse(content);
+        const parsed = this.getParsed(pageId);
         let found = false;
 
         const findAndUpdate = (shapes: any[]) => {
@@ -365,19 +342,10 @@ export class ShapeModifier {
             throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        const newXml = this.builder.build(parsed);
-        this.pkg.updateFile(pagePath, newXml);
+        this.saveParsed(pageId, parsed);
     }
     addPropertyDefinition(pageId: string, shapeId: string, name: string, type: number, options: { label?: string, invisible?: boolean } = {}): void {
-        const pagePath = this.getPagePath(pageId);
-        let content: string;
-        try {
-            content = this.pkg.getFileText(pagePath);
-        } catch {
-            throw new Error(`Could not find page file for ID ${pageId}`);
-        }
-
-        const parsed = this.parser.parse(content);
+        const parsed = this.getParsed(pageId);
         let found = false;
 
         const findAndUpdate = (shapes: any[]) => {
@@ -438,8 +406,7 @@ export class ShapeModifier {
             throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        const newXml = this.builder.build(parsed);
-        this.pkg.updateFile(pagePath, newXml);
+        this.saveParsed(pageId, parsed);
     }
     private dateToVisioString(date: Date): string {
         // Visio typically accepts ISO 8601 strings for Type 5
@@ -448,15 +415,7 @@ export class ShapeModifier {
     }
 
     setPropertyValue(pageId: string, shapeId: string, name: string, value: string | number | boolean | Date): void {
-        const pagePath = this.getPagePath(pageId);
-        let content: string;
-        try {
-            content = this.pkg.getFileText(pagePath);
-        } catch {
-            throw new Error(`Could not find page file for ID ${pageId}`);
-        }
-
-        const parsed = this.parser.parse(content);
+        const parsed = this.getParsed(pageId);
         let found = false;
 
         const findAndUpdate = (shapes: any[]) => {
@@ -516,8 +475,7 @@ export class ShapeModifier {
             throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        const newXml = this.builder.build(parsed);
-        this.pkg.updateFile(pagePath, newXml);
+        this.saveParsed(pageId, parsed);
     }
 }
 
