@@ -197,6 +197,6 @@ export class Page {
 
     async addLayer(name: string, options?: { visible?: boolean, lock?: boolean, print?: boolean }): Promise<Layer> {
         const info = await this.modifier.addLayer(this.id, name, options);
-        return new Layer(info.name, info.index);
+        return new Layer(info.name, info.index, this.id, this.pkg);
     }
 }

@@ -102,4 +102,40 @@ describe('Layers', () => {
         expect(cell['@_V']).toContain('1');
         expect(cell['@_V']).toContain(';'); // "0;1"
     });
+
+    it('should toggle layer visibility', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        const layer = await page.addLayer('Comments');
+
+        // Initially visible by default
+        // Toggle to hidden
+        await layer.hide();
+
+        // Verify XML
+        const ShapeModifierStr = (await import('../src/ShapeModifier')).ShapeModifier;
+        const testMod = new ShapeModifierStr((doc as any).pkg);
+        const parsed = (testMod as any).getParsed(page.id);
+        const sections = parsed.PageContents.PageSheet.Section ? (Array.isArray(parsed.PageContents.PageSheet.Section) ? parsed.PageContents.PageSheet.Section : [parsed.PageContents.PageSheet.Section]) : [];
+        const layerSec = sections.find((s: any) => s['@_N'] === 'Layer');
+
+        const rows = Array.isArray(layerSec.Row) ? layerSec.Row : [layerSec.Row];
+        const getCell = (r: any, n: string) => {
+            const cells = Array.isArray(r.Cell) ? r.Cell : [r.Cell];
+            return cells.find((c: any) => c['@_N'] === n)['@_V'];
+        }
+
+        expect(getCell(rows[0], 'Visible')).toBe('0');
+
+        // Show again
+        await layer.show();
+
+        // Re-read and verify
+        const parsed2 = (testMod as any).getParsed(page.id);
+        const sections2 = parsed2.PageContents.PageSheet.Section ? (Array.isArray(parsed2.PageContents.PageSheet.Section) ? parsed2.PageContents.PageSheet.Section : [parsed2.PageContents.PageSheet.Section]) : [];
+        const layerSec2 = sections2.find((s: any) => s['@_N'] === 'Layer');
+        const rows2 = Array.isArray(layerSec2.Row) ? layerSec2.Row : [layerSec2.Row];
+        expect(getCell(rows2[0], 'Visible')).toBe('1');
+    });
 });

@@ -227,4 +227,11 @@ export class Shape {
         await modifier.assignLayer(this.pageId, this.id, index);
         return this;
     }
+
+    /**
+     * Alias for assignLayer. Adds this shape to a layer.
+     */
+    async addToLayer(layer: Layer | number): Promise<this> {
+        return this.assignLayer(layer);
+    }
 }
