@@ -56,6 +56,43 @@ describe('Visio Package Validation', () => {
         });
     });
 
+    describe('Color Persistence', () => {
+        it('should strictly persist RGB formulas for custom colors', async () => {
+            // 1. Create doc with custom colored shape
+            const doc = await VisioDocument.create();
+            const page = doc.pages[0];
+
+            const redHex = '#FF0000';
+            const blueHex = '#0000FF';
+
+            await page.addShape({
+                text: 'Colored Shape',
+                x: 1, y: 1, width: 2, height: 1,
+                fillColor: redHex,
+                lineColor: blueHex
+            });
+
+            // 2. Validate internal XML
+            // We access the internal package to find the shape's XML
+            const pkg = (doc as any).pkg;
+            const pageXml = pkg.getFileText('visio/pages/page1.xml');
+
+            // We need to find the Shape and check its Cells
+            // Using regex check for simplicity as we know the structure:
+            // <Cell N="FillForegnd" V="#FF0000" F="RGB(255,0,0)"/>
+            // <Cell N="LineColor" V="#0000FF" F="RGB(0,0,255)"/>
+
+            // Check Fill
+            // Allow both self-closing /> and explicit closing ></Cell>
+            const fillMatch = /<Cell N="FillForegnd" V="#FF0000" F="RGB\(255,0,0\)"(\s*\/>|><\/Cell>)/;
+            expect(pageXml).toMatch(fillMatch);
+
+            // Check Line - now we expect this to pass with the fix
+            const lineMatch = /<Cell N="LineColor" V="#0000FF" F="RGB\(0,0,255\)"(\s*\/>|><\/Cell>)/;
+            expect(pageXml).toMatch(lineMatch);
+        });
+    });
+
     describe('Example Files Validation', () => {
         const exampleFiles = [
             'simple-schema.vsdx',

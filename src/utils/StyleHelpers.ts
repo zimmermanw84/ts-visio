@@ -85,11 +85,16 @@ export function createLineSection(props: {
     endArrow?: string;
     endArrowSize?: string;
 }): VisioSection {
-    const cells = [
+    const cells: any[] = [
         { '@_N': 'LineColor', '@_V': props.color || '#000000' },
         { '@_N': 'LinePattern', '@_V': props.pattern || '1' }, // 1 = Solid
         { '@_N': 'LineWeight', '@_V': props.weight || '0.01' } // ~0.72pt
     ];
+
+    // Add RGB Formula for custom colors
+    if (props.color) {
+        cells[0]['@_F'] = hexToRgb(props.color);
+    }
 
     if (props.beginArrow) {
         cells.push({ '@_N': 'BeginArrow', '@_V': props.beginArrow });
