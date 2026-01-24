@@ -3,7 +3,11 @@ import { PageManager } from './core/PageManager';
 import { Page } from './Page';
 
 export class VisioDocument {
-    private constructor(private pkg: VisioPackage) { }
+    private pageManager: PageManager;
+
+    private constructor(private pkg: VisioPackage) {
+        this.pageManager = new PageManager(pkg);
+    }
 
     static async create(): Promise<VisioDocument> {
         const pkg = await VisioPackage.create();
@@ -25,8 +29,7 @@ export class VisioDocument {
     }
 
     async addPage(name: string): Promise<Page> {
-        const pm = new PageManager(this.pkg);
-        const newId = await pm.createPage(name);
+        const newId = await this.pageManager.createPage(name);
 
         const pageStub = {
             ID: newId,
@@ -38,8 +41,7 @@ export class VisioDocument {
     }
 
     get pages(): Page[] {
-        const pm = new PageManager(this.pkg);
-        const internalPages = pm.load();
+        const internalPages = this.pageManager.load();
         return internalPages.map(p => {
             // Adapter for VisioPage interface
             const pageStub = {
