@@ -873,6 +873,59 @@ export class ShapeModifier {
 
         return { name, index: newIndex };
     }
+
+    async assignLayer(pageId: string, shapeId: string, layerIndex: number): Promise<void> {
+        const parsed = this.getParsed(pageId);
+        const shapes = this.getAllShapes(parsed);
+        const shape = shapes.find((s: any) => s['@_ID'] == shapeId);
+
+        if (!shape) throw new Error(`Shape ${shapeId} not found`);
+
+        // Ensure Section array
+        if (!shape.Section) shape.Section = [];
+        if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
+
+        // Find or Create LayerMem Section
+        let memSection = shape.Section.find((s: any) => s['@_N'] === 'LayerMem');
+        if (!memSection) {
+            memSection = { '@_N': 'LayerMem', Row: [] };
+            shape.Section.push(memSection);
+        }
+
+        // Ensure Row array
+        if (!memSection.Row) memSection.Row = [];
+        if (!Array.isArray(memSection.Row)) memSection.Row = [memSection.Row];
+
+        // Ensure Row exists (LayerMem usually has 1 row)
+        if (memSection.Row.length === 0) {
+            memSection.Row.push({ Cell: [] });
+        }
+        const row = memSection.Row[0];
+
+        // Ensure Cell array
+        if (!row.Cell) row.Cell = [];
+        if (!Array.isArray(row.Cell)) row.Cell = [row.Cell];
+
+        // Find LayerMember Cell
+        let cell = row.Cell.find((c: any) => c['@_N'] === 'LayerMember');
+        if (!cell) {
+            cell = { '@_N': 'LayerMember', '@_V': '' };
+            row.Cell.push(cell);
+        }
+
+        // Update Value
+        const currentVal = cell['@_V'] || '';
+        const indices = currentVal.split(';').filter((s: string) => s.length > 0);
+        const idxStr = layerIndex.toString();
+
+        if (!indices.includes(idxStr)) {
+            indices.push(idxStr);
+            // Sort optionally? Visio doesn't strictly require sorting but it's cleaner.
+            // Let's keep insertion order or sort numeric. Visio usually semicolon separates.
+            cell['@_V'] = indices.join(';');
+            this.saveParsed(pageId, parsed);
+        }
+    }
 }
 
 
