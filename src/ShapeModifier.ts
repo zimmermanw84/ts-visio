@@ -204,8 +204,16 @@ export class ShapeModifier {
         const newId = this.getNextId(parsed);
         const shapeHierarchy = ConnectorBuilder.buildShapeHierarchy(parsed);
 
+        // Validate arrow values (Visio supports 0-45)
+        const validateArrow = (val?: string): string => {
+            if (!val) return '0';
+            const num = parseInt(val);
+            if (isNaN(num) || num < 0 || num > 45) return '0';
+            return val;
+        };
+
         const layout = ConnectorBuilder.calculateConnectorLayout(fromShapeId, toShapeId, shapeHierarchy);
-        const connectorShape = ConnectorBuilder.createConnectorShapeObject(newId, layout, beginArrow, endArrow);
+        const connectorShape = ConnectorBuilder.createConnectorShapeObject(newId, layout, validateArrow(beginArrow), validateArrow(endArrow));
 
         const topLevelShapes = parsed.PageContents.Shapes.Shape;
         topLevelShapes.push(connectorShape);
@@ -490,6 +498,11 @@ export class ShapeModifier {
                     }
                     return;
                 }
+                // Recurse into nested shapes (groups/containers)
+                if (shape.Shapes?.Shape) {
+                    const children = Array.isArray(shape.Shapes.Shape) ? shape.Shapes.Shape : [shape.Shapes.Shape];
+                    findAndUpdate(children);
+                }
             }
         };
 
@@ -558,6 +571,11 @@ export class ShapeModifier {
                         row.Cell.push({ '@_N': 'Value', '@_V': visioValue });
                     }
                     return;
+                }
+                // Recurse into nested shapes (groups/containers)
+                if (shape.Shapes?.Shape) {
+                    const children = Array.isArray(shape.Shapes.Shape) ? shape.Shapes.Shape : [shape.Shapes.Shape];
+                    findAndUpdate(children);
                 }
             }
         };
@@ -804,9 +822,8 @@ export class ShapeModifier {
         };
 
         if (details.address) {
-            // Escape URL (Basic XML escaping)
-            const escapedAddress = details.address.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-            newRow.Cell.push({ '@_N': 'Address', '@_V': escapedAddress });
+            // XMLBuilder handles XML escaping automatically
+            newRow.Cell.push({ '@_N': 'Address', '@_V': details.address });
         }
 
         if (details.subAddress) {

@@ -54,7 +54,8 @@ describe('Hyperlinks', () => {
 
         const addr = cells.find((c: any) => c['@_N'] === 'Address');
 
-        expect(addr['@_V']).toContain('amp;');
+        // When parsed back by fast-xml-parser, escaped &amp; becomes & again
+        expect(addr['@_V']).toBe('https://example.com?q=1&b=2');
     });
 
     it('should support multiple links', async () => {

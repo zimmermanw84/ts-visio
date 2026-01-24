@@ -4,6 +4,11 @@ import { createFillSection, createCharacterSection, createLineSection } from '..
 
 export class ShapeBuilder {
     static createStandardShape(id: string, props: NewShapeProps): any {
+        // Validate dimensions
+        if (props.width <= 0 || props.height <= 0) {
+            throw new Error('Shape dimensions must be positive numbers');
+        }
+
         const shape: any = {
             '@_ID': id,
             '@_NameU': `Sheet.${id}`,

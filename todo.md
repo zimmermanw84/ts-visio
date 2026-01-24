@@ -39,7 +39,7 @@ We implemented "Groups" for tables, but Visio has a special concept called Conta
 Use Case: "Drag a new column into the Table, and the Table automatically expands to fit it."
 Technical Gap: Specific User Defined Cells and algorithmic behavior in Visio (often harder to fully replicate without the Visio engine, but the XML structures exist).
 
-(In Progress) 7. Layers
+(Done) 7. Layers
 Complex diagrams use layers to toggle visibility (e.g., "Hide all comments").
 
 Use Case: "Create a 'Wireframe' layer and a 'Notes' layer."
