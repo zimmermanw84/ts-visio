@@ -5,6 +5,7 @@ import { XML_NAMESPACES, RELATIONSHIP_TYPES } from './VisioConstants';
 export class RelsManager {
     private parser: XMLParser;
     private builder: XMLBuilder;
+    private relsCache: Map<string, any> = new Map();
 
     constructor(private pkg: VisioPackage) {
         this.parser = new XMLParser({
@@ -29,18 +30,23 @@ export class RelsManager {
 
     async ensureRelationship(sourcePath: string, target: string, type: string): Promise<string> {
         const relsPath = this.getRelsPath(sourcePath);
-        let content = '';
+        let parsed;
 
-        try {
-            content = this.pkg.getFileText(relsPath);
-        } catch {
-            // If .rels doesn't exist, start fresh
-            content = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        if (this.relsCache.has(relsPath)) {
+            parsed = this.relsCache.get(relsPath);
+        } else {
+            let content = '';
+            try {
+                content = this.pkg.getFileText(relsPath);
+            } catch {
+                // If .rels doesn't exist, start fresh
+                content = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="${XML_NAMESPACES.RELATIONSHIPS}">
 </Relationships>`;
+            }
+            parsed = this.parser.parse(content);
+            this.relsCache.set(relsPath, parsed);
         }
-
-        const parsed = this.parser.parse(content);
 
         if (!parsed.Relationships) {
             parsed.Relationships = { Relationship: [] };
