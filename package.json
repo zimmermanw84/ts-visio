@@ -1,14 +1,20 @@
 {
   "name": "ts-visio",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
   },
+  "files": [
+    "dist"
+  ],
   "keywords": [],
-  "author": "",
+  "author": "Walt Zimmerman (me@waltzimmerman.com)",
   "license": "MIT",
-  "description": "",
+  "description": "A npm package for creating Visio files (vsdx) using TypeScript.",
   "dependencies": {
     "fast-xml-parser": "^5.3.3",
     "jszip": "^3.10.1"
