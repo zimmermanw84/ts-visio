@@ -102,6 +102,23 @@ export class Page {
         return new Shape(internalStub, this.id, this.pkg);
     }
 
+    async addContainer(props: NewShapeProps): Promise<Shape> {
+        const newId = await this.modifier.addContainer(this.id, props);
+
+        const internalStub = createVisioShapeStub({
+            ID: newId,
+            Text: props.text,
+            Cells: {
+                'Width': props.width,
+                'Height': props.height,
+                'PinX': props.x,
+                'PinY': props.y
+            }
+        });
+
+        return new Shape(internalStub, this.id, this.pkg);
+    }
+
     async addTable(x: number, y: number, title: string, columns: string[]): Promise<Shape> {
         // Dimensions
         const width = 3;

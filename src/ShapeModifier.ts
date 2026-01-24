@@ -7,8 +7,33 @@ import { NewShapeProps } from './types/VisioTypes';
 import { ForeignShapeBuilder } from './shapes/ForeignShapeBuilder';
 import { ShapeBuilder } from './shapes/ShapeBuilder';
 import { ConnectorBuilder } from './shapes/ConnectorBuilder';
+import { ContainerBuilder } from './shapes/ContainerBuilder';
 
 export class ShapeModifier {
+    // ...
+    async addContainer(pageId: string, props: NewShapeProps): Promise<string> {
+
+        const pagePath = this.getPagePath(pageId);
+        let content = this.pkg.getFileText(pagePath);
+        const parsed = this.parser.parse(content);
+
+        // Ensure Shapes container...
+        if (!parsed.PageContents.Shapes) parsed.PageContents.Shapes = { Shape: [] };
+        let topLevelShapes = parsed.PageContents.Shapes.Shape;
+        if (!Array.isArray(topLevelShapes)) {
+            topLevelShapes = topLevelShapes ? [topLevelShapes] : [];
+            parsed.PageContents.Shapes.Shape = topLevelShapes;
+        }
+
+        let newId = props.id || this.getNextId(parsed);
+        const containerShape = ContainerBuilder.createContainerShape(newId, props);
+
+        topLevelShapes.push(containerShape);
+
+        const newXml = this.builder.build(parsed);
+        this.pkg.updateFile(pagePath, newXml);
+        return newId;
+    }
     private parser: XMLParser;
     private builder: XMLBuilder;
     private relsManager: RelsManager;

@@ -250,12 +250,29 @@ const page = doc.pages[0];
 await page.addImage(buffer, 'logo.png', 2, 5, 3, 2);
 ```
 
+#### 14. Containers
+Create visual grouping containers (Classic Visio style).
+
+```typescript
+// Create a Container
+const container = await page.addContainer({
+    text: "Network Zone",
+    x: 1, y: 1,
+    width: 6, height: 4
+});
+
+// Add shapes "inside" the container area
+// (Visio treats them as members if they are spatially within)
+await page.addShape({ text: "Server A", x: 2, y: 2, width: 1, height: 1 });
+```
+
 ## Examples
 
 Check out the [examples](./examples) directory for complete scripts.
 
 - **[Simple Schema](./examples/simple-schema.ts)**: Generates a database schema ERD with tables, styling, and Crow's Foot connectors.
 - **[Network Topology](./examples/network-diagram.ts)**: Demonstrates the **Fluent Shape Data API** to build a network map with hidden metadata, typed properties, and connections.
+- **[Containers Demo](./examples/containers_demo.ts)**: Shows how to create Classic Visio containers and place shapes within them.
 
 ## Development
 
