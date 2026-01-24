@@ -82,4 +82,30 @@ export class ContainerBuilder {
         upsertCell('TxtPinY', 'Height', 'DY');
         upsertCell('TxtLocPinY', 'TxtHeight', 'DY');
     }
+
+    static makeList(shape: any, direction: 'vertical' | 'horizontal' = 'vertical') {
+        // 1. Convert basic container to List
+        this.makeContainer(shape);
+
+        // 2. User Section Override
+        let userSection = shape.Section.find((s: any) => s['@_N'] === 'User');
+
+        // Helper to add/update user row
+        const upsertUserRow = (name: string, value: string) => {
+            const rowIdx = userSection.Row.findIndex((r: any) => r['@_N'] === name);
+            const newRow = {
+                '@_N': name,
+                Cell: [{ '@_N': 'Value', '@_V': value }]
+            };
+
+            if (rowIdx >= 0) userSection.Row[rowIdx] = newRow;
+            else userSection.Row.push(newRow);
+        };
+
+        upsertUserRow('msvStructureType', '"List"'); // Override "Container"
+        upsertUserRow('msvSDListDirection', direction === 'vertical' ? '1' : '0'); // 1=Vert, 0=Horiz
+        upsertUserRow('msvSDListSpacing', '0.125'); // Default spacing (can be param later)
+        upsertUserRow('msvSDListAlignment', '1'); // 1=Center
+    }
 }
+

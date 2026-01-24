@@ -149,77 +149,37 @@ export class Shape {
         return this;
     }
 
+    async addListItem(item: Shape): Promise<this> {
+        const modifier = new ShapeModifier(this.pkg);
+        await modifier.addListItem(this.pageId, this.id, item.id);
+
+        // Refresh local state after modifer updates (resizeToFit called internally)
+        await this.refreshLocalState();
+        return this;
+    }
+
     async resizeToFit(padding: number = 0.25): Promise<this> {
         const modifier = new ShapeModifier(this.pkg);
-        const memberIds = modifier.getContainerMembers(this.pageId, this.id);
+        await modifier.resizeContainerToFit(this.pageId, this.id, padding);
 
-        if (memberIds.length === 0) return this;
+        await this.refreshLocalState();
+        return this;
+    }
 
-        // Calculate Bounding Box
-        let minX = Infinity, minY = Infinity;
-        let maxX = -Infinity, maxY = -Infinity;
+    private async refreshLocalState() {
+        // Reloads internal Cells from modifier's fresh XML
+        // This is a bit expensive but ensures consistency
+        const modifier = new ShapeModifier(this.pkg);
+        const geo = modifier.getShapeGeometry(this.pageId, this.id);
 
-        for (const mid of memberIds) {
-            const geo = modifier.getShapeGeometry(this.pageId, mid);
-            // Visio PinX/PinY is center. Bounding box needs Left/Bottom/Right/Top
-            const left = geo.x - (geo.width / 2);
-            const right = geo.x + (geo.width / 2);
-            const bottom = geo.y - (geo.height / 2);
-            const top = geo.y + (geo.height / 2);
-
-            if (left < minX) minX = left;
-            if (right > maxX) maxX = right;
-            if (bottom < minY) minY = bottom;
-            if (top > maxY) maxY = top;
-        }
-
-        // Apply Padding
-        minX -= padding;
-        maxX += padding;
-        minY -= padding;
-        maxY += padding;
-
-        const newWidth = maxX - minX;
-        const newHeight = maxY - minY;
-        const newPinX = minX + (newWidth / 2);
-        const newPinY = minY + (newHeight / 2);
-
-        // Update Geometry
-        await modifier.updateShapePosition(this.pageId, this.id, newPinX, newPinY);
-        // Need to update Width/Height as well (helper currently only does PinX/PinY)
-        // We'll use setPropertyValue or just access internal structure via updateShapePosition-like logic
-        // Actually, updateShapePosition in modifier is specific. Let's add updateShapeSize to modifier or extend logic?
-        // For Speed, let's just use what we have or add a quick updateSize helper.
-
-        // Wait, ShapeModifier.updateShapePosition only does PinX/PinY.
-        // We need to update Width/Height. I'll add a helper method to Shape.ts for now or use the generic property setter if applicable (it's not, Size is Cells, not Props).
-
-        // Let's implement updateShapeSize in modifier for completeness or just do it here cleanly.
-        // I will use a custom implementation here or add it to Modifier. Adding to modifier is cleaner.
-        // I'll pause and add `updateShapeSize` to modifier first? No, I can't interrupt this tool call.
-        // I will implement the calls assuming updateShapeSize exists, or access the lower level if possible.
-        // Actually, I can add `updateShapeSize` to Modifier in the next step or right now if I could.
-        // Since I'm in `Shape.ts`, I'll assume I'll add `updateShapeSize` to modifier next.
-        // BUT, I can't run code that doesn't exist.
-        // I'll call a new method `updateShapeDimensions` on modifier and implement it immediately after.
-
-        await modifier.updateShapeDimensions(this.pageId, this.id, newWidth, newHeight);
-
-        // Update Z-Order (Send to Back)
-        await modifier.reorderShape(this.pageId, this.id, 'back');
-
-        // Update local state to reflect changes (crucial for tests/chaining)
-        const updateLocalCell = (n: string, v: string) => {
+        const update = (n: string, v: string) => {
             if (this.internalShape.Cells[n]) this.internalShape.Cells[n].V = v;
             else this.internalShape.Cells[n] = { V: v, N: n };
         };
 
-        updateLocalCell('PinX', newPinX.toString());
-        updateLocalCell('PinY', newPinY.toString());
-        updateLocalCell('Width', newWidth.toString());
-        updateLocalCell('Height', newHeight.toString());
-
-        return this;
+        update('PinX', geo.x.toString());
+        update('PinY', geo.y.toString());
+        update('Width', geo.width.toString());
+        update('Height', geo.height.toString());
     }
-
 }
