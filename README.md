@@ -269,6 +269,22 @@ const shape = await page.addShape({ text: "Server A", x: 2, y: 2, width: 1, heig
 await container.addMember(shape);
 ```
 
+#### 15. Lists (Stacking Containers)
+Create ordered lists that automatically stack items either vertically (Tables) or horizontally (Timelines).
+
+```typescript
+// Vertical List (e.g. Database Table)
+const list = await page.addList({
+    text: "Users",
+    x: 1, y: 10,
+    width: 3, height: 1
+}, 'vertical'); // 'vertical' or 'horizontal'
+
+// Items stack automatically
+await list.addListItem(item1);
+await list.addListItem(item2);
+```
+
 ## Examples
 
 Check out the [examples](./examples) directory for complete scripts.
@@ -276,6 +292,7 @@ Check out the [examples](./examples) directory for complete scripts.
 - **[Simple Schema](./examples/simple-schema.ts)**: Generates a database schema ERD with tables, styling, and Crow's Foot connectors.
 - **[Network Topology](./examples/network-diagram.ts)**: Demonstrates the **Fluent Shape Data API** to build a network map with hidden metadata, typed properties, and connections.
 - **[Containers Demo](./examples/containers_demo.ts)**: Shows how to create Classic Visio containers and place shapes within them.
+- **[Lists Demo](./examples/lists_demo.ts)**: Demonstrates Vertical and Horizontal List stacks.
 
 ## Development
 

@@ -33,7 +33,34 @@ export class ShapeModifier {
         const newXml = this.builder.build(parsed);
         this.pkg.updateFile(pagePath, newXml);
         return newId;
+        this.pkg.updateFile(pagePath, newXml);
+        return newId;
     }
+
+    async addList(pageId: string, props: NewShapeProps, direction: 'vertical' | 'horizontal' = 'vertical'): Promise<string> {
+        const pagePath = this.getPagePath(pageId);
+        let content = this.pkg.getFileText(pagePath);
+        const parsed = this.parser.parse(content);
+
+        // Ensure Shapes container...
+        if (!parsed.PageContents.Shapes) parsed.PageContents.Shapes = { Shape: [] };
+        let topLevelShapes = parsed.PageContents.Shapes.Shape;
+        if (!Array.isArray(topLevelShapes)) {
+            topLevelShapes = topLevelShapes ? [topLevelShapes] : [];
+            parsed.PageContents.Shapes.Shape = topLevelShapes;
+        }
+
+        let newId = props.id || this.getNextId(parsed);
+        const listShape = ContainerBuilder.createContainerShape(newId, props);
+        ContainerBuilder.makeList(listShape, direction);
+
+        topLevelShapes.push(listShape);
+
+        const newXml = this.builder.build(parsed);
+        this.pkg.updateFile(pagePath, newXml);
+        return newId;
+    }
+
     private parser: XMLParser;
     private builder: XMLBuilder;
     private relsManager: RelsManager;
@@ -639,6 +666,110 @@ export class ShapeModifier {
         // Update array in object
         shapesContainer.Shape = shapes;
         this.saveParsed(pageId, parsed);
+    }
+
+    async addListItem(pageId: string, listId: string, itemId: string): Promise<void> {
+        // 1. Get List Properties (Direction, Spacing)
+        const parsed = this.getParsed(pageId);
+        const shapes = this.getAllShapes(parsed);
+        const listShape = shapes.find((s: any) => s['@_ID'] == listId);
+        if (!listShape) throw new Error(`List ${listId} not found`);
+
+        const getUserVal = (name: string, def: string) => {
+            if (!listShape.Section) return def;
+            const userSec = listShape.Section.find((s: any) => s['@_N'] === 'User');
+            if (!userSec || !userSec.Row) return def;
+            const rows = Array.isArray(userSec.Row) ? userSec.Row : [userSec.Row];
+            const row = rows.find((r: any) => r['@_N'] === name);
+            if (!row || !row.Cell) return def;
+            // Value cell
+            const valCell = Array.isArray(row.Cell) ? row.Cell.find((c: any) => c['@_N'] === 'Value') : row.Cell;
+            return valCell ? valCell['@_V'] : def;
+        };
+
+        const direction = parseInt(getUserVal('msvSDListDirection', '1')); // 1=Vert, 0=Horiz
+        const spacing = parseFloat(getUserVal('msvSDListSpacing', '0.125').replace(/[^0-9.]/g, '')); // Crude parse if unit included
+
+        // 2. Determine Position
+        const memberIds = this.getContainerMembers(pageId, listId);
+        const itemGeo = this.getShapeGeometry(pageId, itemId);
+        const listGeo = this.getShapeGeometry(pageId, listId);
+
+        let newX = listGeo.x;
+        let newY = listGeo.y;
+
+        if (memberIds.length === 0) {
+            // First Item: Place at Top/Left of Container (with some internal margin/padding)
+            // For simplicity, center on Container center or rely on resizeToFit to adjust container AROUND it later.
+            // Let's place it at current container PinX/PinY
+            newX = listGeo.x;
+            newY = listGeo.y;
+        } else {
+            const lastId = memberIds[memberIds.length - 1];
+            const lastGeo = this.getShapeGeometry(pageId, lastId);
+
+            if (direction === 1) { // Vertical (Stack Down)
+                // Last Bottom - Spacing - ItemHalfHeight
+                const lastBottom = lastGeo.y - (lastGeo.height / 2);
+                newY = lastBottom - spacing - (itemGeo.height / 2);
+                newX = lastGeo.x; // Align Centers
+            } else { // Horizontal (Stack Right)
+                // Last Right + Spacing + ItemHalfWidth
+                const lastRight = lastGeo.x + (lastGeo.width / 2);
+                newX = lastRight + spacing + (itemGeo.width / 2);
+                newY = lastGeo.y; // Align Centers
+            }
+        }
+
+        // 3. Update Item Position
+        await this.updateShapePosition(pageId, itemId, newX, newY);
+
+        // 4. Add Relationship
+        await this.addRelationship(pageId, listId, itemId, 'Container');
+
+        // 5. Resize List Container
+        await this.resizeContainerToFit(pageId, listId, 0.25);
+    }
+
+    async resizeContainerToFit(pageId: string, containerId: string, padding: number = 0.25): Promise<void> {
+        const memberIds = this.getContainerMembers(pageId, containerId);
+        if (memberIds.length === 0) return;
+
+        // Calculate Bounding Box
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
+
+        for (const mid of memberIds) {
+            const geo = this.getShapeGeometry(pageId, mid);
+            // Visio PinX/PinY is center. Bounding box needs Left/Bottom/Right/Top
+            const left = geo.x - (geo.width / 2);
+            const right = geo.x + (geo.width / 2);
+            const bottom = geo.y - (geo.height / 2);
+            const top = geo.y + (geo.height / 2);
+
+            if (left < minX) minX = left;
+            if (right > maxX) maxX = right;
+            if (bottom < minY) minY = bottom;
+            if (top > maxY) maxY = top;
+        }
+
+        // Apply Padding
+        minX -= padding;
+        maxX += padding;
+        minY -= padding;
+        maxY += padding;
+
+        const newWidth = maxX - minX;
+        const newHeight = maxY - minY;
+        const newPinX = minX + (newWidth / 2);
+        const newPinY = minY + (newHeight / 2);
+
+        // Update Geometry
+        await this.updateShapePosition(pageId, containerId, newPinX, newPinY);
+        await this.updateShapeDimensions(pageId, containerId, newWidth, newHeight);
+
+        // Update Z-Order (Send to Back)
+        await this.reorderShape(pageId, containerId, 'back');
     }
 }
 
