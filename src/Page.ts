@@ -7,6 +7,7 @@ import { Shape } from './Shape';
 import { MediaManager } from './core/MediaManager';
 import { RelsManager } from './core/RelsManager';
 import { createVisioShapeStub } from './utils/StubHelpers';
+import { Layer } from './Layer';
 
 export class Page {
     private media: MediaManager;
@@ -137,6 +138,7 @@ export class Page {
     }
 
     async addTable(x: number, y: number, title: string, columns: string[]): Promise<Shape> {
+        // ... (previous implementation)
         // Dimensions
         const width = 3;
         const headerHeight = 0.5;
@@ -191,5 +193,10 @@ export class Page {
 
         // Return the Group Shape
         return groupShape;
+    }
+
+    async addLayer(name: string, options?: { visible?: boolean, lock?: boolean, print?: boolean }): Promise<Layer> {
+        const info = await this.modifier.addLayer(this.id, name, options);
+        return new Layer(info.name, info.index);
     }
 }
