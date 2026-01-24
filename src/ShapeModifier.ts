@@ -39,19 +39,19 @@ export class ShapeModifier {
             topLevelShapes = topLevelShapes ? [topLevelShapes] : [];
         }
 
-        const gather = (shapeList: any[]): any[] => {
-            let all: any[] = [];
+        const all: any[] = [];
+        const gather = (shapeList: any[]): void => {
             for (const s of shapeList) {
                 all.push(s);
                 if (s.Shapes && s.Shapes.Shape) {
                     const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
-                    all = all.concat(gather(children));
+                    gather(children);
                 }
             }
-            return all;
         };
 
-        return gather(topLevelShapes);
+        gather(topLevelShapes);
+        return all;
     }
 
     private getNextId(parsed: any): string {
