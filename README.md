@@ -263,7 +263,10 @@ const container = await page.addContainer({
 
 // Add shapes "inside" the container area
 // (Visio treats them as members if they are spatially within)
-await page.addShape({ text: "Server A", x: 2, y: 2, width: 1, height: 1 });
+const shape = await page.addShape({ text: "Server A", x: 2, y: 2, width: 1, height: 1 });
+
+// Explicitly link the shape to the container (so they move together)
+await container.addMember(shape);
 ```
 
 ## Examples
