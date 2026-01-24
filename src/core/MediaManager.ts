@@ -7,6 +7,7 @@ export class MediaManager {
     private builder: XMLBuilder;
 
     private deduplicationMap = new Map<string, string>(); // hash -> paths
+    private indexed = false;
 
     constructor(private pkg: VisioPackage) {
         this.parser = new XMLParser({
@@ -18,10 +19,11 @@ export class MediaManager {
             attributeNamePrefix: "@_",
             format: true
         });
-        this.indexExistingMedia();
     }
 
-    private indexExistingMedia() {
+    private ensureIndex() {
+        if (this.indexed) return;
+
         const crypto = require('crypto');
         for (const [path, content] of this.pkg.filesMap.entries()) {
             if (path.startsWith('visio/media/') && Buffer.isBuffer(content)) {
@@ -33,6 +35,7 @@ export class MediaManager {
                 }
             }
         }
+        this.indexed = true;
     }
 
     private getContentType(extension: string): string {
@@ -42,6 +45,7 @@ export class MediaManager {
 
 
     addMedia(name: string, data: Buffer): string {
+        this.ensureIndex();
         const crypto = require('crypto');
         const hash = crypto.createHash('sha1').update(data).digest('hex');
 
