@@ -8,6 +8,8 @@ export interface PageEntry {
     name: string;
     relId: string;
     xmlPath: string;
+    isBackground: boolean;
+    backPageId?: number;  // ID of background page for this page
 }
 
 export class PageManager {
@@ -83,11 +85,19 @@ export class PageManager {
             // pages.xml is in "visio/pages/", so "page1.xml" means "visio/pages/page1.xml"
             const fullPath = target ? `visio/pages/${target}` : '';
 
+            // Parse background page attributes
+            const bgAttr = node['@_Background'];
+            const isBackground = bgAttr === 'true' || bgAttr === '1' || bgAttr === true || bgAttr === 1;
+            const backPageAttr = node['@_BackPage'];
+            const backPageId = backPageAttr ? parseInt(backPageAttr.toString()) : undefined;
+
             return {
                 id: parseInt(node['@_ID']),
                 name: node['@_Name'],
                 relId: rId,
-                xmlPath: fullPath
+                xmlPath: fullPath,
+                isBackground,
+                backPageId
             };
         });
 
@@ -169,5 +179,110 @@ export class PageManager {
         this.load(true);
 
         return newId.toString();
+    }
+
+    /**
+     * Create a background page
+     */
+    async createBackgroundPage(name: string): Promise<string> {
+        this.load();
+
+        // 1. Calculate ID
+        let maxId = 0;
+        for (const p of this.pages) {
+            if (p.id > maxId) maxId = p.id;
+        }
+        const newId = maxId + 1;
+        const fileName = `page${newId}.xml`;
+        const relativePath = `visio/pages/${fileName}`;
+
+        // 2. Create Page File
+        const pageContent = `<PageContents xmlns="${XML_NAMESPACES.VISIO_MAIN}" xmlns:r="${XML_NAMESPACES.RELATIONSHIPS_OFFICE}" xml:space="preserve">
+    <PageSheet LineStyle="0" FillStyle="0" TextStyle="0">
+        <Cell N="PageWidth" V="8.5"/>
+        <Cell N="PageHeight" V="11"/>
+        <Cell N="PageScale" V="1" Unit="MSG"/>
+        <Cell N="DrawingScale" V="1" Unit="MSG"/>
+        <Cell N="DrawingSizeType" V="0"/>
+        <Cell N="DrawingScaleType" V="0"/>
+        <Cell N="Inhibited" V="0"/>
+        <Cell N="UIVisibility" V="0"/>
+        <Cell N="PageDrawSizeType" V="0"/>
+    </PageSheet>
+    <Shapes/>
+</PageContents>`;
+        this.pkg.updateFile(relativePath, pageContent);
+
+        // 3. Update Content Types
+        const ctPath = '[Content_Types].xml';
+        const ctContent = this.pkg.getFileText(ctPath);
+        const parsedCt = this.parser.parse(ctContent);
+
+        if (!parsedCt.Types.Override) parsedCt.Types.Override = [];
+        if (!Array.isArray(parsedCt.Types.Override)) parsedCt.Types.Override = [parsedCt.Types.Override];
+
+        parsedCt.Types.Override.push({
+            '@_PartName': `/${relativePath}`,
+            '@_ContentType': CONTENT_TYPES.VISIO_PAGE
+        });
+        this.pkg.updateFile(ctPath, this.builder.build(parsedCt));
+
+        // 4. Update Relationships
+        const rId = await this.relsManager.ensureRelationship(
+            'visio/pages/pages.xml',
+            fileName,
+            RELATIONSHIP_TYPES.PAGE
+        );
+
+        // 5. Update Pages Index with Background="true"
+        const pagesPath = 'visio/pages/pages.xml';
+        const pagesContent = this.pkg.getFileText(pagesPath);
+        const parsedPages = this.parser.parse(pagesContent);
+
+        if (!parsedPages.Pages.Page) parsedPages.Pages.Page = [];
+        if (!Array.isArray(parsedPages.Pages.Page)) parsedPages.Pages.Page = [parsedPages.Pages.Page];
+
+        parsedPages.Pages.Page.push({
+            '@_ID': newId.toString(),
+            '@_Name': name,
+            '@_Background': '1',  // Use '1' for boolean true attribute
+            'Rel': { '@_r:id': rId }
+        });
+
+        this.pkg.updateFile(pagesPath, this.builder.build(parsedPages));
+        this.load(true);
+
+        return newId.toString();
+    }
+
+    /**
+     * Set a background page for a foreground page
+     */
+    async setBackgroundPage(foregroundPageId: string, backgroundPageId: string): Promise<void> {
+        this.load();
+
+        // Verify pages exist
+        const fgPage = this.pages.find(p => p.id.toString() === foregroundPageId);
+        const bgPage = this.pages.find(p => p.id.toString() === backgroundPageId);
+
+        if (!fgPage) throw new Error(`Foreground page ${foregroundPageId} not found`);
+        if (!bgPage) throw new Error(`Background page ${backgroundPageId} not found`);
+        if (!bgPage.isBackground) throw new Error(`Page ${backgroundPageId} is not a background page`);
+
+        // Update pages.xml
+        const pagesPath = 'visio/pages/pages.xml';
+        const pagesContent = this.pkg.getFileText(pagesPath);
+        const parsedPages = this.parser.parse(pagesContent);
+
+        let pageNodes = parsedPages.Pages.Page;
+        if (!Array.isArray(pageNodes)) pageNodes = [pageNodes];
+
+        const fgNode = pageNodes.find((n: any) => n['@_ID'] === foregroundPageId);
+        if (fgNode) {
+            fgNode['@_BackPage'] = backgroundPageId.toString();
+        }
+
+        this.pkg.updateFile(pagesPath, this.builder.build(parsedPages));
+        this.load(true);
     }
 }

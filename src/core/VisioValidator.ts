@@ -7,6 +7,16 @@ export interface ValidationResult {
     warnings: string[];
 }
 
+// Known Visio section names per Microsoft schema
+const VALID_SECTION_NAMES = new Set([
+    'Geometry', 'Character', 'Paragraph', 'Tabs', 'Scratch', 'Connection',
+    'Field', 'Control', 'Action', 'Layer', 'Property', 'User', 'Hyperlink',
+    'Reviewer', 'Annotation', 'ActionTag', 'Line', 'Fill', 'FillGradient',
+    'LineGradient', 'TextXForm', 'RelQuadBezTo', 'RelCubBezTo', 'RelMoveTo',
+    'RelLineTo', 'RelEllipticalArcTo', 'InfiniteLine', 'Ellipse', 'SplineStart',
+    'SplineKnot', 'PolylineTo', 'NURBSTo'
+]);
+
 export class VisioValidator {
     private parser: XMLParser;
 
@@ -35,6 +45,12 @@ export class VisioValidator {
 
         // 4. Validate pages
         this.validatePages(pkg, errors, warnings);
+
+        // 5. Validate master references
+        this.validateMasterReferences(pkg, errors, warnings);
+
+        // 6. Validate relationship file integrity
+        this.validateRelationshipIntegrity(pkg, errors, warnings);
 
         return {
             valid: errors.length === 0,
@@ -72,19 +88,16 @@ export class VisioValidator {
                 return;
             }
 
-            // Check for required content types
             const overrides = parsed.Types.Override ?
                 (Array.isArray(parsed.Types.Override) ? parsed.Types.Override : [parsed.Types.Override])
                 : [];
 
             const partNames = overrides.map((o: any) => o['@_PartName']);
 
-            // Check document.xml is registered
             if (!partNames.some((p: string) => p?.includes('document.xml'))) {
                 warnings.push('[Content_Types].xml: Missing content type for document.xml');
             }
 
-            // Check pages.xml is registered
             if (!partNames.some((p: string) => p?.includes('pages.xml'))) {
                 warnings.push('[Content_Types].xml: Missing content type for pages.xml');
             }
@@ -107,7 +120,6 @@ export class VisioValidator {
                 (Array.isArray(parsed.Relationships.Relationship) ? parsed.Relationships.Relationship : [parsed.Relationships.Relationship])
                 : [];
 
-            // Check pages relationship exists
             const pagesRel = rels.find((r: any) => r['@_Target']?.includes('pages'));
             if (!pagesRel) {
                 errors.push('document.xml.rels: Missing relationship to pages.xml');
@@ -139,13 +151,11 @@ export class VisioValidator {
                     continue;
                 }
 
-                // Check for Rel child element with r:id (required per MS schema)
                 const relId = pageNode.Rel?.['@_r:id'] || pageNode['@_r:id'];
                 if (!relId) {
                     errors.push(`Page "${pageName}" (ID=${pageId}): Missing Rel element with r:id`);
                 }
 
-                // Validate page content file exists (page{ID}.xml)
                 this.validatePageContent(pkg, pageId, pageName, errors, warnings);
             }
         } catch (e: any) {
@@ -165,11 +175,11 @@ export class VisioValidator {
                 return;
             }
 
-            // Validate shapes have unique IDs
             this.validateShapeIds(parsed, pagePath, errors);
-
-            // Validate connectors reference existing shapes
             this.validateConnects(parsed, pagePath, errors);
+            this.validateSectionNames(parsed, pagePath, warnings);
+            this.validateCellNames(parsed, pagePath, warnings);
+            this.validateImageShapes(pkg, pageId, parsed, pagePath, errors, warnings);
 
         } catch (e: any) {
             errors.push(`${pagePath}: ${e.message}`);
@@ -212,6 +222,182 @@ export class VisioValidator {
             if (toSheet && !shapeIds.has(toSheet)) {
                 errors.push(`${pagePath}: Connect references non-existent ToSheet: ${toSheet}`);
             }
+        }
+    }
+
+    private validateSectionNames(parsed: any, pagePath: string, warnings: string[]): void {
+        const shapes = this.getAllShapes(parsed);
+
+        for (const shape of shapes) {
+            if (!shape.Section) continue;
+
+            const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
+            for (const section of sections) {
+                const name = section['@_N'];
+                if (!name) {
+                    warnings.push(`${pagePath}: Shape ${shape['@_ID']} has Section without N attribute`);
+                }
+            }
+        }
+    }
+
+    private validateCellNames(parsed: any, pagePath: string, warnings: string[]): void {
+        const shapes = this.getAllShapes(parsed);
+
+        for (const shape of shapes) {
+            // Check top-level cells
+            if (shape.Cell) {
+                const cells = Array.isArray(shape.Cell) ? shape.Cell : [shape.Cell];
+                for (const cell of cells) {
+                    if (!cell['@_N']) {
+                        warnings.push(`${pagePath}: Shape ${shape['@_ID']} has Cell without N attribute`);
+                    }
+                }
+            }
+
+            // Check cells in sections
+            if (shape.Section) {
+                const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
+                for (const section of sections) {
+                    if (section.Cell) {
+                        const cells = Array.isArray(section.Cell) ? section.Cell : [section.Cell];
+                        for (const cell of cells) {
+                            if (!cell['@_N']) {
+                                warnings.push(`${pagePath}: Shape ${shape['@_ID']} Section ${section['@_N']} has Cell without N attribute`);
+                            }
+                        }
+                    }
+                    if (section.Row) {
+                        const rows = Array.isArray(section.Row) ? section.Row : [section.Row];
+                        for (const row of rows) {
+                            if (row.Cell) {
+                                const cells = Array.isArray(row.Cell) ? row.Cell : [row.Cell];
+                                for (const cell of cells) {
+                                    if (!cell['@_N']) {
+                                        warnings.push(`${pagePath}: Shape ${shape['@_ID']} Row ${row['@_N'] || row['@_IX']} has Cell without N attribute`);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private validateImageShapes(pkg: VisioPackage, pageId: string, parsed: any, pagePath: string, errors: string[], warnings: string[]): void {
+        const shapes = this.getAllShapes(parsed);
+
+        for (const shape of shapes) {
+            if (shape['@_Type'] !== 'Foreign') continue;
+
+            if (!shape.ForeignData) {
+                warnings.push(`${pagePath}: Foreign shape ${shape['@_ID']} missing ForeignData`);
+                continue;
+            }
+
+            const relId = shape.ForeignData.Rel?.['@_r:id'];
+            if (relId) {
+                try {
+                    const relsPath = `visio/pages/_rels/page${pageId}.xml.rels`;
+                    const relsContent = pkg.getFileText(relsPath);
+                    const parsedRels = this.parser.parse(relsContent);
+
+                    let rels = parsedRels.Relationships?.Relationship || [];
+                    rels = Array.isArray(rels) ? rels : [rels];
+
+                    const found = rels.find((r: any) => r['@_Id'] === relId);
+                    if (!found) {
+                        errors.push(`${pagePath}: Image shape ${shape['@_ID']} references non-existent relationship: ${relId}`);
+                    }
+                } catch {
+                    // No rels file is okay if no relationships needed
+                }
+            }
+        }
+    }
+
+    private validateMasterReferences(pkg: VisioPackage, errors: string[], warnings: string[]): void {
+        const masterIds = new Set<string>();
+
+        try {
+            const mastersContent = pkg.getFileText('visio/masters/masters.xml');
+            const parsedMasters = this.parser.parse(mastersContent);
+
+            let masters = parsedMasters.Masters?.Master || [];
+            masters = Array.isArray(masters) ? masters : [masters];
+
+            for (const master of masters) {
+                if (master['@_ID']) {
+                    masterIds.add(master['@_ID']);
+                }
+            }
+        } catch {
+            return; // No masters.xml is okay
+        }
+
+        try {
+            const pagesContent = pkg.getFileText('visio/pages/pages.xml');
+            const parsedPages = this.parser.parse(pagesContent);
+
+            let pageNodes = parsedPages.Pages?.Page || [];
+            pageNodes = Array.isArray(pageNodes) ? pageNodes : [pageNodes];
+
+            for (const pageNode of pageNodes) {
+                const pageId = pageNode['@_ID'];
+                const pagePath = `visio/pages/page${pageId}.xml`;
+
+                try {
+                    const pageContent = pkg.getFileText(pagePath);
+                    const parsed = this.parser.parse(pageContent);
+                    const shapes = this.getAllShapes(parsed);
+
+                    for (const shape of shapes) {
+                        const masterId = shape['@_Master'];
+                        if (masterId && !masterIds.has(masterId)) {
+                            errors.push(`${pagePath}: Shape ${shape['@_ID']} references non-existent Master: ${masterId}`);
+                        }
+                    }
+                } catch {
+                    // Page file issues handled elsewhere
+                }
+            }
+        } catch {
+            // Pages issues handled elsewhere
+        }
+    }
+
+    private validateRelationshipIntegrity(pkg: VisioPackage, errors: string[], warnings: string[]): void {
+        try {
+            const relsContent = pkg.getFileText('visio/pages/_rels/pages.xml.rels');
+            const parsedRels = this.parser.parse(relsContent);
+
+            let rels = parsedRels.Relationships?.Relationship || [];
+            rels = Array.isArray(rels) ? rels : [rels];
+
+            for (const rel of rels) {
+                const target = rel['@_Target'];
+                const id = rel['@_Id'];
+
+                if (!id) {
+                    errors.push('pages.xml.rels: Relationship missing Id attribute');
+                    continue;
+                }
+
+                if (!target) {
+                    errors.push(`pages.xml.rels: Relationship ${id} missing Target attribute`);
+                    continue;
+                }
+
+                const fullPath = `visio/pages/${target}`;
+                try {
+                    pkg.getFileText(fullPath);
+                } catch {
+                    errors.push(`pages.xml.rels: Relationship ${id} targets non-existent file: ${target}`);
+                }
+            }
+        } catch {
+            // Rels file issues might be handled elsewhere
         }
     }
 

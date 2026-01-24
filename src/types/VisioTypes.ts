@@ -46,6 +46,8 @@ export interface VisioPage {
     NameU?: string;
     Shapes: VisioShape[];
     Connects: VisioConnect[];
+    isBackground?: boolean;
+    backPageId?: string;
 
     // PageSheet
     PageSheet?: {

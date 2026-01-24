@@ -45,3 +45,6 @@ Complex diagrams use layers to toggle visibility (e.g., "Hide all comments").
 Use Case: "Create a 'Wireframe' layer and a 'Notes' layer."
 Technical Gap: visio/pages/pageN.xml <PageContents><Layers>.
 Recommendation: The next most high-value target would likely be Masters/Stencils or Multi-Page Support, as these are fundamental to creating professional-grade diagrams rather than just "drawings."
+
+Bug Report:
+When viewing Hyperlinks_demo.vsdx in Visio, the hyperlinks are not working.
