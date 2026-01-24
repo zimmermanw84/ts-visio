@@ -285,6 +285,22 @@ await list.addListItem(item1);
 await list.addListItem(item2);
 ```
 
+#### 16. Interactivity & Navigation (Hyperlinks)
+Add internal links (drill-downs) or external links (web references). These appear in the right-click menu in Visio.
+
+```typescript
+// 1. External URL
+await shape.toUrl('https://jira.com/123', 'Open Ticket');
+
+// 2. Internal Page Link
+const detailPage = await doc.addPage('Details');
+await shape.toPage(detailPage, 'Go to Details');
+
+// 3. Chainable
+await shape.toUrl('https://google.com')
+           .toPage(detailPage);
+```
+
 ## Examples
 
 Check out the [examples](./examples) directory for complete scripts.
@@ -293,6 +309,7 @@ Check out the [examples](./examples) directory for complete scripts.
 - **[Network Topology](./examples/network-diagram.ts)**: Demonstrates the **Fluent Shape Data API** to build a network map with hidden metadata, typed properties, and connections.
 - **[Containers Demo](./examples/containers_demo.ts)**: Shows how to create Classic Visio containers and place shapes within them.
 - **[Lists Demo](./examples/lists_demo.ts)**: Demonstrates Vertical and Horizontal List stacks.
+- **[Hyperlinks Demo](./examples/hyperlinks_demo.ts)**: Demonstrates Internal and External navigation.
 
 ## Development
 
