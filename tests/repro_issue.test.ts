@@ -18,10 +18,6 @@ describe('XML Structure Reproduction', () => {
         const pageSheetIndex = pageXml.indexOf('<PageSheet');
         const shapesIndex = pageXml.indexOf('<Shapes');
 
-        // console.log('PageSheet Index:', pageSheetIndex);
-        // console.log('Shapes Index:', shapesIndex);
-        // console.log('XML Preview:', pageXml.substring(0, 500));
-
         // Expect PageSheet to exist
         expect(pageSheetIndex).toBeGreaterThan(-1);
 
