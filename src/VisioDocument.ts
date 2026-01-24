@@ -1,12 +1,15 @@
 import { VisioPackage } from './VisioPackage';
 import { PageManager } from './core/PageManager';
 import { Page } from './Page';
+import { MediaManager } from './core/MediaManager';
 
 export class VisioDocument {
     private pageManager: PageManager;
+    private mediaManager: MediaManager;
 
     private constructor(private pkg: VisioPackage) {
         this.pageManager = new PageManager(pkg);
+        this.mediaManager = new MediaManager(pkg);
     }
 
     static async create(): Promise<VisioDocument> {
@@ -37,7 +40,7 @@ export class VisioDocument {
             Shapes: [],
             Connects: []
         };
-        return new Page(pageStub as any, this.pkg);
+        return new Page(pageStub as any, this.pkg, this.mediaManager);
     }
 
     get pages(): Page[] {
@@ -50,7 +53,7 @@ export class VisioDocument {
                 Shapes: [],
                 Connects: []
             };
-            return new Page(pageStub as any, this.pkg);
+            return new Page(pageStub as any, this.pkg, this.mediaManager);
         });
     }
 

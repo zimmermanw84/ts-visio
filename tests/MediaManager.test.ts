@@ -158,7 +158,7 @@ describe('MediaManager', () => {
         const newUploads = keys.filter(k => k.includes('new_upload'));
         expect(newUploads.length).toBe(0);
     });
-    it('should index existing media on initialization (direct inspection)', async () => {
+    it('should index existing media lazily', async () => {
         const pkg = await VisioPackage.create();
         const existingData = Buffer.from([0xAA, 0xBB, 0xCC]);
         const hash = getHash(existingData);
@@ -169,6 +169,14 @@ describe('MediaManager', () => {
         // Access private map for verification
         const map = (media as any).deduplicationMap as Map<string, string>;
 
+        // Should NOT be indexed yet
+        expect(map.has(hash)).toBe(false);
+
+        // Trigger indexing by adding unrelated media
+        const otherData = Buffer.from([1, 2, 3]);
+        media.addMedia('trigger.png', otherData);
+
+        // NOW it should be indexed
         expect(map.has(hash)).toBe(true);
         expect(map.get(hash)).toBe('../media/preloaded.png');
     });
