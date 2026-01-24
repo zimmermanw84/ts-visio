@@ -771,6 +771,59 @@ export class ShapeModifier {
         // Update Z-Order (Send to Back)
         await this.reorderShape(pageId, containerId, 'back');
     }
+
+    async addHyperlink(pageId: string, shapeId: string, details: { address?: string, subAddress?: string, description?: string }): Promise<void> {
+        const parsed = this.getParsed(pageId);
+        const shapes = this.getAllShapes(parsed);
+        const shape = shapes.find((s: any) => s['@_ID'] == shapeId);
+
+        if (!shape) throw new Error(`Shape ${shapeId} not found`);
+
+        // Ensure Section array
+        if (!shape.Section) shape.Section = [];
+        if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
+
+        // Find or Create Hyperlink Section
+        let linkSection = shape.Section.find((s: any) => s['@_N'] === 'Hyperlink');
+        if (!linkSection) {
+            linkSection = { '@_N': 'Hyperlink', Row: [] };
+            shape.Section.push(linkSection);
+        }
+
+        // Ensure Row array
+        if (!linkSection.Row) linkSection.Row = [];
+        if (!Array.isArray(linkSection.Row)) linkSection.Row = [linkSection.Row];
+
+        // Determine next Row ID (Hyperlink.Row_1, Hyperlink.Row_2, etc.)
+        const nextIdx = linkSection.Row.length + 1;
+        const rowName = `Hyperlink.Row_${nextIdx}`;
+
+        const newRow: any = {
+            '@_N': rowName,
+            Cell: []
+        };
+
+        if (details.address) {
+            // Escape URL (Basic XML escaping)
+            const escapedAddress = details.address.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+            newRow.Cell.push({ '@_N': 'Address', '@_V': escapedAddress });
+        }
+
+        if (details.subAddress) {
+            newRow.Cell.push({ '@_N': 'SubAddress', '@_V': details.subAddress });
+        }
+
+        if (details.description) {
+            newRow.Cell.push({ '@_N': 'Description', '@_V': details.description });
+        }
+
+        // Default NewWindow to 0 (false)
+        newRow.Cell.push({ '@_N': 'NewWindow', '@_V': '0' });
+
+        linkSection.Row.push(newRow);
+
+        this.saveParsed(pageId, parsed);
+    }
 }
 
 

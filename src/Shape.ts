@@ -182,4 +182,41 @@ export class Shape {
         update('Width', geo.width.toString());
         update('Height', geo.height.toString());
     }
+
+    async addHyperlink(address: string, description?: string): Promise<this> {
+        const modifier = new ShapeModifier(this.pkg);
+        await modifier.addHyperlink(this.pageId, this.id, { address, description });
+        return this;
+    }
+
+    async linkToPage(targetPage: { name: string }, description?: string): Promise<this> {
+        const modifier = new ShapeModifier(this.pkg);
+        // Internal links use SubAddress='PageName' and empty Address
+        await modifier.addHyperlink(this.pageId, this.id, {
+            address: '',
+            subAddress: targetPage.name,
+            description
+        });
+        return this;
+    }
+
+    /**
+     * Adds an external hyperlink to the shape.
+     * Shows up in the right-click menu in Visio.
+     * @param url External URL (e.g. https://google.com)
+     * @param description Text to show in the menu
+     */
+    async toUrl(url: string, description?: string): Promise<this> {
+        return this.addHyperlink(url, description);
+    }
+
+    /**
+     * Adds an internal link to another page.
+     * Shows up in the right-click menu in Visio.
+     * @param targetPage The Page object to link to
+     * @param description Text to show in the menu
+     */
+    async toPage(targetPage: { name: string }, description?: string): Promise<this> {
+        return this.linkToPage(targetPage, description);
+    }
 }

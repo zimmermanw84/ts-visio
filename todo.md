@@ -33,7 +33,7 @@ Shapes often link to other pages or external URLs.
 Use Case: "Clicking this 'User' table should open the Jira ticket."
 Technical Gap: Implementation of <Section N="Hyperlink">.
 
-6. Container Shapes vs. Groups
+(Done) 6. Container Shapes vs. Groups
 We implemented "Groups" for tables, but Visio has a special concept called Containers. Containers automatically "grab" shapes dropped into them and resize to fit content.
 
 Use Case: "Drag a new column into the Table, and the Table automatically expands to fit it."

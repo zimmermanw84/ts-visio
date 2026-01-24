@@ -750,3 +750,117 @@ Here is the itemized prompt plan to implement true Visio Containers.
 > * **Outcome:** The generated file behaves like a native Visio database table."
 >
 >
+
+Here is the itemized prompt plan to implement **Hyperlinks**. This feature is essential for interactive diagrams, allowing shapes to act as navigation buttons for external documentation (Jira/Confluence) or internal navigation (Drill-downs).
+
+### Phase 1: The Hyperlink Section (XML Structure)
+
+*Goal: Create the ShapeSheet infrastructure to hold one or more links.*
+
+**Prompt 1: Understanding Hyperlink XML**
+
+> "I need to implement Hyperlinks in the ShapeSheet.
+> 1. Explain the XML structure of `<Section N='Hyperlink'>`.
+> 2. Detail the specific Cells required:
+> * `Address` (The target URL).
+> * `SubAddress` (Used for internal page anchors).
+> * `Description` (The tooltip text).
+> * `NewWindow` (Boolean).
+>
+>
+> 3. **Multiple Links:** Visio supports multiple links on a single shape (right-click menu). How are multiple rows handled in this section? Provide a sample XML snippet."
+>
+>
+
+**Prompt 2: Implementing `addHyperlink` Core**
+
+> "Implement `Shape.addHyperlinkRow(address: string, description?: string)`.
+> 1. Check if `<Section N='Hyperlink'>` exists. If not, create it.
+> 2. Create a new `<Row>` (Visio uses named rows like `Hyperlink.Row_1`).
+> 3. Set the `Address` cell to the provided string.
+> 4. Set the `Description` cell if provided.
+> 5. **Escape Logic:** Ensure the URL is properly XML-escaped (e.g., `&` becomes `&amp;`)."
+>
+>
+
+**Prompt 3: PR Generation (Phase 1)**
+
+> "Generate a Markdown PR description.
+> * **Title:** feat: Core Hyperlink ShapeSheet Support
+> * **Description:** Adds the ability to inject `<Section N='Hyperlink'>` into shapes.
+> * **Verification:** Unit test checking XML string escaping for URLs with query parameters."
+>
+>
+
+---
+
+### Phase 2: Internal vs. External Navigation
+
+*Goal: Handle the difference between "Go to Google" and "Go to Page 2".*
+
+**Prompt 4: Internal Page Linking (SubAddress)**
+
+> "I need to support linking to other pages within the `.vsdx` document.
+> 1. Refactor `addHyperlinkRow` to accept a `type` or detect the input.
+> 2. **Visio Rule:**
+> * If External: Set `Address='https://...'`.
+> * If Internal: Set `Address=''` and `SubAddress='Page-2'`.
+>
+>
+> 3. **Page Name Lookup:** Since pages can be renamed, should this method accept a `Page` object and look up its name dynamically, or just a string ID?
+> 4. Implement a helper `linkToPage(targetPage: Page)` that sets the `SubAddress` correctly."
+>
+>
+
+**Prompt 5: Test Requirement (Navigation)**
+
+> "Write a comprehensive test suite `Hyperlinks.test.ts`.
+> 1. **Case A (External):** Shape links to '[https://jira.com](https://jira.com)'. Assert `Address` is set.
+> 2. **Case B (Internal):** Shape links to 'Architecture Page'. Assert `Address` is empty and `SubAddress` is set.
+> 3. **Case C (Mailto):** Shape links to 'mailto:support@company.com'.
+> 4. **Validation:** Ensure `NewWindow` defaults to '0' (false) unless specified."
+>
+>
+
+**Prompt 6: PR Generation (Phase 2)**
+
+> "Generate a PR description.
+> * **Title:** feat: Internal & External Navigation Logic
+> * **Technical Context:** explains the usage of `SubAddress` for internal navigation vs `Address` for web links.
+> * **Changes:** Added `linkToPage()` helper."
+>
+>
+
+---
+
+### Phase 3: Public API & Documentation
+
+*Goal: A fluent, developer-friendly experience.*
+
+**Prompt 7: Fluent API Design**
+
+> "Refactor the `Shape` class to expose high-level methods:
+> 1. `shape.toUrl(url: string, description?: string): Shape` (Chainable).
+> 2. `shape.toPage(page: Page, description?: string): Shape` (Chainable).
+> 3. **Documentation:** Update the JSDoc to explain that these create entries in the right-click menu of the shape in Visio.
+> 4. **Example:**
+> ```typescript
+> const box = page.addShape(...);
+> box.toUrl('https://jira.atlassian.com/browse/PROJ-1', 'Open Ticket');
+> ```"
+>
+> ```
+>
+>
+>
+>
+
+**Prompt 8: Final Documentation & PR**
+
+> "Generate the final PR description.
+> * **Title:** feat: Public Hyperlink API
+> * **Usage:** Provide code snippets for linking to JIRA and linking to a 'Details' page.
+> * **Readme Update:** Add a section 'Interactivity & Navigation'.
+> * **Checklist:** Confirm tests pass for URL escaping."
+>
+>
