@@ -347,6 +347,29 @@ export class ShapeModifier {
 
         this.saveParsed(pageId, parsed);
     }
+    async updateShapeDimensions(pageId: string, shapeId: string, w: number, h: number): Promise<void> {
+        const parsed = this.getParsed(pageId);
+        const shapes = this.getAllShapes(parsed);
+        const shape = shapes.find((s: any) => s['@_ID'] == shapeId);
+
+        if (!shape) throw new Error(`Shape ${shapeId} not found`);
+
+        // Ensure Cell array
+        if (!shape.Cell) shape.Cell = [];
+        if (!Array.isArray(shape.Cell)) shape.Cell = [shape.Cell];
+
+        const updateCell = (name: string, val: string) => {
+            const cell = shape.Cell.find((c: any) => c['@_N'] === name);
+            if (cell) cell['@_V'] = val;
+            else shape.Cell.push({ '@_N': name, '@_V': val });
+        };
+
+        updateCell('Width', w.toString());
+        updateCell('Height', h.toString());
+
+        this.saveParsed(pageId, parsed);
+    }
+
     async updateShapePosition(pageId: string, shapeId: string, x: number, y: number): Promise<void> {
         const parsed = this.getParsed(pageId);
         let found = false;
@@ -524,7 +547,101 @@ export class ShapeModifier {
 
         this.saveParsed(pageId, parsed);
     }
+    getShapeGeometry(pageId: string, shapeId: string): { x: number, y: number, width: number, height: number } {
+        const parsed = this.getParsed(pageId);
+        const shapes = this.getAllShapes(parsed);
+        const shape = shapes.find((s: any) => s['@_ID'] == shapeId);
+
+        if (!shape) throw new Error(`Shape ${shapeId} not found`);
+
+        const getCellVal = (name: string) => {
+            // Ensure Cell is array
+            if (!shape.Cell) return 0;
+            const cells = Array.isArray(shape.Cell) ? shape.Cell : [shape.Cell];
+            const c = cells.find((cell: any) => cell['@_N'] === name);
+            return c ? Number(c['@_V']) : 0;
+        };
+
+        return {
+            x: getCellVal('PinX'),
+            y: getCellVal('PinY'),
+            width: getCellVal('Width'),
+            height: getCellVal('Height')
+        };
+    }
+
+    async addRelationship(pageId: string, shapeId: string, relatedShapeId: string, type: string): Promise<void> {
+        const parsed = this.getParsed(pageId);
+
+        // Ensure Relationships collection exists in PageContents
+        if (!parsed.PageContents.Relationships) {
+            parsed.PageContents.Relationships = { Relationship: [] };
+        }
+        // Ensure Relationship is an array (Standard robustness pattern)
+        if (!Array.isArray(parsed.PageContents.Relationships.Relationship)) {
+            parsed.PageContents.Relationships.Relationship = parsed.PageContents.Relationships.Relationship
+                ? [parsed.PageContents.Relationships.Relationship]
+                : [];
+        }
+
+        const relationships = parsed.PageContents.Relationships.Relationship;
+
+        // Check definition: Type, ShapeID (Container), RelatedShapeID (Member)
+        // Avoid duplicates?
+        const exists = relationships.find((r: any) =>
+            r['@_Type'] === type &&
+            r['@_ShapeID'] === shapeId &&
+            r['@_RelatedShapeID'] === relatedShapeId
+        );
+
+        if (!exists) {
+            relationships.push({
+                '@_Type': type,
+                '@_ShapeID': shapeId,
+                '@_RelatedShapeID': relatedShapeId
+            });
+            this.saveParsed(pageId, parsed);
+        }
+    }
+
+    getContainerMembers(pageId: string, containerId: string): string[] {
+        const parsed = this.getParsed(pageId);
+        const rels = parsed.PageContents?.Relationships?.Relationship;
+        if (!rels) return [];
+
+        const relsArray = Array.isArray(rels) ? rels : [rels];
+
+        return relsArray
+            .filter((r: any) => r['@_Type'] === 'Container' && r['@_ShapeID'] === containerId)
+            .map((r: any) => r['@_RelatedShapeID']);
+    }
+
+    async reorderShape(pageId: string, shapeId: string, position: 'front' | 'back'): Promise<void> {
+        const parsed = this.getParsed(pageId);
+        const shapesContainer = parsed.PageContents?.Shapes;
+        if (!shapesContainer || !shapesContainer.Shape) return;
+
+        let shapes = shapesContainer.Shape;
+        if (!Array.isArray(shapes)) shapes = [shapes];
+
+        const idx = shapes.findIndex((s: any) => s['@_ID'] == shapeId);
+        if (idx === -1) return;
+
+        const shape = shapes[idx];
+        shapes.splice(idx, 1); // Remove
+
+        if (position === 'back') {
+            shapes.unshift(shape); // Add to start (Back of Z-Order)
+        } else {
+            shapes.push(shape); // Add to end (Front of Z-Order)
+        }
+
+        // Update array in object
+        shapesContainer.Shape = shapes;
+        this.saveParsed(pageId, parsed);
+    }
 }
+
 
 export interface ShapeStyle {
     fillColor?: string;
