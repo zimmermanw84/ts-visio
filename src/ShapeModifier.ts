@@ -126,8 +126,26 @@ export class ShapeModifier {
 
     private ensurePageSheet(parsed: any) {
         if (!parsed.PageContents.PageSheet) {
+            // Enforce order: PageSheet, Shapes, Connects
+            // Save existing elements
+            const shapes = parsed.PageContents.Shapes;
+            const connects = parsed.PageContents.Connects;
+            const rels = parsed.PageContents.Relationships;
+
+            // Delete to re-insert in order
+            if (shapes) delete parsed.PageContents.Shapes;
+            if (connects) delete parsed.PageContents.Connects;
+            if (rels) delete parsed.PageContents.Relationships;
+
+            // Insert PageSheet first
             parsed.PageContents.PageSheet = { Cell: [] };
+
+            // Restore others in order
+            if (shapes) parsed.PageContents.Shapes = shapes;
+            if (connects) parsed.PageContents.Connects = connects;
+            if (rels) parsed.PageContents.Relationships = rels;
         }
+
         if (!Array.isArray(parsed.PageContents.PageSheet.Cell)) {
             parsed.PageContents.PageSheet.Cell = parsed.PageContents.PageSheet.Cell ? [parsed.PageContents.PageSheet.Cell] : [];
         }
@@ -821,16 +839,16 @@ export class ShapeModifier {
             Cell: []
         };
 
-        if (details.address) {
+        if (details.address !== undefined) {
             // XMLBuilder handles XML escaping automatically
             newRow.Cell.push({ '@_N': 'Address', '@_V': details.address });
         }
 
-        if (details.subAddress) {
+        if (details.subAddress !== undefined) {
             newRow.Cell.push({ '@_N': 'SubAddress', '@_V': details.subAddress });
         }
 
-        if (details.description) {
+        if (details.description !== undefined) {
             newRow.Cell.push({ '@_N': 'Description', '@_V': details.description });
         }
 
