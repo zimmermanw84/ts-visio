@@ -13,6 +13,8 @@ export class ShapeModifier {
     private builder: XMLBuilder;
     private relsManager: RelsManager;
     private pageCache: Map<string, { content: string, parsed: any }> = new Map();
+    private dirtyPages: Set<string> = new Set();
+    public autoSave: boolean = true;
 
     constructor(private pkg: VisioPackage) {
         this.parser = new XMLParser({
@@ -111,9 +113,29 @@ export class ShapeModifier {
 
     private saveParsed(pageId: string, parsed: any): void {
         const pagePath = this.getPagePath(pageId);
+
+        if (!this.autoSave) {
+            this.dirtyPages.add(pagePath);
+            return;
+        }
+
+        this.performSave(pagePath, parsed);
+    }
+
+    private performSave(pagePath: string, parsed: any): void {
         const newXml = this.builder.build(parsed);
         this.pkg.updateFile(pagePath, newXml);
         this.pageCache.set(pagePath, { content: newXml, parsed });
+    }
+
+    public flush(): void {
+        for (const pagePath of this.dirtyPages) {
+            const cached = this.pageCache.get(pagePath);
+            if (cached && cached.parsed) {
+                this.performSave(pagePath, cached.parsed);
+            }
+        }
+        this.dirtyPages.clear();
     }
 
     async addConnector(pageId: string, fromShapeId: string, toShapeId: string, beginArrow?: string, endArrow?: string): Promise<string> {
