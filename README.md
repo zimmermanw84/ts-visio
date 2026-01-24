@@ -301,6 +301,26 @@ await shape.toUrl('https://google.com')
            .toPage(detailPage);
 ```
 
+#### 17. Layers
+Organize complex diagrams with layers. Control visibility and locking programmatically.
+
+```typescript
+// 1. Define Layers
+const wireframe = await page.addLayer('Wireframe');
+const annotations = await page.addLayer('Annotations');
+
+// 2. Assign Shapes to Layers
+await shape.addToLayer(wireframe);
+await noteBox.addToLayer(annotations);
+
+// 3. Toggle Visibility
+await annotations.hide();  // Hide for presentation
+await annotations.show();  // Show again
+
+// 4. Lock Layer
+await wireframe.setLocked(true);
+```
+
 ## Examples
 
 Check out the [examples](./examples) directory for complete scripts.
@@ -310,6 +330,7 @@ Check out the [examples](./examples) directory for complete scripts.
 - **[Containers Demo](./examples/containers_demo.ts)**: Shows how to create Classic Visio containers and place shapes within them.
 - **[Lists Demo](./examples/lists_demo.ts)**: Demonstrates Vertical and Horizontal List stacks.
 - **[Hyperlinks Demo](./examples/hyperlinks_demo.ts)**: Demonstrates Internal and External navigation.
+- **[Layers Demo](./examples/layers_demo.ts)**: Shows how to create layers and toggle visibility.
 
 ## Development
 

@@ -926,6 +926,38 @@ export class ShapeModifier {
             this.saveParsed(pageId, parsed);
         }
     }
+
+    async updateLayerProperty(pageId: string, layerIndex: number, propName: string, value: string): Promise<void> {
+        const parsed = this.getParsed(pageId);
+
+        this.ensurePageSheet(parsed);
+        const pageSheet = parsed.PageContents.PageSheet;
+
+        // Find Layer Section
+        if (!pageSheet.Section) return;
+        const sections = Array.isArray(pageSheet.Section) ? pageSheet.Section : [pageSheet.Section];
+        const layerSection = sections.find((s: any) => s['@_N'] === 'Layer');
+        if (!layerSection || !layerSection.Row) return;
+
+        const rows = Array.isArray(layerSection.Row) ? layerSection.Row : [layerSection.Row];
+        const row = rows.find((r: any) => r['@_IX'] == layerIndex.toString());
+        if (!row) return;
+
+        // Ensure Cell array
+        if (!row.Cell) row.Cell = [];
+        if (!Array.isArray(row.Cell)) row.Cell = [row.Cell];
+
+        // Find or Create Cell
+        let cell = row.Cell.find((c: any) => c['@_N'] === propName);
+        if (!cell) {
+            cell = { '@_N': propName, '@_V': value };
+            row.Cell.push(cell);
+        } else {
+            cell['@_V'] = value;
+        }
+
+        this.saveParsed(pageId, parsed);
+    }
 }
 
 
