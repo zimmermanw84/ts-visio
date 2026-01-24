@@ -824,6 +824,55 @@ export class ShapeModifier {
 
         this.saveParsed(pageId, parsed);
     }
+
+    async addLayer(pageId: string, name: string, options: { visible?: boolean, lock?: boolean, print?: boolean } = {}): Promise<{ name: string, index: number }> {
+        const parsed = this.getParsed(pageId);
+
+        // Ensure PageSheet
+        this.ensurePageSheet(parsed);
+        const pageSheet = parsed.PageContents.PageSheet;
+
+        // Ensure Section array
+        if (!pageSheet.Section) pageSheet.Section = [];
+        if (!Array.isArray(pageSheet.Section)) pageSheet.Section = [pageSheet.Section];
+
+        // Find or Create Layer Section
+        let layerSection = pageSheet.Section.find((s: any) => s['@_N'] === 'Layer');
+        if (!layerSection) {
+            layerSection = { '@_N': 'Layer', Row: [] };
+            pageSheet.Section.push(layerSection);
+        }
+
+        // Ensure Row array
+        if (!layerSection.Row) layerSection.Row = [];
+        if (!Array.isArray(layerSection.Row)) layerSection.Row = [layerSection.Row];
+
+        // Verify name uniqueness (Visio allows duplicates but it's bad practice)
+        // For simplicity, we create a new layer even if name matches.
+
+        // Determine Index (IX)
+        let maxIx = -1;
+        for (const row of layerSection.Row) {
+            const ix = parseInt(row['@_IX']);
+            if (!isNaN(ix) && ix > maxIx) maxIx = ix;
+        }
+        const newIndex = maxIx + 1;
+
+        const newRow = {
+            '@_IX': newIndex.toString(),
+            Cell: [
+                { '@_N': 'Name', '@_V': name },
+                { '@_N': 'Visible', '@_V': (options.visible ?? true) ? '1' : '0' },
+                { '@_N': 'Lock', '@_V': (options.lock ?? false) ? '1' : '0' },
+                { '@_N': 'Print', '@_V': (options.print ?? true) ? '1' : '0' }
+            ]
+        };
+
+        layerSection.Row.push(newRow);
+        this.saveParsed(pageId, parsed);
+
+        return { name, index: newIndex };
+    }
 }
 
 

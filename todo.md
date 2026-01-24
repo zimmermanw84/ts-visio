@@ -27,7 +27,7 @@ There is no support for embedding images.
 Use Case: "Add a company logo to the header" or "Paste a screenshot of the UI."
 Technical Gap: Need to embed binary image data into the ZIP package (visio/media/image1.png) and create a shape that references it using ForeignData.
 
-(In Progress) 5. Hyperlinks
+(Done) 5. Hyperlinks
 Shapes often link to other pages or external URLs.
 
 Use Case: "Clicking this 'User' table should open the Jira ticket."
@@ -39,7 +39,7 @@ We implemented "Groups" for tables, but Visio has a special concept called Conta
 Use Case: "Drag a new column into the Table, and the Table automatically expands to fit it."
 Technical Gap: Specific User Defined Cells and algorithmic behavior in Visio (often harder to fully replicate without the Visio engine, but the XML structures exist).
 
-7. Layers
+(In Progress) 7. Layers
 Complex diagrams use layers to toggle visibility (e.g., "Hide all comments").
 
 Use Case: "Create a 'Wireframe' layer and a 'Notes' layer."

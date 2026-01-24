@@ -864,3 +864,137 @@ Here is the itemized prompt plan to implement **Hyperlinks**. This feature is es
 > * **Checklist:** Confirm tests pass for URL escaping."
 >
 >
+
+Here is the itemized prompt plan to implement **Layers**. This feature allows developers to organize complex diagrams by toggling visibility, locking elements (e.g., "Background"), or separating printing content from viewing content.
+
+### Phase 1: Layer Definitions (The Page Schema)
+
+*Goal: Define the "buckets" that shapes will live in. Layers are defined at the Page level, not the Document level.*
+
+**Prompt 1: Understanding Layer XML**
+
+> "I need to implement Layers in `ts-visio`.
+> 1. Explain the XML structure of the `<Layers>` collection within `<PageSheet>` or `<PageContents>`.
+> 2. Detail the attributes for a `<Layer>` element:
+> * `IX` (Index - is it 0-based or 1-based?)
+> * `Name` (The display string)
+> * `Visible` (Boolean)
+> * `Lock` (Boolean - prevents selection)
+> * `Print` (Boolean - visible on screen but not in print)
+>
+>
+> 3. Provide a sample XML snippet of a page with a 'Background' layer (Locked) and a 'Comments' layer (Hidden)."
+>
+>
+
+**Prompt 2: Implementing `addLayer**`
+
+> "Implement `Page.addLayer(name: string, options?: LayerOptions)`.
+> 1. **Index Management:** You must track the next available Layer Index (`IX`) for this page.
+> 2. **XML Generation:** Append a new `<Layer>` element to the `<Layers>` collection in `page{N}.xml`.
+> 3. **Return:** A `Layer` object (containing the Name and Index) that can be passed to shapes later.
+> 4. **Test Requirement:** Write a test that adds 3 layers and asserts their Indices are sequential (0, 1, 2 or 1, 2, 3)."
+>
+>
+
+**Prompt 3: PR Generation (Phase 1)**
+
+> "Generate a Markdown PR description.
+> * **Title:** feat: Core Page Layer Definitions
+> * **Description:** Adds the infrastructure to define layers on a page.
+> * **Technical Detail:** Explains the management of Layer Indices (`IX`).
+> * **Verification:** Unit test checking XML structure for `<Layers>`."
+>
+>
+
+---
+
+### Phase 2: Layer Membership (Assigning Shapes)
+
+*Goal: Put a shape onto a layer. Note: A shape can belong to multiple layers simultaneously.*
+
+**Prompt 4: Understanding `<LayerMem>**`
+
+> "I need to assign shapes to layers.
+> 1. Explain the `<LayerMem>` (Layer Membership) section in the ShapeSheet.
+> 2. Specifically, the `<Cell N='LayerMember' V='...'/>`.
+> 3. **Syntax:** How does Visio store multiple layers? (e.g., is it semicolon-separated like `'1;4'`?).
+> 4. If a shape inherits layers from a Master, how does `<LayerMem>` interact with that?"
+>
+>
+
+**Prompt 5: Implementing `assignLayer**`
+
+> "Implement `Shape.assignLayer(layer: Layer | number)`.
+> 1. Check if the shape has a `<LayerMem>` section. If not, create it.
+> 2. **Logic:**
+> * Read the existing `LayerMember` value.
+> * Append the new Layer Index (handling the separator syntax).
+> * **Idempotency:** Ensure we don't add the same layer index twice.
+>
+>
+> 3. **Test Requirement:** Create a shape, add it to 'Layer A' (Index 1) and 'Layer B' (Index 2). Assert the XML value is `V='1;2'`."
+>
+>
+
+**Prompt 6: PR Generation (Phase 2)**
+
+> "Generate a PR description.
+> * **Title:** feat: Shape Layer Membership
+> * **Context:** Shapes need to reference the Page's defined layers.
+> * **Changes:** Implemented `<LayerMem>` parsing and updating.
+> * **Tests:** Validated multi-layer assignment logic."
+>
+>
+
+---
+
+### Phase 3: Layer Management & Toggle API
+
+*Goal: The ability to say "Hide all Comments" programmatically.*
+
+**Prompt 7: Toggling Visibility & Locking**
+
+> "Implement methods on the `Layer` class to update properties dynamically.
+> 1. `layer.setVisible(visible: boolean)`: Updates the `Visible` cell in the Page XML.
+> 2. `layer.setLocked(locked: boolean)`: Updates the `Lock` cell.
+> 3. **Refactor:** Ensure the `PageManager` can locate the specific `<Layer>` node by its Index to apply these updates."
+>
+>
+
+**Prompt 8: Public API Design**
+
+> "Refactor the public API for ease of use.
+> 1. **Scenario:**
+> ```typescript
+> const comments = page.addLayer('Comments');
+> const box = page.addShape(...);
+> box.addToLayer(comments);
+>
+> ```
+>
+>
+>
+>
+
+> ```
+> // Later:
+> comments.hide(); // Sets Visible=0
+> ```
+>
+> ```
+>
+>
+> 2. Ensure the `Layer` object returned by `addLayer` holds a reference to the Page so it can trigger the XML update."
+>
+>
+
+**Prompt 9: Final Documentation & PR**
+
+> "Generate the final PR description.
+> * **Title:** feat: Public Layer Management API
+> * **Usage:** Provide a code example showing how to create a 'Wireframe' mode by hiding a specific layer.
+> * **Readme Update:** Document the `Layer` class and `Shape.addToLayer`.
+> * **Checklist:** Verify that standard shapes (without layers) still render correctly (Regression)."
+>
+>
