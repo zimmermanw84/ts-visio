@@ -38,7 +38,9 @@ export const DOCUMENT_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalon
 
 export const PAGES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Pages xmlns="${XML_NAMESPACES.VISIO_MAIN}" xmlns:r="${XML_NAMESPACES.RELATIONSHIPS_OFFICE}" xml:space="preserve">
-    <Page ID="1" Name="Page-1" NameU="Page-1" ViewScale="1" ViewCenterX="4.133858267716535" ViewCenterY="5.846456692913386"/>
+    <Page ID="1" Name="Page-1" NameU="Page-1" ViewScale="1" ViewCenterX="4.133858267716535" ViewCenterY="5.846456692913386">
+        <Rel r:id="rId1"/>
+    </Page>
 </Pages>`;
 
 export const PAGES_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

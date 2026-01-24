@@ -76,7 +76,8 @@ export class PageManager {
 
         // 3. Map Pages
         this.pages = pageNodes.map((node: any) => {
-            const rId = node['@_r:id'];
+            // r:id is in the Rel child element, not as a Page attribute
+            const rId = node.Rel?.['@_r:id'] || node['@_r:id']; // Support both for compatibility
             const target = relsMap.get(rId) || '';
             // Target is usually "page1.xml" or "pages/page1.xml" depending on relative structure.
             // pages.xml is in "visio/pages/", so "page1.xml" means "visio/pages/page1.xml"
@@ -159,7 +160,7 @@ export class PageManager {
         parsedPages.Pages.Page.push({
             '@_ID': newId.toString(),
             '@_Name': name,
-            '@_r:id': rId
+            'Rel': { '@_r:id': rId }
         });
 
         this.pkg.updateFile(pagesPath, this.builder.build(parsedPages));
