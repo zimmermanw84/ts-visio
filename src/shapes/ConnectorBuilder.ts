@@ -4,7 +4,8 @@ import { createLineSection } from '../utils/StyleHelpers';
 export class ConnectorBuilder {
     private static getCellVal(shape: any, name: string): string {
         if (!shape || !shape.Cell) return '0';
-        const cell = shape.Cell.find((c: any) => c['@_N'] === name);
+        const cells = Array.isArray(shape.Cell) ? shape.Cell : [shape.Cell];
+        const cell = cells.find((c: any) => c['@_N'] === name);
         return cell ? cell['@_V'] : '0';
     }
 
