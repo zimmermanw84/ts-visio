@@ -131,14 +131,19 @@ export class Shape {
             }
         }
 
+        const modifier = new ShapeModifier(this.pkg);
+        modifier.autoSave = false;
+
         // 1. Define Property
-        this.addPropertyDefinition(key, type, {
+        modifier.addPropertyDefinition(this.pageId, this.id, key, type, {
             label: data.label,
             invisible: data.hidden
         });
 
         // 2. Set Value
-        this.setPropertyValue(key, data.value);
+        modifier.setPropertyValue(this.pageId, this.id, key, data.value);
+
+        modifier.flush();
 
         return this;
     }
