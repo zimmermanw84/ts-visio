@@ -20,10 +20,14 @@
     "url": "git+https://github.com/zimmermanw84/ts-visio.git"
   },
   "dependencies": {
+    "@a24z/mermaid-parser": "^1.0.0",
+    "@mermaid-js/parser": "^0.6.3",
+    "dagre": "^0.8.5",
     "fast-xml-parser": "^5.3.3",
     "jszip": "^3.10.1"
   },
   "devDependencies": {
+    "@types/dagre": "^0.7.53",
     "@types/node": "^25.0.9",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"

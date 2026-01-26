@@ -37,7 +37,8 @@ export class ShapeBuilder {
             // Standard Line for fillable shapes
             shape.Section.push(createLineSection({
                 color: props.lineColor || '#000000',
-                weight: '0.01'
+                weight: props.lineWeight || '0.01',
+                pattern: props.linePattern || '1'
             }));
         }
 
