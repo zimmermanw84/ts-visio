@@ -1,0 +1,18 @@
+graph TD
+    %% --- Test Case 1: Core Shapes ---
+    Start([Start Order]) --> Input[/Receive JSON/]
+    Input --> Auth{Is Authorized?}
+
+    %% --- Test Case 2: Styling (Direct & Class-based) ---
+    style Start fill:#bbf,stroke:#333,stroke-width:2px
+    classDef failure fill:#f96,stroke:#333,stroke-width:1px;
+
+    %% --- Test Case 3: Edge Types & Labeling ---
+    Auth -- No --> Reject[Reject Request]:::failure
+    Auth -- Yes --> GetUser
+
+    %% --- Test Case 5: Complex Routing ---
+    Calc --> Finalize
+    FastPath --> Finalize
+    Reject --> Finalize((End))
+    Finalize --> Finalize

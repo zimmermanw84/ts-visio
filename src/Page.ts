@@ -70,8 +70,17 @@ export class Page {
 
         return new Shape(internalStub, this.id, this.pkg);
     }
-    async connectShapes(fromShape: Shape, toShape: Shape, beginArrow?: string, endArrow?: string): Promise<void> {
-        await this.modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow);
+    async connectShapes(fromShape: Shape, toShape: Shape, beginArrow?: string, endArrow?: string): Promise<Shape> {
+        const newId = await this.modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow);
+
+        // Create Stub for Connector
+        const internalStub = createVisioShapeStub({
+            ID: newId,
+            Text: '',
+            Cells: {} // Connectors have different cells, but StubHelpers might suffice for basic wrapper
+        });
+
+        return new Shape(internalStub, this.id, this.pkg);
     }
 
     async addImage(data: Buffer, name: string, x: number, y: number, width: number, height: number): Promise<Shape> {
