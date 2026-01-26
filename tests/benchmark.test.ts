@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { VisioPackage } from '../src/VisioPackage';
 import { ShapeModifier } from '../src/ShapeModifier';
+import { RelsManager } from '../src/core/RelsManager';
+import { RELATIONSHIP_TYPES } from '../src/core/VisioConstants';
 
 describe('Performance Benchmark', () => {
     it('should measure time to add multiple shapes (baseline)', async () => {
@@ -48,4 +50,24 @@ describe('Performance Benchmark', () => {
         const endTime = performance.now();
         console.log(`Optimized: Time to add ${count} shapes: ${(endTime - startTime).toFixed(2)}ms`);
     }, 20000);
+
+    it('should measure time to ensure multiple relationships', async () => {
+        const pkg = await VisioPackage.create();
+        const relsManager = new RelsManager(pkg);
+        const count = 500;
+        const sourcePath = 'visio/pages/page1.xml';
+
+        const startTime = performance.now();
+
+        for (let i = 0; i < count; i++) {
+            await relsManager.ensureRelationship(
+                sourcePath,
+                `media/image${i}.png`,
+                RELATIONSHIP_TYPES.IMAGE
+            );
+        }
+
+        const endTime = performance.now();
+        console.log(`Time to ensure ${count} relationships: ${(endTime - startTime).toFixed(2)}ms`);
+    }, 30000);
 });
