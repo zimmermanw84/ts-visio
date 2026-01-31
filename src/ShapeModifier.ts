@@ -29,10 +29,9 @@ export class ShapeModifier {
         const containerShape = ContainerBuilder.createContainerShape(newId, props);
 
         topLevelShapes.push(containerShape);
+        this.getShapeMap(parsed).set(newId, containerShape);
 
         const newXml = this.builder.build(parsed);
-        this.pkg.updateFile(pagePath, newXml);
-        return newId;
         this.pkg.updateFile(pagePath, newXml);
         return newId;
     }
@@ -55,6 +54,7 @@ export class ShapeModifier {
         ContainerBuilder.makeList(listShape, direction);
 
         topLevelShapes.push(listShape);
+        this.getShapeMap(parsed).set(newId, listShape);
 
         const newXml = this.builder.build(parsed);
         this.pkg.updateFile(pagePath, newXml);
@@ -66,6 +66,7 @@ export class ShapeModifier {
     private relsManager: RelsManager;
     private pageCache: Map<string, { content: string, parsed: any }> = new Map();
     private dirtyPages: Set<string> = new Set();
+    private shapeCache = new WeakMap<object, Map<string, any>>();
     public autoSave: boolean = true;
 
     constructor(private pkg: VisioPackage) {
@@ -85,34 +86,41 @@ export class ShapeModifier {
         return `visio/pages/page${pageId}.xml`;
     }
 
-    private getAllShapes(parsed: any): any[] {
-        let topLevelShapes = parsed.PageContents.Shapes ? parsed.PageContents.Shapes.Shape : [];
-        if (!Array.isArray(topLevelShapes)) {
-            topLevelShapes = topLevelShapes ? [topLevelShapes] : [];
-        }
-
-        const all: any[] = [];
-        const gather = (shapeList: any[]): void => {
-            for (const s of shapeList) {
-                all.push(s);
-                if (s.Shapes && s.Shapes.Shape) {
-                    const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
-                    gather(children);
-                }
+    private getShapeMap(parsed: any): Map<string, any> {
+        if (!this.shapeCache.has(parsed)) {
+            const map = new Map<string, any>();
+            let topLevelShapes = parsed.PageContents.Shapes ? parsed.PageContents.Shapes.Shape : [];
+            if (!Array.isArray(topLevelShapes)) {
+                topLevelShapes = topLevelShapes ? [topLevelShapes] : [];
             }
-        };
 
-        gather(topLevelShapes);
-        return all;
+            const gather = (shapeList: any[]): void => {
+                for (const s of shapeList) {
+                    map.set(s['@_ID'], s);
+                    if (s.Shapes && s.Shapes.Shape) {
+                        const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
+                        gather(children);
+                    }
+                }
+            };
+
+            gather(topLevelShapes);
+            this.shapeCache.set(parsed, map);
+        }
+        return this.shapeCache.get(parsed)!;
+    }
+
+    private getAllShapes(parsed: any): any[] {
+        return Array.from(this.getShapeMap(parsed).values());
     }
 
     private getNextId(parsed: any): string {
         // Updates PageSheet.NextShapeID to prevent ID conflicts.
         // Calculates the next ID from existing shapes and increments the counter.
 
-        const allShapes = this.getAllShapes(parsed);
+        const shapeMap = this.getShapeMap(parsed);
         let maxId = 0;
-        for (const s of allShapes) {
+        for (const s of shapeMap.values()) {
             const id = parseInt(s['@_ID']);
             if (!isNaN(id) && id > maxId) maxId = id;
         }
@@ -235,6 +243,7 @@ export class ShapeModifier {
 
         const topLevelShapes = parsed.PageContents.Shapes.Shape;
         topLevelShapes.push(connectorShape);
+        this.getShapeMap(parsed).set(newId, connectorShape);
 
         ConnectorBuilder.addConnectorToConnects(parsed, newId, fromShapeId, toShapeId);
 
@@ -258,8 +267,6 @@ export class ShapeModifier {
             topLevelShapes = topLevelShapes ? [topLevelShapes] : [];
             parsed.PageContents.Shapes.Shape = topLevelShapes;
         }
-
-        const allShapes = this.getAllShapes(parsed);
 
         // Auto-generate ID if not provided
         let newId = props.id;
@@ -292,7 +299,7 @@ export class ShapeModifier {
 
         if (parentId) {
             // Add to Parent Group
-            const parent = allShapes.find((s: any) => s['@_ID'] == parentId);
+            const parent = this.getShapeMap(parsed).get(parentId);
             if (!parent) {
                 throw new Error(`Parent shape ${parentId} not found`);
             }
@@ -315,6 +322,7 @@ export class ShapeModifier {
             // Add to Page
             topLevelShapes.push(newShape);
         }
+        this.getShapeMap(parsed).set(newId, newShape);
 
         this.saveParsed(pageId, parsed);
 
@@ -323,87 +331,55 @@ export class ShapeModifier {
 
     async updateShapeText(pageId: string, shapeId: string, newText: string): Promise<void> {
         const parsed = this.getParsed(pageId);
-        let found = false;
+        const shape = this.getShapeMap(parsed).get(shapeId);
 
-        // Helper to recursively find and update shape
-        const findAndUpdate = (shapes: any[]) => {
-            for (const shape of shapes) {
-                if (shape['@_ID'] == shapeId) {
-                    shape.Text = {
-                        '#text': newText
-                    };
-                    found = true;
-                    return;
-                }
-                // If shapes can be nested (Groups), check for sub-shapes - future improvement
-                // But typically basic Text is on top level or group level.
-            }
-        };
-
-        const shapesData = parsed.PageContents?.Shapes?.Shape;
-        if (shapesData) {
-            const shapesArray = Array.isArray(shapesData) ? shapesData : [shapesData];
-            findAndUpdate(shapesArray);
-        }
-
-        if (!found) {
+        if (!shape) {
             throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
+
+        shape.Text = {
+            '#text': newText
+        };
 
         this.saveParsed(pageId, parsed);
     }
     async updateShapeStyle(pageId: string, shapeId: string, style: ShapeStyle): Promise<void> {
         const parsed = this.getParsed(pageId);
-        let found = false;
+        const shape = this.getShapeMap(parsed).get(shapeId);
 
-        const findAndUpdate = (shapes: any[]) => {
-            for (const shape of shapes) {
-                if (shape['@_ID'] == shapeId) {
-                    found = true;
-                    // Ensure Section array exists
-                    if (!shape.Section) {
-                        shape.Section = [];
-                    } else if (!Array.isArray(shape.Section)) {
-                        shape.Section = [shape.Section];
-                    }
-
-                    // Update/Add Fill
-                    if (style.fillColor) {
-                        // Remove existing Fill section if any (simplified: assuming IX=0)
-                        shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Fill');
-                        shape.Section.push(createFillSection(style.fillColor));
-                    }
-
-                    // Update/Add Character (Font/Text Style)
-                    if (style.fontColor || style.bold !== undefined) {
-                        // Remove existing Character section if any
-                        shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Character');
-                        shape.Section.push(createCharacterSection({
-                            bold: style.bold,
-                            color: style.fontColor
-                        }));
-                    }
-                    return;
-                }
-            }
-        };
-
-        const shapesData = parsed.PageContents?.Shapes?.Shape;
-        if (shapesData) {
-            const shapesArray = Array.isArray(shapesData) ? shapesData : [shapesData];
-            findAndUpdate(shapesArray);
+        if (!shape) {
+            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        if (!found) {
-            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        // Ensure Section array exists
+        if (!shape.Section) {
+            shape.Section = [];
+        } else if (!Array.isArray(shape.Section)) {
+            shape.Section = [shape.Section];
+        }
+
+        // Update/Add Fill
+        if (style.fillColor) {
+            // Remove existing Fill section if any (simplified: assuming IX=0)
+            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Fill');
+            shape.Section.push(createFillSection(style.fillColor));
+        }
+
+        // Update/Add Character (Font/Text Style)
+        if (style.fontColor || style.bold !== undefined) {
+            // Remove existing Character section if any
+            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Character');
+            shape.Section.push(createCharacterSection({
+                bold: style.bold,
+                color: style.fontColor
+            }));
         }
 
         this.saveParsed(pageId, parsed);
     }
     async updateShapeDimensions(pageId: string, shapeId: string, w: number, h: number): Promise<void> {
         const parsed = this.getParsed(pageId);
-        const shapes = this.getAllShapes(parsed);
-        const shape = shapes.find((s: any) => s['@_ID'] == shapeId);
+        const shape = this.getShapeMap(parsed).get(shapeId);
 
         if (!shape) throw new Error(`Shape ${shapeId} not found`);
 
@@ -425,113 +401,80 @@ export class ShapeModifier {
 
     async updateShapePosition(pageId: string, shapeId: string, x: number, y: number): Promise<void> {
         const parsed = this.getParsed(pageId);
-        let found = false;
+        const shape = this.getShapeMap(parsed).get(shapeId);
 
-        const findAndUpdate = (shapes: any[]) => {
-            for (const shape of shapes) {
-                if (shape['@_ID'] == shapeId) {
-                    found = true;
-                    // Ensure Cell array exists
-                    if (!shape.Cell) {
-                        shape.Cell = [];
-                    } else if (!Array.isArray(shape.Cell)) {
-                        shape.Cell = [shape.Cell];
-                    }
+        if (!shape) {
+            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        }
 
-                    // Helper to update specific cell
-                    const updateCell = (name: string, value: string) => {
-                        const cell = shape.Cell.find((c: any) => c['@_N'] === name);
-                        if (cell) {
-                            cell['@_V'] = value;
-                        } else {
-                            shape.Cell.push({ '@_N': name, '@_V': value });
-                        }
-                    };
+        // Ensure Cell array exists
+        if (!shape.Cell) {
+            shape.Cell = [];
+        } else if (!Array.isArray(shape.Cell)) {
+            shape.Cell = [shape.Cell];
+        }
 
-                    updateCell('PinX', x.toString());
-                    updateCell('PinY', y.toString());
-                    return;
-                }
+        // Helper to update specific cell
+        const updateCell = (name: string, value: string) => {
+            const cell = shape.Cell.find((c: any) => c['@_N'] === name);
+            if (cell) {
+                cell['@_V'] = value;
+            } else {
+                shape.Cell.push({ '@_N': name, '@_V': value });
             }
         };
 
-        const shapesData = parsed.PageContents?.Shapes?.Shape;
-        if (shapesData) {
-            const shapesArray = Array.isArray(shapesData) ? shapesData : [shapesData];
-            findAndUpdate(shapesArray);
-        }
-
-        if (!found) {
-            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
-        }
+        updateCell('PinX', x.toString());
+        updateCell('PinY', y.toString());
 
         this.saveParsed(pageId, parsed);
     }
     addPropertyDefinition(pageId: string, shapeId: string, name: string, type: number, options: { label?: string, invisible?: boolean } = {}): void {
         const parsed = this.getParsed(pageId);
-        let found = false;
+        const shape = this.getShapeMap(parsed).get(shapeId);
 
-        const findAndUpdate = (shapes: any[]) => {
-            for (const shape of shapes) {
-                if (shape['@_ID'] == shapeId) {
-                    found = true;
-                    // Ensure Section array exists
-                    if (!shape.Section) shape.Section = [];
-                    if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
-
-                    // Find or Create Property Section
-                    let propSection = shape.Section.find((s: any) => s['@_N'] === 'Property');
-                    if (!propSection) {
-                        propSection = { '@_N': 'Property', Row: [] };
-                        shape.Section.push(propSection);
-                    }
-
-                    // Ensure Row array exists
-                    if (!propSection.Row) propSection.Row = [];
-                    if (!Array.isArray(propSection.Row)) propSection.Row = [propSection.Row];
-
-                    // Check if property already exists
-                    const existingRow = propSection.Row.find((r: any) => r['@_N'] === `Prop.${name}`);
-                    if (existingRow) {
-                        // Update existing Definition
-                        const updateCell = (n: string, v: string) => {
-                            let c = existingRow.Cell.find((x: any) => x['@_N'] === n);
-                            if (c) c['@_V'] = v;
-                            else existingRow.Cell.push({ '@_N': n, '@_V': v });
-                        };
-                        if (options.label !== undefined) updateCell('Label', options.label);
-                        updateCell('Type', type.toString());
-                        if (options.invisible !== undefined) updateCell('Invisible', options.invisible ? '1' : '0');
-                    } else {
-                        // Create New Row
-                        propSection.Row.push({
-                            '@_N': `Prop.${name}`,
-                            Cell: [
-                                { '@_N': 'Label', '@_V': options.label || name }, // Default label to name
-                                { '@_N': 'Type', '@_V': type.toString() },
-                                { '@_N': 'Invisible', '@_V': options.invisible ? '1' : '0' },
-                                { '@_N': 'Value', '@_V': '0' } // Initialize with default
-                            ]
-                        });
-                    }
-                    return;
-                }
-                // Recurse into nested shapes (groups/containers)
-                if (shape.Shapes?.Shape) {
-                    const children = Array.isArray(shape.Shapes.Shape) ? shape.Shapes.Shape : [shape.Shapes.Shape];
-                    findAndUpdate(children);
-                }
-            }
-        };
-
-        const shapesData = parsed.PageContents?.Shapes?.Shape;
-        if (shapesData) {
-            const shapesArray = Array.isArray(shapesData) ? shapesData : [shapesData];
-            findAndUpdate(shapesArray);
+        if (!shape) {
+            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        if (!found) {
-            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        // Ensure Section array exists
+        if (!shape.Section) shape.Section = [];
+        if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
+
+        // Find or Create Property Section
+        let propSection = shape.Section.find((s: any) => s['@_N'] === 'Property');
+        if (!propSection) {
+            propSection = { '@_N': 'Property', Row: [] };
+            shape.Section.push(propSection);
+        }
+
+        // Ensure Row array exists
+        if (!propSection.Row) propSection.Row = [];
+        if (!Array.isArray(propSection.Row)) propSection.Row = [propSection.Row];
+
+        // Check if property already exists
+        const existingRow = propSection.Row.find((r: any) => r['@_N'] === `Prop.${name}`);
+        if (existingRow) {
+            // Update existing Definition
+            const updateCell = (n: string, v: string) => {
+                let c = existingRow.Cell.find((x: any) => x['@_N'] === n);
+                if (c) c['@_V'] = v;
+                else existingRow.Cell.push({ '@_N': n, '@_V': v });
+            };
+            if (options.label !== undefined) updateCell('Label', options.label);
+            updateCell('Type', type.toString());
+            if (options.invisible !== undefined) updateCell('Invisible', options.invisible ? '1' : '0');
+        } else {
+            // Create New Row
+            propSection.Row.push({
+                '@_N': `Prop.${name}`,
+                Cell: [
+                    { '@_N': 'Label', '@_V': options.label || name }, // Default label to name
+                    { '@_N': 'Type', '@_V': type.toString() },
+                    { '@_N': 'Invisible', '@_V': options.invisible ? '1' : '0' },
+                    { '@_N': 'Value', '@_V': '0' } // Initialize with default
+                ]
+            });
         }
 
         this.saveParsed(pageId, parsed);
@@ -544,76 +487,56 @@ export class ShapeModifier {
 
     setPropertyValue(pageId: string, shapeId: string, name: string, value: string | number | boolean | Date): void {
         const parsed = this.getParsed(pageId);
-        let found = false;
+        const shape = this.getShapeMap(parsed).get(shapeId);
 
-        const findAndUpdate = (shapes: any[]) => {
-            for (const shape of shapes) {
-                if (shape['@_ID'] == shapeId) {
-                    found = true;
-                    // Ensure Section array exists
-                    const sections = shape.Section ? (Array.isArray(shape.Section) ? shape.Section : [shape.Section]) : [];
-                    const propSection = sections.find((s: any) => s['@_N'] === 'Property');
-
-                    if (!propSection) {
-                        throw new Error(`Property definition 'Prop.${name}' does not exist on shape ${shapeId}. Call addPropertyDefinition first.`);
-                    }
-
-                    const rows = propSection.Row ? (Array.isArray(propSection.Row) ? propSection.Row : [propSection.Row]) : [];
-                    const row = rows.find((r: any) => r['@_N'] === `Prop.${name}`);
-
-                    if (!row) {
-                        throw new Error(`Property definition 'Prop.${name}' does not exist on shape ${shapeId}. Call addPropertyDefinition first.`);
-                    }
-
-                    // Determine Visio Value String
-                    let visioValue = '';
-                    if (value instanceof Date) {
-                        visioValue = this.dateToVisioString(value);
-                    } else if (typeof value === 'boolean') {
-                        visioValue = value ? '1' : '0'; // Should boolean be V='TRUE' or 1? Standard practice is often 1/0 or TRUE/FALSE. Cells are formulaic.
-                        // However, if the Type is 3 (Boolean), Visio often expects 0/1 or TRUE/FALSE.
-                        // Let's stick to '1'/'0' for safety in formulas if generic.
-                    } else {
-                        visioValue = value.toString();
-                    }
-
-                    // Update or Add Value Cell
-                    // Note: If Type is String (0), V="String". If Number (2), V="123".
-                    // Visio often puts string values in formulae as "String", but in XML V attribute it's raw text?
-                    // Actually, for String props, V usually contains the string.
-
-                    let valCell = row.Cell.find((c: any) => c['@_N'] === 'Value');
-                    if (valCell) {
-                        valCell['@_V'] = visioValue;
-                    } else {
-                        row.Cell.push({ '@_N': 'Value', '@_V': visioValue });
-                    }
-                    return;
-                }
-                // Recurse into nested shapes (groups/containers)
-                if (shape.Shapes?.Shape) {
-                    const children = Array.isArray(shape.Shapes.Shape) ? shape.Shapes.Shape : [shape.Shapes.Shape];
-                    findAndUpdate(children);
-                }
-            }
-        };
-
-        const shapesData = parsed.PageContents?.Shapes?.Shape;
-        if (shapesData) {
-            const shapesArray = Array.isArray(shapesData) ? shapesData : [shapesData];
-            findAndUpdate(shapesArray);
+        if (!shape) {
+            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        if (!found) {
-            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        // Ensure Section array exists
+        const sections = shape.Section ? (Array.isArray(shape.Section) ? shape.Section : [shape.Section]) : [];
+        const propSection = sections.find((s: any) => s['@_N'] === 'Property');
+
+        if (!propSection) {
+            throw new Error(`Property definition 'Prop.${name}' does not exist on shape ${shapeId}. Call addPropertyDefinition first.`);
+        }
+
+        const rows = propSection.Row ? (Array.isArray(propSection.Row) ? propSection.Row : [propSection.Row]) : [];
+        const row = rows.find((r: any) => r['@_N'] === `Prop.${name}`);
+
+        if (!row) {
+            throw new Error(`Property definition 'Prop.${name}' does not exist on shape ${shapeId}. Call addPropertyDefinition first.`);
+        }
+
+        // Determine Visio Value String
+        let visioValue = '';
+        if (value instanceof Date) {
+            visioValue = this.dateToVisioString(value);
+        } else if (typeof value === 'boolean') {
+            visioValue = value ? '1' : '0'; // Should boolean be V='TRUE' or 1? Standard practice is often 1/0 or TRUE/FALSE. Cells are formulaic.
+            // However, if the Type is 3 (Boolean), Visio often expects 0/1 or TRUE/FALSE.
+            // Let's stick to '1'/'0' for safety in formulas if generic.
+        } else {
+            visioValue = value.toString();
+        }
+
+        // Update or Add Value Cell
+        // Note: If Type is String (0), V="String". If Number (2), V="123".
+        // Visio often puts string values in formulae as "String", but in XML V attribute it's raw text?
+        // Actually, for String props, V usually contains the string.
+
+        let valCell = row.Cell.find((c: any) => c['@_N'] === 'Value');
+        if (valCell) {
+            valCell['@_V'] = visioValue;
+        } else {
+            row.Cell.push({ '@_N': 'Value', '@_V': visioValue });
         }
 
         this.saveParsed(pageId, parsed);
     }
     getShapeGeometry(pageId: string, shapeId: string): { x: number, y: number, width: number, height: number } {
         const parsed = this.getParsed(pageId);
-        const shapes = this.getAllShapes(parsed);
-        const shape = shapes.find((s: any) => s['@_ID'] == shapeId);
+        const shape = this.getShapeMap(parsed).get(shapeId);
 
         if (!shape) throw new Error(`Shape ${shapeId} not found`);
 
@@ -707,8 +630,7 @@ export class ShapeModifier {
     async addListItem(pageId: string, listId: string, itemId: string): Promise<void> {
         // 1. Get List Properties (Direction, Spacing)
         const parsed = this.getParsed(pageId);
-        const shapes = this.getAllShapes(parsed);
-        const listShape = shapes.find((s: any) => s['@_ID'] == listId);
+        const listShape = this.getShapeMap(parsed).get(listId);
         if (!listShape) throw new Error(`List ${listId} not found`);
 
         const getUserVal = (name: string, def: string) => {
@@ -810,8 +732,7 @@ export class ShapeModifier {
 
     async addHyperlink(pageId: string, shapeId: string, details: { address?: string, subAddress?: string, description?: string }): Promise<void> {
         const parsed = this.getParsed(pageId);
-        const shapes = this.getAllShapes(parsed);
-        const shape = shapes.find((s: any) => s['@_ID'] == shapeId);
+        const shape = this.getShapeMap(parsed).get(shapeId);
 
         if (!shape) throw new Error(`Shape ${shapeId} not found`);
 
@@ -911,8 +832,7 @@ export class ShapeModifier {
 
     async assignLayer(pageId: string, shapeId: string, layerIndex: number): Promise<void> {
         const parsed = this.getParsed(pageId);
-        const shapes = this.getAllShapes(parsed);
-        const shape = shapes.find((s: any) => s['@_ID'] == shapeId);
+        const shape = this.getShapeMap(parsed).get(shapeId);
 
         if (!shape) throw new Error(`Shape ${shapeId} not found`);
 
