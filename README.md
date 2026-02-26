@@ -321,6 +321,30 @@ await annotations.show();  // Show again
 await wireframe.setLocked(true);
 ```
 
+#### 18. Cross-Functional Flowcharts (Swimlanes)
+Create structured Swimlane diagrams involving Pools and Lanes.
+
+```typescript
+// 1. Create a Pool (Vertical List)
+const pool = await page.addSwimlanePool({
+    text: "User Registration",
+    x: 5, y: 5, width: 10, height: 6
+});
+
+// 2. Create Lanes (Containers)
+const lane1 = await page.addSwimlaneLane({ text: "Client", width: 10, height: 2 });
+const lane2 = await page.addSwimlaneLane({ text: "Server", width: 10, height: 2 });
+
+// 3. Add Lanes to Pool (Order matters)
+await pool.addListItem(lane1);
+await pool.addListItem(lane2);
+
+// 4. Group Shapes into Lanes
+// This binds their movement so they stay inside the lane
+await lane1.addMember(startShape);
+await lane2.addMember(serverShape);
+```
+
 ## Examples
 
 Check out the [examples](./examples) directory for complete scripts.
@@ -332,6 +356,7 @@ Check out the [examples](./examples) directory for complete scripts.
 - **[Hyperlinks Demo](./examples/hyperlinks_demo.ts)**: Demonstrates Internal and External navigation.
 - **[Layers Demo](./examples/layers_demo.ts)**: Shows how to create layers and toggle visibility.
 - **[Image Embedding Demo](./examples/images_demo.ts)**: Demonstrates how to embed PNG or JPEG images into a diagram.
+- **[Swimlane Demo](./examples/swimlane_demo.ts)**: Demonstrates creating Cross-Functional Flowcharts with Pools and Lanes.
 
 ## Development
 

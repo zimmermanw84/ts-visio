@@ -82,9 +82,7 @@ describe('Edge Case Regression Tests', () => {
                 : [parsed.PageContents.Shapes.Shape];
             // Connector is the last shape added
             const connectorShape = shapes[shapes.length - 1];
-            const sections = Array.isArray(connectorShape.Section) ? connectorShape.Section : [connectorShape.Section];
-            const lineSection = sections.find((s: any) => s['@_N'] === 'Line');
-            const cells = Array.isArray(lineSection.Cell) ? lineSection.Cell : [lineSection.Cell];
+            const cells = Array.isArray(connectorShape.Cell) ? connectorShape.Cell : [connectorShape.Cell];
 
             const beginArrow = cells.find((c: any) => c['@_N'] === 'BeginArrow');
             const endArrow = cells.find((c: any) => c['@_N'] === 'EndArrow');
@@ -111,9 +109,7 @@ describe('Edge Case Regression Tests', () => {
                 ? parsed.PageContents.Shapes.Shape
                 : [parsed.PageContents.Shapes.Shape];
             const connectorShape = shapes[shapes.length - 1];
-            const sections = Array.isArray(connectorShape.Section) ? connectorShape.Section : [connectorShape.Section];
-            const lineSection = sections.find((s: any) => s['@_N'] === 'Line');
-            const cells = Array.isArray(lineSection.Cell) ? lineSection.Cell : [lineSection.Cell];
+            const cells = Array.isArray(connectorShape.Cell) ? connectorShape.Cell : [connectorShape.Cell];
 
             const beginArrow = cells.find((c: any) => c['@_N'] === 'BeginArrow');
             const endArrow = cells.find((c: any) => c['@_N'] === 'EndArrow');

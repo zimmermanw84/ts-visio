@@ -137,6 +137,24 @@ export class Page {
         return new Shape(internalStub, this.id, this.pkg);
     }
 
+    /**
+     * Creates a Swimlane Pool (which is technically a Vertical List of Containers).
+     * @param props Visual properties
+     */
+    async addSwimlanePool(props: NewShapeProps): Promise<Shape> {
+        // A Pool is just a vertical list
+        return this.addList(props, 'vertical');
+    }
+
+    /**
+     * Creates a Swimlane Lane (which is technically a Container).
+     * @param props Visual properties
+     */
+    async addSwimlaneLane(props: NewShapeProps): Promise<Shape> {
+        // A Lane is just a container
+        return this.addContainer(props);
+    }
+
     async addTable(x: number, y: number, title: string, columns: string[]): Promise<Shape> {
         // ... (previous implementation)
         // Dimensions

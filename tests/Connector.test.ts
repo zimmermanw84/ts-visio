@@ -57,18 +57,18 @@ describe('Connectors', () => {
         expect(connector?.Cells['PinX']?.V).toBe('4');
         expect(connector?.Cells['PinY']?.V).toBe('4');
 
-        // 2. Check Line Section exists (Visibility & Arrows)
+        // 2. Check Line Section exists (Visibility)
         const lineSection = connector?.Sections['Line'];
         if (!lineSection) throw new Error('Line section missing');
         if (!lineSection.Cells) throw new Error('Line section cells missing');
 
         expect(lineSection.Cells['LineColor']).toBeDefined();
 
-        // Check Arrow Defaults (should be '0' if not specified, but verify they EXIST)
-        expect(lineSection.Cells['BeginArrow']?.V).toBe('0');
-        expect(lineSection.Cells['EndArrow']?.V).toBe('0');
-        expect(lineSection.Cells['BeginArrowSize']?.V).toBe('2'); // Default Medium
-        expect(lineSection.Cells['EndArrowSize']?.V).toBe('2'); // Default Medium
+        // Check Arrow Defaults as direct shape cells (Visio reads arrows from Shape cells, not Line section)
+        expect(connector?.Cells['BeginArrow']?.V).toBe('0');
+        expect(connector?.Cells['EndArrow']?.V).toBe('0');
+        expect(connector?.Cells['BeginArrowSize']?.V).toBe('2'); // Default Medium
+        expect(connector?.Cells['EndArrowSize']?.V).toBe('2'); // Default Medium
 
         // 3. Check Geometry formulas (Dynamic sizing)
         const geometry = connector?.Sections['Geometry'];
