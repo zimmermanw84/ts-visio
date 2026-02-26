@@ -141,16 +141,16 @@ export class ConnectorBuilder {
                 { '@_N': 'ShapePermeableX', '@_V': '0' },
                 { '@_N': 'ShapePermeableY', '@_V': '0' },
                 { '@_N': 'ShapeRouteStyle', '@_V': '1' },
-                { '@_N': 'ConFixedCode', '@_V': '0' }
+                { '@_N': 'ConFixedCode', '@_V': '0' },
+                { '@_N': 'BeginArrow', '@_V': beginArrow || '0' },
+                { '@_N': 'BeginArrowSize', '@_V': '2' },
+                { '@_N': 'EndArrow', '@_V': endArrow || '0' },
+                { '@_N': 'EndArrowSize', '@_V': '2' }
             ],
             Section: [
                 createLineSection({
                     color: '#000000',
-                    weight: '0.01',
-                    beginArrow: beginArrow || '0',
-                    beginArrowSize: '2',
-                    endArrow: endArrow || '0',
-                    endArrowSize: '2'
+                    weight: '0.01'
                 }),
                 {
                     '@_N': 'Geometry',
