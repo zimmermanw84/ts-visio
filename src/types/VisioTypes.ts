@@ -81,4 +81,6 @@ export interface NewShapeProps {
     masterId?: string;
     imgRelId?: string;
     lineColor?: string;
+    lineWeight?: string;
+    linePattern?: string;
 }

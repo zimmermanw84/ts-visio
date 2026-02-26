@@ -998,3 +998,126 @@ Here is the itemized prompt plan to implement **Layers**. This feature allows de
 > * **Checklist:** Verify that standard shapes (without layers) still render correctly (Regression)."
 >
 >
+
+
+We're building a "Mermaid to Visio" converter.
+
+The biggest technical hurdle here is **Layout**. Mermaid syntax defines *relationships* ("A connects to B"), but Visio files require *explicit coordinates* ("Shape A is at x:1, y:2"). Your converter must act as the layout engine.
+
+We will use `dagre` (Directed Graph Layout) to calculate the layout.
+Use tests/assets/test-diagram.mmd as a sample input.
+
+Here is the breakdown of tasks and AI prompts to build this integration.
+
+### Phase 1: Parsing Mermaid (The Input)
+
+*Goal: Turn a raw Mermaid string (e.g., `graph TD; A-->B;`) into a structured JSON object.*
+*Note: Mermaid's official parser is browser-heavy. For a Node.js tool, you often need a lightweight AST parser.*
+
+**Task 1: Select and Implement a Parser**
+
+* **Context:** We need to extract nodes, edges, and subgraph groupings from the text.
+* **AI Prompt:**
+> "I need to parse Mermaid Flowchart syntax in a Node.js environment without using a headless browser.
+> 1. Evaluate libraries like `mermaid-parser`, `langium-mermaid`, or creating a custom parser using `chevrotain`.
+> 2. Write a function `parseMermaid(text: string)` that returns a generic graph object:
+> `{ nodes: [{id, text, type}], edges: [{from, to, text, type}] }`.
+> 3. Start with support for basic Flowcharts (`graph TD` or `flowchart LR`)."
+>
+>
+
+
+
+### Phase 2: The Layout Engine (The Math)
+
+*Goal: Calculate X/Y coordinates for the shapes. Visio won't do this for you automatically upon opening.*
+*Solution: Use `dagre` (Directed Graph Layout), the same library Mermaid uses internally.*
+
+**Task 2: Integrate Dagre for Coordinate Calculation**
+
+* **Context:** We need to map the parsed nodes to a coordinate system.
+* **AI Prompt:**
+> "I need to calculate the layout for a flowchart in Node.js.
+> 1. Install `dagre`.
+> 2. Create a class `GraphLayout`.
+> 3. Implement `calculateLayout(nodes, edges, direction)`.
+> * Map the parsed nodes to `dagre.setNode(id, { width, height })`. *Note: Assume a default width/height for Visio shapes (e.g., 1x0.75 inches) for now.*
+> * Map edges to `dagre.setEdge(from, to)`.
+> * Run `dagre.layout(g)`.
+>
+>
+> 4. Return the nodes with their calculated `x` and `y` coordinates."
+>
+>
+
+
+
+### Phase 3: Shape Mapping (The Translation)
+
+*Goal: Convert abstract Mermaid types to your `ts-visio` shapes.*
+
+**Task 3: The Mapper Strategy**
+
+* **Context:** Mermaid has distinct syntax for shapes: `[Box]`, `(Circle)`, `{Rhombus}`, `((Circle))`. You need to map these to Visio Masters or Geometry.
+* **AI Prompt:**
+> "I need to map Mermaid node syntax to Visio shapes.
+> 1. Create a `ShapeMapper` class.
+> 2. Implement a switch case based on Mermaid bracket syntax:
+> * `[text]` -> Rectangle (Visio Master 'Process')
+> * `(text)` -> Rounded Rectangle (Visio Master 'Terminator')
+> * `{text}` -> Rhombus (Visio Master 'Decision')
+> * `[(text)]` -> Cylinder (Visio Master 'Database')
+>
+>
+> 3. If I am using `ts-visio`, how do I effectively swap the 'Master' ID based on these types?"
+>
+>
+
+
+
+### Phase 4: Integration (The Builder)
+
+*Goal: Orchestrate the Parse -> Layout -> Draw pipeline.*
+
+**Task 4: The Converter Pipeline**
+
+* **Context:** Putting it all together.
+* **AI Prompt:**
+> "Create a main class `MermaidToVisio`.
+> 1. Implement `convert(mermaidText: string, outputPath: string)`.
+> 2. **Pipeline Steps:**
+> * Call `Parser.parse(text)`.
+> * Call `GraphLayout.calculate(graph)`.
+> * Initialize `VisioDocument` and `Page`.
+> * Loop through nodes: Call `page.addShape()` using the calculated X/Y and mapped Master.
+> * Loop through edges: Call `page.connectShapes()` (using the dynamic connector logic we built previously).
+> * Save the file."
+>
+>
+>
+>
+
+
+
+### Phase 5: Advanced Styling (Optional)
+
+*Goal: Support Mermaid's styling syntax `style A fill:#f9f`.*
+
+**Task 5: Parsing and Applying Styles**
+
+* **Context:** Mermaid styles are usually distinct lines at the end of the graph definition.
+* **AI Prompt:**
+> "Extend the Mermaid parser to extract `style` definitions (e.g., `style id fill:#f9f,stroke:#333`).
+> 1. Map these styles to `ts-visio` style objects.
+> 2. When creating the shape in the integration loop, apply `.fillColor()` and `.strokeColor()` if a style exists for that Node ID."
+>
+>
+
+
+
+### Recommended Task Order
+
+1. **Phase 1 & 2 (Parser + Layout):** Build a script that just logs JSON with X/Y coordinates. Don't touch Visio yet.
+2. **Phase 4 (Integration):** Feed that JSON into `ts-visio` using standard rectangles.
+3. **Phase 3 (Shapes):** Make it look pretty with correct shapes.
+4. **Phase 5 (Styles):** Add color.
