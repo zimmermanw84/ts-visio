@@ -1,117 +1,173 @@
-
-import { VisioDocument } from '../src/index'; // Assuming index exports everything needed, or use relative paths if not built
-// Since we are running with tsx in the repo, valid imports would be from '../src/VisioDocument' etc.
-// But valid 'example' usage should try to import from the package entry point if possible, or simulate it.
-// Let's use relative imports for now to work with tsx without build.
-import { VisioDocument as VisioDoc } from '../src/VisioDocument';
-import * as fs from 'fs';
+/**
+ * swimlane_demo.ts
+ *
+ * Demonstrates: swimlane pool + lane layout, page size (Letter landscape),
+ * document metadata, non-rectangular geometry (ellipse for start/end,
+ * diamond for decision nodes), connector styling with arrow heads.
+ */
+import { VisioDocument } from '../src/index';
+import { ArrowHeads } from '../src/index';
+import * as fs   from 'fs';
 import * as path from 'path';
 
 async function run() {
     console.log('Generating Swimlane Diagram...');
 
-    // 1. Create Document
-    const doc = await VisioDoc.create();
+    const doc  = await VisioDocument.create();
     const page = doc.pages[0];
 
-    // 2. Create the Pool (Process Overview)
-    const pool = await page.addSwimlanePool({
-        text: 'User Registration Process',
-        x: 5.5, y: 6, // Roughly center of an 8.5x11 page
-        width: 10, height: 6,
-        fillColor: '#FFFFFF'
+    // ── Page setup ─────────────────────────────────────────────────────────────
+    page.setNamedSize('Letter', 'landscape');
+
+    doc.setMetadata({
+        title:       'User Registration Process',
+        author:      'ts-visio',
+        description: 'Swimlane BPMN-style flow for user registration across Client, Server, and DB.',
     });
 
-    // 3. Create Lanes (Roles)
+    // ── Pool ───────────────────────────────────────────────────────────────────
+    const pool = await page.addSwimlanePool({
+        text:     'User Registration Process',
+        x: 5.5, y: 4.5,
+        width: 10, height: 7,
+        fillColor: '#FFFFFF',
+    });
+
+    // ── Lanes ──────────────────────────────────────────────────────────────────
     const clientLane = await page.addSwimlaneLane({
-        text: 'Client (Browser)',
-        x: 0, y: 0, // Position relative to Pool handled by auto-layout
-        width: 10, height: 2,
-        fillColor: '#DDEBF7' // Light Blue
+        text:     'Client (Browser)',
+        x: 0, y: 0,
+        width: 10, height: 2.2,
+        fillColor: '#DDEBF7',   // light blue
     });
 
     const serverLane = await page.addSwimlaneLane({
-        text: 'Server (API)',
+        text:     'Server (API)',
         x: 0, y: 0,
-        width: 10, height: 2,
-        fillColor: '#E2F0D9' // Light Green
+        width: 10, height: 2.2,
+        fillColor: '#E2F0D9',   // light green
     });
 
     const dbLane = await page.addSwimlaneLane({
-        text: 'Database',
+        text:     'Database',
         x: 0, y: 0,
-        width: 10, height: 2,
-        fillColor: '#FFF2CC' // Light Orange
+        width: 10, height: 2.2,
+        fillColor: '#FFF2CC',   // light amber
     });
 
-    // 4. Add Lanes to Pool (Order matters!)
     await pool.addListItem(clientLane);
     await pool.addListItem(serverLane);
     await pool.addListItem(dbLane);
 
-    // 5. Add Shapes (Process Steps)
-
-    // -- Client Lane --
+    // ── Process nodes ──────────────────────────────────────────────────────────
+    // Client lane: Start (ellipse), Submit Form (rectangle)
     const startNode = await page.addShape({
-        text: 'Start',
-        x: 1.5, y: 8, // Relative-ish visual placement (Visual coordinates are absolute in Page)
-        width: 0.8, height: 0.8,
-        type: 'Shape', masterId: 'Start/End'
+        text:     'Start',
+        x: 1.2, y: 8,
+        width:   0.8, height: 0.8,
+        geometry: 'ellipse',    // start/end are circles in BPMN
+        fillColor: '#70AD47',
+        fontColor: '#FFFFFF',
+        bold:     true,
+        fontSize: 9,
     });
-    // For now we must update visual position ourselves or use a layout engine.
-    // Let's place them explicitly.
-    // Client Lane Y range: Top third of Pool?
-    // Wait, Visio lists usually stack Top-to-Bottom.
-    // If Pool Center Y=6, Height=6. Top=9, Bottom=3.
-    // Lane 1 (Client): Top at 9, Height 2. Center Y = 8.
-    // Lane 2 (Server): Top at 7, Height 2. Center Y = 6.
-    // Lane 3 (DB): Top at 5, Height 2. Center Y = 4.
+    await startNode.setStyle({ lineColor: '#507C34', lineWeight: 1.5 });
 
-    // Actually, `addListItem` triggers `resizeContainerToFit`, which might shift things.
-    // But let's assume standard stacking for now.
-
-    // Update: We should place shapes *roughly* where they belong.
-    // We can use `shape.updatePosition` if needed, or just create them at correct Y.
     const formNode = await page.addShape({
-        text: 'Submit Form',
+        text:     'Submit\nRegistration Form',
         x: 3.5, y: 8,
-        width: 1.5, height: 0.75,
-        masterId: 'Process'
+        width:   1.8, height: 1,
+        fillColor: '#DDEBF7',
+        fontSize: 9,
+        horzAlign: 'center',
     });
+    await formNode.setStyle({ lineColor: '#2E75B6', lineWeight: 1 });
 
     await clientLane.addMember(startNode);
-    // await page.modifier.updateShapePosition(page.id, startNode.id, 1.5, 8); // Accessing private modifier - Fixed by initial placement
-
     await clientLane.addMember(formNode);
 
-    // -- Server Lane --
+    // Server lane: Validate Data (diamond = decision)
     const validateNode = await page.addShape({
-        text: 'Validate Data',
-        x: 5.5, y: 6,
-        width: 1.5, height: 0.75,
-        masterId: 'Decision'
+        text:     'Validate\nData?',
+        x: 5.5, y: 5.8,
+        width:   1.6, height: 1.2,
+        geometry: 'diamond',    // decision node
+        fillColor: '#E2F0D9',
+        fontSize: 9,
+        horzAlign: 'center',
     });
+    await validateNode.setStyle({ lineColor: '#375623', lineWeight: 1.5 });
+
+    const rejectNode = await page.addShape({
+        text:     'Return\nError',
+        x: 7.8, y: 8,
+        width:   1.5, height: 0.9,
+        fillColor: '#FFCCCC',
+        fontSize: 9,
+    });
+    await rejectNode.setStyle({ lineColor: '#CC0000', lineWeight: 1 });
 
     await serverLane.addMember(validateNode);
+    await clientLane.addMember(rejectNode);
 
-    // -- Database Lane --
+    // Database lane: Save User, Send Welcome Email
     const saveNode = await page.addShape({
-        text: 'Save User',
-        x: 7.5, y: 4,
-        width: 1.5, height: 0.75,
-        masterId: 'Database'
+        text:     'Save User\nRecord',
+        x: 5.5, y: 3.5,
+        width:   1.8, height: 1,
+        fillColor: '#FFF2CC',
+        fontSize: 9,
     });
+    await saveNode.setStyle({ lineColor: '#7F6000', lineWeight: 1 });
+
+    const emailNode = await page.addShape({
+        text:     'Send Welcome\nEmail',
+        x: 8, y: 3.5,
+        width:   1.8, height: 1,
+        fillColor: '#FFF2CC',
+        fontSize: 9,
+    });
+    await emailNode.setStyle({ lineColor: '#7F6000', lineWeight: 1 });
+
+    // End node (ellipse)
+    const endNode = await page.addShape({
+        text:     'End',
+        x: 9.5, y: 8,
+        width:   0.8, height: 0.8,
+        geometry: 'ellipse',
+        fillColor: '#FF0000',
+        fontColor: '#FFFFFF',
+        bold:     true,
+        fontSize: 9,
+    });
+    await endNode.setStyle({ lineColor: '#CC0000', lineWeight: 2 });
 
     await dbLane.addMember(saveNode);
+    await dbLane.addMember(emailNode);
+    await clientLane.addMember(endNode);
 
-    // 6. Connect the Flows
-    await page.connectShapes(startNode, formNode);
-    await page.connectShapes(formNode, validateNode);
-    await page.connectShapes(validateNode, saveNode, 'Yes'); // Label on connector? Not yet supported in fluent API maybe
+    // ── Connect the flow ───────────────────────────────────────────────────────
+    const flowStyle = { lineColor: '#333333', lineWeight: 1, routing: 'orthogonal' as const };
 
-    // 7. Save
-    const outFile = 'swimlane_example.vsdx';
-    const buffer = await doc.save();
+    await page.connectShapes(startNode,    formNode,     ArrowHeads.None, ArrowHeads.Standard, flowStyle);
+    await page.connectShapes(formNode,     validateNode, ArrowHeads.None, ArrowHeads.Standard, flowStyle);
+
+    // Valid path: validate → save
+    await page.connectShapes(validateNode, saveNode,     ArrowHeads.None, ArrowHeads.Standard,
+        { ...flowStyle, lineColor: '#375623' });
+
+    // Invalid path: validate → reject (dashed red)
+    await page.connectShapes(validateNode, rejectNode,   ArrowHeads.None, ArrowHeads.Standard,
+        { lineColor: '#CC0000', lineWeight: 1, linePattern: 2, routing: 'orthogonal' });
+
+    await page.connectShapes(saveNode,     emailNode,    ArrowHeads.None, ArrowHeads.Standard, flowStyle);
+    await page.connectShapes(emailNode,    endNode,      ArrowHeads.None, ArrowHeads.Standard, flowStyle);
+    await page.connectShapes(rejectNode,   endNode,      ArrowHeads.None, ArrowHeads.Standard,
+        { lineColor: '#CC0000', lineWeight: 1, linePattern: 2, routing: 'straight' });
+
+    // ── Save ───────────────────────────────────────────────────────────────────
+    const outFile = path.resolve(__dirname, 'swimlane_demo.vsdx');
+    const buffer  = await doc.save();
     fs.writeFileSync(outFile, buffer);
     console.log(`Saved ${outFile}`);
 }
