@@ -253,6 +253,77 @@ export class PageManager {
     }
 
     /**
+     * Delete a page and clean up all associated XML entries.
+     * Removes the page file, its .rels file, the entry in pages.xml,
+     * the relationship in pages.xml.rels, the Content Types override,
+     * and any BackPage references from other pages that pointed to it.
+     */
+    async deletePage(pageId: string): Promise<void> {
+        this.load();
+
+        const page = this.pages.find(p => p.id.toString() === pageId);
+        if (!page) throw new Error(`Page ${pageId} not found`);
+
+        const pageFileName = page.xmlPath.split('/').pop()!; // e.g. "page2.xml"
+
+        // 1. Remove the page XML file
+        try { this.pkg.removeFile(page.xmlPath); } catch { /* already gone */ }
+
+        // 2. Remove the page's .rels file if it exists
+        const pageRelsPath = `visio/pages/_rels/${pageFileName}.rels`;
+        try { this.pkg.removeFile(pageRelsPath); } catch { /* no rels file is fine */ }
+
+        // 3. Remove entry from pages.xml (and strip BackPage refs pointing to this page)
+        const pagesPath = 'visio/pages/pages.xml';
+        const pagesContent = this.pkg.getFileText(pagesPath);
+        const parsedPages = this.parser.parse(pagesContent);
+
+        let pageNodes = parsedPages.Pages.Page;
+        if (!Array.isArray(pageNodes)) pageNodes = pageNodes ? [pageNodes] : [];
+
+        // Remove deleted page and clean up BackPage refs on remaining pages
+        parsedPages.Pages.Page = pageNodes
+            .filter((n: any) => n['@_ID'] !== pageId)
+            .map((n: any) => {
+                if (n['@_BackPage'] === pageId) {
+                    const copy = { ...n };
+                    delete copy['@_BackPage'];
+                    return copy;
+                }
+                return n;
+            });
+
+        this.pkg.updateFile(pagesPath, buildXml(this.builder, parsedPages));
+
+        // 4. Remove relationship from pages.xml.rels
+        const pagesRelsPath = 'visio/pages/_rels/pages.xml.rels';
+        const pagesRelsContent = this.pkg.getFileText(pagesRelsPath);
+        const parsedPagesRels = this.parser.parse(pagesRelsContent);
+
+        let rels = parsedPagesRels.Relationships?.Relationship;
+        if (!Array.isArray(rels)) rels = rels ? [rels] : [];
+        parsedPagesRels.Relationships.Relationship = rels.filter(
+            (r: any) => r['@_Id'] !== page.relId
+        );
+        this.pkg.updateFile(pagesRelsPath, buildXml(this.builder, parsedPagesRels));
+
+        // 5. Remove Content Types override for the page file
+        const ctPath = '[Content_Types].xml';
+        const ctContent = this.pkg.getFileText(ctPath);
+        const parsedCt = this.parser.parse(ctContent);
+
+        let overrides = parsedCt.Types.Override;
+        if (!Array.isArray(overrides)) overrides = overrides ? [overrides] : [];
+        parsedCt.Types.Override = overrides.filter(
+            (o: any) => !o['@_PartName']?.endsWith(pageFileName)
+        );
+        this.pkg.updateFile(ctPath, buildXml(this.builder, parsedCt));
+
+        // 6. Reload the page list to reflect the deletion
+        this.load(true);
+    }
+
+    /**
      * Set a background page for a foreground page
      */
     async setBackgroundPage(foregroundPageId: string, backgroundPageId: string): Promise<void> {

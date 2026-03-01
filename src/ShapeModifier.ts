@@ -324,6 +324,63 @@ export class ShapeModifier {
         return newId;
     }
 
+    async deleteShape(pageId: string, shapeId: string): Promise<void> {
+        const parsed = this.getParsed(pageId);
+
+        // 1. Remove shape from the shape tree (handles top-level and nested groups)
+        const removed = this.removeShapeFromTree(parsed.PageContents.Shapes, shapeId);
+        if (!removed) {
+            throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        }
+
+        // 2. Remove any Connect elements referencing this shape
+        if (parsed.PageContents.Connects?.Connect) {
+            let connects = parsed.PageContents.Connects.Connect;
+            if (!Array.isArray(connects)) connects = [connects];
+            const filtered = connects.filter(
+                (c: any) => c['@_FromSheet'] !== shapeId && c['@_ToSheet'] !== shapeId
+            );
+            parsed.PageContents.Connects.Connect = filtered;
+        }
+
+        // 3. Remove any Relationship elements referencing this shape (container membership, etc.)
+        if (parsed.PageContents.Relationships?.Relationship) {
+            let rels = parsed.PageContents.Relationships.Relationship;
+            if (!Array.isArray(rels)) rels = [rels];
+            parsed.PageContents.Relationships.Relationship = rels.filter(
+                (r: any) => r['@_ShapeID'] !== shapeId && r['@_RelatedShapeID'] !== shapeId
+            );
+        }
+
+        // 4. Invalidate the shape cache so the map is rebuilt on next access
+        this.shapeCache.delete(parsed);
+
+        this.saveParsed(pageId, parsed);
+    }
+
+    private removeShapeFromTree(shapesContainer: any, shapeId: string): boolean {
+        if (!shapesContainer?.Shape) return false;
+
+        let shapes = shapesContainer.Shape;
+        if (!Array.isArray(shapes)) shapes = [shapes];
+
+        const idx = shapes.findIndex((s: any) => s['@_ID'] === shapeId);
+        if (idx !== -1) {
+            shapes.splice(idx, 1);
+            shapesContainer.Shape = shapes;
+            return true;
+        }
+
+        // Recurse into nested group children
+        for (const shape of shapes) {
+            if (shape.Shapes && this.removeShapeFromTree(shape.Shapes, shapeId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     async updateShapeText(pageId: string, shapeId: string, newText: string): Promise<void> {
         const parsed = this.getParsed(pageId);
         const shape = this.getShapeMap(parsed).get(shapeId);

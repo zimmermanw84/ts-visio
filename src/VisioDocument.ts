@@ -95,6 +95,16 @@ export class VisioDocument {
         this._pageCache = null;
     }
 
+    /**
+     * Delete a page from the document.
+     * Removes the page XML, its relationships, the Content Types entry,
+     * and any BackPage references from other pages.
+     */
+    async deletePage(page: Page): Promise<void> {
+        await this.pageManager.deletePage(page.id);
+        this._pageCache = null;
+    }
+
     async save(filename?: string): Promise<Buffer> {
         return this.pkg.save(filename);
     }

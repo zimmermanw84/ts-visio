@@ -61,6 +61,10 @@ export class Shape {
         return this.internalShape.Cells['PinY'] ? Number(this.internalShape.Cells['PinY'].V) : 0;
     }
 
+    async delete(): Promise<void> {
+        await this.modifier.deleteShape(this.pageId, this.id);
+    }
+
     async connectTo(targetShape: Shape, beginArrow?: string, endArrow?: string): Promise<this> {
         await this.modifier.addConnector(this.pageId, this.id, targetShape.id, beginArrow, endArrow);
         return this;

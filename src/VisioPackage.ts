@@ -73,6 +73,14 @@ export class VisioPackage {
         return buffer;
     }
 
+    removeFile(path: string): void {
+        if (!this.zip) {
+            throw new Error("Package not loaded");
+        }
+        this._files.delete(path);
+        this.zip.remove(path);
+    }
+
     getFileText(path: string): string {
         const content = this._files.get(path);
         if (content === undefined) {

@@ -23,10 +23,8 @@
 
 ### 1. Deletion / Mutation
 
-The library is write-once — there is no way to remove things after adding them:
-
-- `shape.delete()` / `page.deleteShape(id)`
-- `doc.deletePage(page)` / `page.delete()`
+- ~~`shape.delete()`~~ — ✅ Implemented (removes shape, orphaned Connects, and container Relationships)
+- ~~`doc.deletePage(page)`~~ — ✅ Implemented (removes page file, rels, pages.xml entry, Content Types override, BackPage refs)
 - `layer.delete()`
 - `connector.delete()`
 
@@ -141,7 +139,7 @@ These classes exist in the codebase but are not exported from `src/index.ts`:
 | Priority | Gap |
 |----------|-----|
 | ✅ Done | Font size & family, text alignment |
-| 🔴 High | `deleteShape`, `deletePage` |
+| ✅ Done | `deleteShape`, `deletePage` |
 | 🔴 High | `page.getShapeById`, `doc.getPage(name)` |
 | 🔴 High | Read properties/hyperlinks back from existing shapes |
 | 🟡 Medium | Rotation and resize via `Shape` API |
