@@ -11,6 +11,13 @@ export interface ShapeData {
     type?: VisioPropType;
 }
 
+export interface ShapeHyperlink {
+    address?: string;
+    subAddress?: string;
+    description?: string;
+    newWindow: boolean;
+}
+
 /** Round a coordinate to 10 decimal places to prevent float-to-string-to-float precision drift. */
 function fmtCoord(n: number): string {
     return parseFloat(n.toFixed(10)).toString();
@@ -130,6 +137,30 @@ export class Shape {
         this.addPropertyDefinition(key, type, { label: data.label, invisible: data.hidden });
         this.setPropertyValue(key, data.value);
         return this;
+    }
+
+    /**
+     * Read back all custom property (shape data) entries written to this shape.
+     * Returns a map of property key → ShapeData. Values are coerced to the
+     * declared Visio type (Number, Boolean, Date, or String).
+     */
+    getProperties(): Record<string, ShapeData> {
+        return this.modifier.getShapeProperties(this.pageId, this.id);
+    }
+
+    /**
+     * Read back all hyperlinks attached to this shape.
+     */
+    getHyperlinks(): ShapeHyperlink[] {
+        return this.modifier.getShapeHyperlinks(this.pageId, this.id);
+    }
+
+    /**
+     * Read back the layer indices this shape is assigned to.
+     * Returns an empty array if the shape has no layer assignment.
+     */
+    getLayerIndices(): number[] {
+        return this.modifier.getShapeLayerIndices(this.pageId, this.id);
     }
 
     async addMember(memberShape: Shape): Promise<this> {
