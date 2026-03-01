@@ -46,10 +46,32 @@ export class Page {
             const internalShapes = reader.readShapes(this.pagePath);
             return internalShapes.map(s => new Shape(s, this.id, this.pkg, this.modifier));
         } catch (e) {
-            // If page file doesn't exist or is empty, return empty array
             console.warn(`Could not read shapes for page ${this.id}:`, e);
             return [];
         }
+    }
+
+    /**
+     * Find a shape by its ID anywhere on the page, including shapes nested inside groups.
+     * Returns undefined if no shape with that ID exists.
+     */
+    getShapeById(id: string): Shape | undefined {
+        const reader = new ShapeReader(this.pkg);
+        const internal = reader.readShapeById(this.pagePath, id);
+        if (!internal) return undefined;
+        return new Shape(internal, this.id, this.pkg, this.modifier);
+    }
+
+    /**
+     * Return all shapes on the page (including nested group children) that satisfy
+     * the predicate. Equivalent to getAllShapes().filter(predicate).
+     */
+    findShapes(predicate: (shape: Shape) => boolean): Shape[] {
+        const reader = new ShapeReader(this.pkg);
+        const all = reader.readAllShapes(this.pagePath);
+        return all
+            .map(s => new Shape(s, this.id, this.pkg, this.modifier))
+            .filter(predicate);
     }
 
     async addShape(props: NewShapeProps, parentId?: string): Promise<Shape> {

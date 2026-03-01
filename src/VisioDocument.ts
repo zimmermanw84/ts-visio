@@ -96,6 +96,13 @@ export class VisioDocument {
     }
 
     /**
+     * Find a page by name. Returns undefined if no page with that name exists.
+     */
+    getPage(name: string): Page | undefined {
+        return this.pages.find(p => p.name === name);
+    }
+
+    /**
      * Delete a page from the document.
      * Removes the page XML, its relationships, the Content Types entry,
      * and any BackPage references from other pages.

@@ -127,8 +127,9 @@ These classes exist in the codebase but are not exported from `src/index.ts`:
 
 ### 11. API Ergonomics
 
-- `page.findShapes(predicate)` — filter shapes by criteria
-- `page.getShapeById(id)` — direct lookup without iterating `getShapes()`
+- ~~`page.findShapes(predicate)`~~ — ✅ Implemented (searches all shapes including nested group children)
+- ~~`page.getShapeById(id)`~~ — ✅ Implemented (recursive search through group tree)
+- ~~`doc.getPage(name)`~~ — ✅ Implemented (exact name match, case-sensitive)
 - `shape.getChildren()` — access sub-shapes of groups/containers
 - `Shape.setStyle` only accepts `ShapeStyle` which does not cover line style; no way to change border color post-creation via the public API
 
@@ -140,7 +141,7 @@ These classes exist in the codebase but are not exported from `src/index.ts`:
 |----------|-----|
 | ✅ Done | Font size & family, text alignment |
 | ✅ Done | `deleteShape`, `deletePage` |
-| 🔴 High | `page.getShapeById`, `doc.getPage(name)` |
+| ✅ Done | `page.getShapeById`, `page.findShapes`, `doc.getPage(name)` |
 | 🔴 High | Read properties/hyperlinks back from existing shapes |
 | 🟡 Medium | Rotation and resize via `Shape` API |
 | 🟡 Medium | Non-rectangular geometry (ellipse, diamond) |
