@@ -24,6 +24,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Lookup API**: Find shapes by ID, predicate, or look up pages by name.
 - **Read-Back API**: Read custom properties, hyperlinks, and layer assignments from existing shapes.
 - **Page Size & Orientation**: Set canvas dimensions with named sizes (`Letter`, `A4`, …) or raw inches; rotate between portrait and landscape.
+- **Document Metadata**: Read and write document properties (title, author, description, keywords, company, dates) via `doc.getMetadata()` / `doc.setMetadata()`.
 
 Feature gaps are being tracked in [FEATURES.md](./FEATURES.md).
 
@@ -487,6 +488,36 @@ page.setNamedSize('A3').setOrientation('landscape');
 ```
 
 Available named sizes in `PageSizes`: `Letter`, `Legal`, `Tabloid`, `A3`, `A4`, `A5`.
+
+---
+
+#### 26. Document Metadata
+Set and read document-level properties that appear in Visio's Document Properties dialog.
+
+```typescript
+// Write metadata (only supplied fields are changed)
+doc.setMetadata({
+    title:          'Network Topology',
+    author:         'Alice',
+    description:    'Data-centre interconnect diagram',
+    keywords:       'network datacenter cloud',
+    lastModifiedBy: 'CI pipeline',
+    company:        'ACME Corp',
+    manager:        'Bob',
+    created:        new Date('2025-01-01T00:00:00Z'),
+    modified:       new Date(),
+});
+
+// Read back all metadata fields
+const meta = doc.getMetadata();
+console.log(meta.title);    // 'Network Topology'
+console.log(meta.author);   // 'Alice'
+console.log(meta.company);  // 'ACME Corp'
+console.log(meta.created);  // Date object
+```
+
+Fields map to OPC parts: `title`, `author`, `description`, `keywords`, `lastModifiedBy`,
+`created`, `modified` → `docProps/core.xml`; `company`, `manager` → `docProps/app.xml`.
 
 ---
 

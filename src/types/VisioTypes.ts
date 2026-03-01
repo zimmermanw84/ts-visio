@@ -71,6 +71,28 @@ export enum VisioPropType {
     Currency = 7
 }
 
+/** Document-level metadata that maps to `docProps/core.xml` and `docProps/app.xml`. */
+export interface DocumentMetadata {
+    /** Document title (`dc:title`). */
+    title?: string;
+    /** Author / creator (`dc:creator`). */
+    author?: string;
+    /** Short description (`dc:description`). */
+    description?: string;
+    /** Space-separated keywords (`cp:keywords`). */
+    keywords?: string;
+    /** Last-modified-by user (`cp:lastModifiedBy`). */
+    lastModifiedBy?: string;
+    /** Company name from `app.xml` `<Company>`. */
+    company?: string;
+    /** Manager name from `app.xml` `<Manager>`. */
+    manager?: string;
+    /** Document creation timestamp (`dcterms:created`). */
+    created?: Date;
+    /** Last-modified timestamp (`dcterms:modified`). */
+    modified?: Date;
+}
+
 export type PageOrientation = 'portrait' | 'landscape';
 
 /** Common paper sizes in inches (width × height in portrait orientation). */
