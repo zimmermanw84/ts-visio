@@ -71,6 +71,30 @@ export enum VisioPropType {
     Currency = 7
 }
 
+/** Connector line-routing algorithm. */
+export type ConnectorRouting = 'straight' | 'orthogonal' | 'curved';
+
+/**
+ * Style options for a connector (dynamic connector shape).
+ * All fields are optional; omitted fields retain their defaults.
+ */
+export interface ConnectorStyle {
+    /** Line stroke color as a CSS hex string (e.g. `'#ff0000'`). */
+    lineColor?: string;
+    /**
+     * Stroke weight in **points** (e.g. `1` for a 1 pt line).
+     * Converted to inches internally (pt / 72).
+     */
+    lineWeight?: number;
+    /**
+     * Line pattern.  0 = no line, 1 = solid (default), 2 = dashed,
+     * 3 = dotted, 4 = dash-dot, etc.  Matches Visio's LinePattern cell.
+     */
+    linePattern?: number;
+    /** How Visio routes the connector between its endpoints. */
+    routing?: ConnectorRouting;
+}
+
 /** Non-rectangular geometry variants supported by ShapeBuilder. */
 export type ShapeGeometry =
     | 'rectangle'

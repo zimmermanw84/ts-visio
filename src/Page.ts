@@ -1,4 +1,4 @@
-import { VisioPage } from './types/VisioTypes';
+import { VisioPage, ConnectorStyle } from './types/VisioTypes';
 import { VisioPackage } from './VisioPackage';
 import { ShapeReader } from './ShapeReader';
 import { ShapeModifier } from './ShapeModifier';
@@ -95,8 +95,8 @@ export class Page {
 
         return new Shape(internalStub, this.id, this.pkg, this.modifier);
     }
-    async connectShapes(fromShape: Shape, toShape: Shape, beginArrow?: string, endArrow?: string): Promise<void> {
-        await this.modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow);
+    async connectShapes(fromShape: Shape, toShape: Shape, beginArrow?: string, endArrow?: string, style?: ConnectorStyle): Promise<void> {
+        await this.modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow, style);
     }
 
     async addImage(data: Buffer, name: string, x: number, y: number, width: number, height: number): Promise<Shape> {
