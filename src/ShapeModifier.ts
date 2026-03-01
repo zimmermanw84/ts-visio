@@ -3,7 +3,7 @@ import { VisioPackage } from './VisioPackage';
 import { RelsManager } from './core/RelsManager';
 import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, vertAlignValue, HorzAlign, VertAlign } from './utils/StyleHelpers';
 import { RELATIONSHIP_TYPES } from './core/VisioConstants';
-import { NewShapeProps, VisioPropType } from './types/VisioTypes';
+import { NewShapeProps, VisioPropType, ConnectorStyle } from './types/VisioTypes';
 import type { ShapeData, ShapeHyperlink } from './Shape';
 import { ForeignShapeBuilder } from './shapes/ForeignShapeBuilder';
 import { ShapeBuilder } from './shapes/ShapeBuilder';
@@ -212,7 +212,7 @@ export class ShapeModifier {
         this.dirtyPages.clear();
     }
 
-    async addConnector(pageId: string, fromShapeId: string, toShapeId: string, beginArrow?: string, endArrow?: string): Promise<string> {
+    async addConnector(pageId: string, fromShapeId: string, toShapeId: string, beginArrow?: string, endArrow?: string, style?: ConnectorStyle): Promise<string> {
         const parsed = this.getParsed(pageId);
 
         // Ensure Shapes collection exists
@@ -235,7 +235,7 @@ export class ShapeModifier {
         };
 
         const layout = ConnectorBuilder.calculateConnectorLayout(fromShapeId, toShapeId, shapeHierarchy);
-        const connectorShape = ConnectorBuilder.createConnectorShapeObject(newId, layout, validateArrow(beginArrow), validateArrow(endArrow));
+        const connectorShape = ConnectorBuilder.createConnectorShapeObject(newId, layout, validateArrow(beginArrow), validateArrow(endArrow), style);
 
         const topLevelShapes = parsed.PageContents.Shapes.Shape;
         topLevelShapes.push(connectorShape);

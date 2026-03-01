@@ -7,4 +7,7 @@ export { VisioDocument } from './VisioDocument';
 export { Page } from './Page';
 export { Shape } from './Shape';
 export type { ShapeData, ShapeHyperlink } from './Shape';
+export { Layer } from './Layer';
+export { SchemaDiagram } from './SchemaDiagram';
+export { VisioValidator } from './core/VisioValidator';
 export * from './types/VisioTypes';

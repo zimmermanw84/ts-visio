@@ -1,4 +1,4 @@
-import { VisioShape } from './types/VisioTypes';
+import { VisioShape, ConnectorStyle } from './types/VisioTypes';
 import { VisioPackage } from './VisioPackage';
 import { ShapeModifier, ShapeStyle } from './ShapeModifier';
 import { VisioPropType } from './types/VisioTypes';
@@ -72,8 +72,8 @@ export class Shape {
         await this.modifier.deleteShape(this.pageId, this.id);
     }
 
-    async connectTo(targetShape: Shape, beginArrow?: string, endArrow?: string): Promise<this> {
-        await this.modifier.addConnector(this.pageId, this.id, targetShape.id, beginArrow, endArrow);
+    async connectTo(targetShape: Shape, beginArrow?: string, endArrow?: string, style?: ConnectorStyle): Promise<this> {
+        await this.modifier.addConnector(this.pageId, this.id, targetShape.id, beginArrow, endArrow, style);
         return this;
     }
 

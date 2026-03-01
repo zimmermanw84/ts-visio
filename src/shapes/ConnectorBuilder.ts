@@ -1,5 +1,12 @@
 
+import { ConnectorStyle } from '../types/VisioTypes';
 import { createLineSection } from '../utils/StyleHelpers';
+
+const ROUTING_VALUES: Record<string, string> = {
+    straight: '2',
+    orthogonal: '1',
+    curved: '16',
+};
 
 export class ConnectorBuilder {
     private static getCellVal(shape: any, name: string): string {
@@ -116,8 +123,13 @@ export class ConnectorBuilder {
         return { beginX, beginY, endX, endY, width, angle };
     }
 
-    static createConnectorShapeObject(id: string, layout: any, beginArrow?: string, endArrow?: string) {
+    static createConnectorShapeObject(id: string, layout: any, beginArrow?: string, endArrow?: string, style?: ConnectorStyle) {
         const { beginX, beginY, endX, endY, width, angle } = layout;
+
+        const routeStyle = style?.routing ? (ROUTING_VALUES[style.routing] ?? '1') : '1';
+        const lineWeightIn = style?.lineWeight != null
+            ? (style.lineWeight / 72).toString()  // convert pt → inches
+            : '0.01';
 
         return {
             '@_ID': id,
@@ -139,7 +151,7 @@ export class ConnectorBuilder {
                 { '@_N': 'ObjType', '@_V': '2' },
                 { '@_N': 'ShapePermeableX', '@_V': '0' },
                 { '@_N': 'ShapePermeableY', '@_V': '0' },
-                { '@_N': 'ShapeRouteStyle', '@_V': '1' },
+                { '@_N': 'ShapeRouteStyle', '@_V': routeStyle },
                 { '@_N': 'ConFixedCode', '@_V': '0' },
                 { '@_N': 'BeginArrow', '@_V': beginArrow || '0' },
                 { '@_N': 'BeginArrowSize', '@_V': '2' },
@@ -148,8 +160,9 @@ export class ConnectorBuilder {
             ],
             Section: [
                 createLineSection({
-                    color: '#000000',
-                    weight: '0.01'
+                    color: style?.lineColor ?? '#000000',
+                    weight: lineWeightIn,
+                    pattern: style?.linePattern != null ? String(style.linePattern) : undefined,
                 }),
                 {
                     '@_N': 'Geometry',

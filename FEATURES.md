@@ -87,10 +87,8 @@
 
 ### 7. Connector Styling
 
-Connectors support arrow types but nothing else:
-
-- Line color, weight, and pattern on connectors
-- Routing style (straight, orthogonal/elbow, curved/arc)
+- ~~**Line color, weight, and pattern**~~ — ✅ Implemented (`ConnectorStyle.lineColor`, `lineWeight` in pt, `linePattern`)
+- ~~**Routing style**~~ — ✅ Implemented (`ConnectorStyle.routing`: `'straight'` / `'orthogonal'` / `'curved'`; maps to Visio `ShapeRouteStyle` 2/1/16)
 - Named connection points — connecting to a specific port on a shape rather than shape-to-shape center
 
 ---
@@ -115,11 +113,9 @@ Connectors support arrow types but nothing else:
 
 ### 10. Missing Public Exports
 
-These classes exist in the codebase but are not exported from `src/index.ts`:
-
-- `SchemaDiagram`
-- `VisioValidator`
-- `Layer`
+- ~~`SchemaDiagram`~~ — ✅ Exported
+- ~~`VisioValidator`~~ — ✅ Exported
+- ~~`Layer`~~ — ✅ Exported
 
 ---
 
@@ -143,9 +139,9 @@ These classes exist in the codebase but are not exported from `src/index.ts`:
 | ✅ Done | Read properties/hyperlinks/layer indices back from existing shapes |
 | ✅ Done | Rotation, flip, and resize via `Shape` API |
 | ✅ Done | Non-rectangular geometry (ellipse, diamond, rounded-rect, triangle, parallelogram) |
-| 🟡 Medium | Connector routing style and line styling |
+| ✅ Done | Connector routing style and line styling |
+| ✅ Done | Missing exports (`Layer`, `SchemaDiagram`, `VisioValidator`) |
 | 🟡 Medium | Page size / orientation API |
-| 🟡 Medium | Missing exports (`Layer`, `SchemaDiagram`, `VisioValidator`) |
 | 🟢 Low | Document metadata |
 | 🟢 Low | Masters / stencils public API |
 | 🟢 Low | Rich text / paragraph formatting |
