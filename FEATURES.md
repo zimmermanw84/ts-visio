@@ -97,7 +97,7 @@
 
 - ~~**Document metadata**~~ — ✅ Implemented (`doc.setMetadata(props)`, `doc.getMetadata()`; writes `docProps/core.xml` and `docProps/app.xml`; supports title, author, description, keywords, lastModifiedBy, company, manager, created, modified)
 - ~~**StyleSheet**~~ — ✅ Implemented (`doc.createStyle(name, props)`, `doc.getStyles()`, `shape.applyStyle(id)`, `addShape({ styleId })`, `StyleSheetManager` in `visio/document.xml`)
-- **Color palette** — document-level color table
+- ~~**Color palette**~~ — ✅ Implemented (`doc.addColor(hex)`, `doc.getColors()`, `doc.getColorIndex(hex)`; normalises shorthand/case; built-ins IX 0 = black, IX 1 = white; user colors from IX 2)
 
 ---
 
