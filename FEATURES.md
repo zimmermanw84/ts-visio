@@ -37,9 +37,9 @@
 - ~~**Font family**~~ — ✅ Implemented (`fontFamily` prop, uses `FONT("name")` formula)
 - ~~**Font size**~~ — ✅ Implemented (`fontSize` in points, stored as inches internally)
 - ~~**Text alignment**~~ — ✅ Implemented (`horzAlign`: left/center/right/justify via Paragraph section; `verticalAlign`: top/middle/bottom as top-level shape cell)
-- **Italic / Underline / Strikethrough** — `createCharacterSection` ignores the other Style bits (2=Italic, 4=Underline, 8=Strikethrough)
-- **Text margins** — no padding/margin control (TxtWidth, TxtHeight, TxtPinX, TxtPinY)
-- **Paragraph spacing** — no line spacing, space-before/after control (Paragraph section)
+- ~~**Italic / Underline / Strikethrough**~~ — ✅ Implemented (`italic`, `underline`, `strikethrough` on `NewShapeProps` and `ShapeStyle`; combined into `Style` bitmask in the Character section)
+- ~~**Text margins**~~ — ✅ Implemented (`textMarginTop`, `textMarginBottom`, `textMarginLeft`, `textMarginRight` in inches; written to the `TextBlock` section)
+- ~~**Paragraph spacing**~~ — ✅ Implemented (`spaceBefore`, `spaceAfter` in points; `lineSpacing` as a multiplier; written to the `Paragraph` section)
 
 ---
 
@@ -144,4 +144,4 @@
 | ✅ Done | Page size / orientation API (`PageSizes`, `setSize`, `setNamedSize`, `setOrientation`) |
 | ✅ Done | Document metadata (`setMetadata`, `getMetadata` on `VisioDocument`) |
 | 🟢 Low | Masters / stencils public API |
-| 🟢 Low | Rich text / paragraph formatting |
+| ✅ Done | Rich text formatting (italic, underline, strikethrough, text margins, paragraph spacing) |

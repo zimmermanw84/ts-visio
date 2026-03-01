@@ -1,6 +1,6 @@
 
 import { NewShapeProps } from '../types/VisioTypes';
-import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, vertAlignValue } from '../utils/StyleHelpers';
+import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, createTextBlockSection, vertAlignValue } from '../utils/StyleHelpers';
 import { GeometryBuilder } from './GeometryBuilder';
 
 export class ShapeBuilder {
@@ -42,17 +42,52 @@ export class ShapeBuilder {
             }));
         }
 
-        if (props.fontColor || props.bold || props.fontSize !== undefined || props.fontFamily !== undefined) {
+        const hasCharProps = props.fontColor !== undefined
+            || props.bold !== undefined
+            || props.italic !== undefined
+            || props.underline !== undefined
+            || props.strikethrough !== undefined
+            || props.fontSize !== undefined
+            || props.fontFamily !== undefined;
+
+        if (hasCharProps) {
             shape.Section.push(createCharacterSection({
                 bold: props.bold,
+                italic: props.italic,
+                underline: props.underline,
+                strikethrough: props.strikethrough,
                 color: props.fontColor,
                 fontSize: props.fontSize,
                 fontFamily: props.fontFamily,
             }));
         }
 
-        if (props.horzAlign !== undefined) {
-            shape.Section.push(createParagraphSection(props.horzAlign));
+        const hasParagraphProps = props.horzAlign !== undefined
+            || props.spaceBefore !== undefined
+            || props.spaceAfter !== undefined
+            || props.lineSpacing !== undefined;
+
+        if (hasParagraphProps) {
+            shape.Section.push(createParagraphSection({
+                horzAlign: props.horzAlign,
+                spaceBefore: props.spaceBefore,
+                spaceAfter: props.spaceAfter,
+                lineSpacing: props.lineSpacing,
+            }));
+        }
+
+        const hasTextBlockProps = props.textMarginTop !== undefined
+            || props.textMarginBottom !== undefined
+            || props.textMarginLeft !== undefined
+            || props.textMarginRight !== undefined;
+
+        if (hasTextBlockProps) {
+            shape.Section.push(createTextBlockSection({
+                topMargin:    props.textMarginTop,
+                bottomMargin: props.textMarginBottom,
+                leftMargin:   props.textMarginLeft,
+                rightMargin:  props.textMarginRight,
+            }));
         }
 
         if (props.verticalAlign !== undefined) {

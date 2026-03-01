@@ -66,6 +66,12 @@ export function vertAlignValue(align: VertAlign): string {
 
 export function createCharacterSection(props: {
     bold?: boolean;
+    /** Italic text (Style bit 2). */
+    italic?: boolean;
+    /** Underline text (Style bit 4). */
+    underline?: boolean;
+    /** Strikethrough text (Style bit 8). */
+    strikethrough?: boolean;
     color?: string;
     /** Font size in points (e.g. 12 for 12pt). Stored internally as inches (pt / 72). */
     fontSize?: number;
@@ -73,9 +79,10 @@ export function createCharacterSection(props: {
     fontFamily?: string;
 }): VisioSection {
     let styleVal = 0;
-    if (props.bold) {
-        styleVal += 1; // Bold bit
-    }
+    if (props.bold)          styleVal |= 1;
+    if (props.italic)        styleVal |= 2;
+    if (props.underline)     styleVal |= 4;
+    if (props.strikethrough) styleVal |= 8;
 
     const colorVal = props.color || '#000000';
 
@@ -110,18 +117,76 @@ export function createCharacterSection(props: {
     };
 }
 
-export function createParagraphSection(horzAlign: HorzAlign): VisioSection {
+export interface ParagraphProps {
+    /** Horizontal text alignment within the paragraph. */
+    horzAlign?: HorzAlign;
+    /**
+     * Space before each paragraph in **points**.
+     * Converted to inches internally (pt / 72).
+     */
+    spaceBefore?: number;
+    /**
+     * Space after each paragraph in **points**.
+     * Converted to inches internally (pt / 72).
+     */
+    spaceAfter?: number;
+    /**
+     * Line-height multiplier (1.0 = single, 1.5 = 1.5×, 2.0 = double).
+     * Stored as a negative value in Visio's `SpLine` cell (negative means
+     * proportional; positive means absolute in inches).
+     */
+    lineSpacing?: number;
+}
+
+export function createParagraphSection(props: ParagraphProps): VisioSection {
+    const cells: any[] = [];
+
+    if (props.horzAlign !== undefined) {
+        cells.push({ '@_N': 'HorzAlign', '@_V': HORZ_ALIGN_VALUES[props.horzAlign] });
+    }
+    if (props.spaceBefore !== undefined) {
+        cells.push({ '@_N': 'SpBefore', '@_V': (props.spaceBefore / 72).toString(), '@_U': 'PT' });
+    }
+    if (props.spaceAfter !== undefined) {
+        cells.push({ '@_N': 'SpAfter', '@_V': (props.spaceAfter / 72).toString(), '@_U': 'PT' });
+    }
+    if (props.lineSpacing !== undefined) {
+        // Negative value = proportional multiplier; positive = absolute (inches)
+        cells.push({ '@_N': 'SpLine', '@_V': (-props.lineSpacing).toString() });
+    }
+
     return {
         '@_N': 'Paragraph',
         Row: [
             {
                 '@_T': 'Paragraph',
                 '@_IX': '0',
-                Cell: [
-                    { '@_N': 'HorzAlign', '@_V': HORZ_ALIGN_VALUES[horzAlign] },
-                ]
+                Cell: cells,
             }
         ]
+    };
+}
+
+export interface TextBlockProps {
+    /** Top text margin in inches. */
+    topMargin?: number;
+    /** Bottom text margin in inches. */
+    bottomMargin?: number;
+    /** Left text margin in inches. */
+    leftMargin?: number;
+    /** Right text margin in inches. */
+    rightMargin?: number;
+}
+
+export function createTextBlockSection(props: TextBlockProps): VisioSection {
+    const cells: any[] = [];
+    if (props.topMargin    !== undefined) cells.push({ '@_N': 'TopMargin',    '@_V': props.topMargin.toString(),    '@_U': 'IN' });
+    if (props.bottomMargin !== undefined) cells.push({ '@_N': 'BottomMargin', '@_V': props.bottomMargin.toString(), '@_U': 'IN' });
+    if (props.leftMargin   !== undefined) cells.push({ '@_N': 'LeftMargin',   '@_V': props.leftMargin.toString(),   '@_U': 'IN' });
+    if (props.rightMargin  !== undefined) cells.push({ '@_N': 'RightMargin',  '@_V': props.rightMargin.toString(),  '@_U': 'IN' });
+    return {
+        '@_N': 'TextBlock',
+        Cell: cells,
     };
 }
 
