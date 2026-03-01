@@ -1,7 +1,7 @@
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { VisioPackage } from './VisioPackage';
 import { RelsManager } from './core/RelsManager';
-import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, vertAlignValue, HorzAlign, VertAlign } from './utils/StyleHelpers';
+import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, createTextBlockSection, vertAlignValue, HorzAlign, VertAlign } from './utils/StyleHelpers';
 import { RELATIONSHIP_TYPES } from './core/VisioConstants';
 import { NewShapeProps, VisioPropType, ConnectorStyle } from './types/VisioTypes';
 import type { ShapeData, ShapeHyperlink } from './Shape';
@@ -419,20 +419,57 @@ export class ShapeModifier {
         }
 
         // Update/Add Character (Font/Text Style)
-        if (style.fontColor || style.bold !== undefined || style.fontSize !== undefined || style.fontFamily !== undefined) {
+        const hasCharProps = style.fontColor !== undefined
+            || style.bold !== undefined
+            || style.italic !== undefined
+            || style.underline !== undefined
+            || style.strikethrough !== undefined
+            || style.fontSize !== undefined
+            || style.fontFamily !== undefined;
+
+        if (hasCharProps) {
             shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Character');
             shape.Section.push(createCharacterSection({
                 bold: style.bold,
+                italic: style.italic,
+                underline: style.underline,
+                strikethrough: style.strikethrough,
                 color: style.fontColor,
                 fontSize: style.fontSize,
                 fontFamily: style.fontFamily,
             }));
         }
 
-        // Update/Add Paragraph (Horizontal Alignment)
-        if (style.horzAlign !== undefined) {
+        // Update/Add Paragraph
+        const hasParagraphProps = style.horzAlign !== undefined
+            || style.spaceBefore !== undefined
+            || style.spaceAfter !== undefined
+            || style.lineSpacing !== undefined;
+
+        if (hasParagraphProps) {
             shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Paragraph');
-            shape.Section.push(createParagraphSection(style.horzAlign));
+            shape.Section.push(createParagraphSection({
+                horzAlign: style.horzAlign,
+                spaceBefore: style.spaceBefore,
+                spaceAfter: style.spaceAfter,
+                lineSpacing: style.lineSpacing,
+            }));
+        }
+
+        // Update/Add TextBlock (text margins)
+        const hasTextBlockProps = style.textMarginTop !== undefined
+            || style.textMarginBottom !== undefined
+            || style.textMarginLeft !== undefined
+            || style.textMarginRight !== undefined;
+
+        if (hasTextBlockProps) {
+            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'TextBlock');
+            shape.Section.push(createTextBlockSection({
+                topMargin:    style.textMarginTop,
+                bottomMargin: style.textMarginBottom,
+                leftMargin:   style.textMarginLeft,
+                rightMargin:  style.textMarginRight,
+            }));
         }
 
         // Update/Add VerticalAlign (top-level shape Cell)
@@ -1235,6 +1272,12 @@ export interface ShapeStyle {
     fillColor?: string;
     fontColor?: string;
     bold?: boolean;
+    /** Italic text. */
+    italic?: boolean;
+    /** Underline text. */
+    underline?: boolean;
+    /** Strikethrough text. */
+    strikethrough?: boolean;
     /** Font size in points (e.g. 14 for 14pt). */
     fontSize?: number;
     /** Font family name (e.g. "Arial"). */
@@ -1243,4 +1286,18 @@ export interface ShapeStyle {
     horzAlign?: HorzAlign;
     /** Vertical text alignment. */
     verticalAlign?: VertAlign;
+    /** Space before each paragraph in **points**. */
+    spaceBefore?: number;
+    /** Space after each paragraph in **points**. */
+    spaceAfter?: number;
+    /** Line-height multiplier (1.0 = single, 1.5 = 1.5×, 2.0 = double). */
+    lineSpacing?: number;
+    /** Top text margin in inches. */
+    textMarginTop?: number;
+    /** Bottom text margin in inches. */
+    textMarginBottom?: number;
+    /** Left text margin in inches. */
+    textMarginLeft?: number;
+    /** Right text margin in inches. */
+    textMarginRight?: number;
 }

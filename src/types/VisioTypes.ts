@@ -166,4 +166,24 @@ export interface NewShapeProps {
     masterId?: string;
     imgRelId?: string;
     lineColor?: string;
+    /** Italic text. */
+    italic?: boolean;
+    /** Underline text. */
+    underline?: boolean;
+    /** Strikethrough text. */
+    strikethrough?: boolean;
+    /** Space before each paragraph in **points**. */
+    spaceBefore?: number;
+    /** Space after each paragraph in **points**. */
+    spaceAfter?: number;
+    /** Line-height multiplier (1.0 = single, 1.5 = 1.5×, 2.0 = double). */
+    lineSpacing?: number;
+    /** Top text margin in inches. */
+    textMarginTop?: number;
+    /** Bottom text margin in inches. */
+    textMarginBottom?: number;
+    /** Left text margin in inches. */
+    textMarginLeft?: number;
+    /** Right text margin in inches. */
+    textMarginRight?: number;
 }

@@ -18,7 +18,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Modify Content**: Update text content of shapes.
 - **Create Shapes**: Rectangles, ellipses, diamonds, rounded rectangles, triangles, parallelograms.
 - **Connect Shapes**: Dynamic connectors with arrow styles, line styling, and routing (straight / orthogonal / curved).
-- **Text Styling**: Font size, font family, bold, color, horizontal/vertical alignment.
+- **Text Styling**: Font size, font family, bold, italic, underline, strikethrough, color, alignment, paragraph spacing, and text margins.
 - **Shape Transformations**: Rotate, flip (X/Y), and resize shapes via a fluent API.
 - **Deletion**: Remove shapes and pages cleanly (including orphaned connectors and relationships).
 - **Lookup API**: Find shapes by ID, predicate, or look up pages by name.
@@ -518,6 +518,43 @@ console.log(meta.created);  // Date object
 
 Fields map to OPC parts: `title`, `author`, `description`, `keywords`, `lastModifiedBy`,
 `created`, `modified` → `docProps/core.xml`; `company`, `manager` → `docProps/app.xml`.
+
+---
+
+#### 27. Rich Text Formatting
+Italic, underline, strikethrough, paragraph spacing, and text block margins are available both at shape-creation time and via `shape.setStyle()`.
+
+```typescript
+// At creation time
+const shape = await page.addShape({
+    text: 'Important',
+    x: 2, y: 3, width: 3, height: 1,
+    bold: true,
+    italic: true,
+    underline: true,
+    strikethrough: false,
+    // Paragraph spacing (in points)
+    spaceBefore: 6,
+    spaceAfter: 6,
+    lineSpacing: 1.5,  // 1.5× line height
+    // Text block margins (in inches)
+    textMarginTop:    0.1,
+    textMarginBottom: 0.1,
+    textMarginLeft:   0.1,
+    textMarginRight:  0.1,
+});
+
+// Post-creation via setStyle()
+await shape.setStyle({
+    italic: true,
+    lineSpacing: 2.0,         // double spacing
+    textMarginTop: 0.15,
+    textMarginLeft: 0.05,
+});
+```
+
+`lineSpacing` is a multiplier: `1.0` = single, `1.5` = 1.5×, `2.0` = double.
+`spaceBefore` / `spaceAfter` are in **points**. Text margins are in **inches**.
 
 ---
 
