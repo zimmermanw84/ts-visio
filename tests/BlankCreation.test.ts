@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { VisioPackage } from '../src/VisioPackage';
-import { PageManager } from '../src/PageManager';
+import { PageManager } from '../src/core/PageManager';
 import { ShapeReader } from '../src/ShapeReader';
 
 describe('VisioPackage Creation', () => {
@@ -13,9 +13,9 @@ describe('VisioPackage Creation', () => {
 
         // Verify PageManager can read it
         const pm = new PageManager(pkg);
-        const pages = pm.getPages();
+        const pages = pm.load();
         expect(pages).toHaveLength(1);
-        expect(pages[0].Name).toBe('Page-1');
+        expect(pages[0].name).toBe('Page-1');
 
         // Verify Page is empty
         const reader = new ShapeReader(pkg);

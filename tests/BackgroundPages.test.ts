@@ -54,6 +54,32 @@ describe('Background Pages', () => {
         expect(pageXml).toContain('Grid');
     });
 
+    it('should write NameU attribute on created foreground pages (BUG 12)', async () => {
+        const doc = await VisioDocument.create();
+        await doc.addPage('MyPage');
+
+        const pagesXml = (doc as any).pkg.getFileText('visio/pages/pages.xml');
+        const parsed = parser.parse(pagesXml);
+        const pages = Array.isArray(parsed.Pages.Page) ? parsed.Pages.Page : [parsed.Pages.Page];
+        const node = pages.find((p: any) => p['@_Name'] === 'MyPage');
+
+        expect(node).toBeDefined();
+        expect(node['@_NameU']).toBe('MyPage');
+    });
+
+    it('should write NameU attribute on created background pages (BUG 12)', async () => {
+        const doc = await VisioDocument.create();
+        await doc.addBackgroundPage('MyBackground');
+
+        const pagesXml = (doc as any).pkg.getFileText('visio/pages/pages.xml');
+        const parsed = parser.parse(pagesXml);
+        const pages = Array.isArray(parsed.Pages.Page) ? parsed.Pages.Page : [parsed.Pages.Page];
+        const node = pages.find((p: any) => p['@_Name'] === 'MyBackground');
+
+        expect(node).toBeDefined();
+        expect(node['@_NameU']).toBe('MyBackground');
+    });
+
     it('should throw error when setting non-background page as background', async () => {
         const doc = await VisioDocument.create();
 

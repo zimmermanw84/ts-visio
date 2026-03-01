@@ -23,11 +23,10 @@ describe('Layout', () => {
         const s2 = await page.addShape({ text: 'B', x: 0, y: 0, width: 1, height: 1 });
 
         // Place B right of A with gap 1 (default)
-        // Target x = 2 + 2 + 1 = 5
-        // Target y = 2
+        // s1 right edge = 2 + 2/2 = 3; s2 centre = 3 + 1(gap) + 1/2(half-width) = 4.5
         await s2.placeRightOf(s1);
 
-        expect(s2.x).toBe(5);
+        expect(s2.x).toBe(4.5);
         expect(s2.y).toBe(2);
     });
 
@@ -39,8 +38,8 @@ describe('Layout', () => {
 
         await s2.placeRightOf(s1, { gap: 0.5 });
 
-        // 2 + 2 + 0.5 = 4.5
-        expect(s2.x).toBe(4.5);
+        // s1 right edge = 2 + 1 = 3; s2 centre = 3 + 0.5(gap) + 0.5(half-width) = 4
+        expect(s2.x).toBe(4);
     });
     it('should place a shape below another', async () => {
         const doc = await VisioDocument.create();

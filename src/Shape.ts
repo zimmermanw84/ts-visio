@@ -68,8 +68,10 @@ export class Shape {
     }
 
     async placeRightOf(targetShape: Shape, options: { gap: number } = { gap: 1 }): Promise<this> {
-        const newX = targetShape.x + targetShape.width + options.gap;
-        const newY = targetShape.y; // Keep same Y (per instructions, aligns center-to-center if PinY is center)
+        // PinX is the shape centre, so right edge of target = target.x + target.width/2;
+        // left edge of this = newX - this.width/2. Set left edge = right edge of target + gap.
+        const newX = targetShape.x + (targetShape.width / 2) + options.gap + (this.width / 2);
+        const newY = targetShape.y; // Align centres vertically
 
         const modifier = new ShapeModifier(this.pkg);
         await modifier.updateShapePosition(this.pageId, this.id, newX, newY);

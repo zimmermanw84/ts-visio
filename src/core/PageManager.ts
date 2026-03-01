@@ -10,7 +10,7 @@ export interface PageEntry {
     relId: string;
     xmlPath: string;
     isBackground: boolean;
-    backPageId?: number;  // ID of background page for this page
+    backPageId?: string;  // ID of background page for this page
 }
 
 export class PageManager {
@@ -83,7 +83,7 @@ export class PageManager {
             const bgAttr = node['@_Background'];
             const isBackground = bgAttr === 'true' || bgAttr === '1' || bgAttr === true || bgAttr === 1;
             const backPageAttr = node['@_BackPage'];
-            const backPageId = backPageAttr ? parseInt(backPageAttr.toString()) : undefined;
+            const backPageId = backPageAttr ? backPageAttr.toString() : undefined;
 
             return {
                 id: parseInt(node['@_ID']),
@@ -164,6 +164,7 @@ export class PageManager {
         parsedPages.Pages.Page.push({
             '@_ID': newId.toString(),
             '@_Name': name,
+            '@_NameU': name,
             'Rel': { '@_r:id': rId }
         });
 
@@ -239,6 +240,7 @@ export class PageManager {
         parsedPages.Pages.Page.push({
             '@_ID': newId.toString(),
             '@_Name': name,
+            '@_NameU': name,
             '@_Background': '1',  // Use '1' for boolean true attribute
             'Rel': { '@_r:id': rId }
         });

@@ -41,7 +41,7 @@ export class VisioPackage {
                 const type = isBinary ? 'nodebuffer' : 'string';
 
                 promises.push(
-                    file.async(type as any).then(content => {
+                    file.async(type as 'string' | 'nodebuffer').then(content => {
                         this._files.set(relativePath, content);
                     })
                 );
