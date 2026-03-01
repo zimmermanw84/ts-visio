@@ -163,6 +163,55 @@ export class Shape {
         return this.modifier.getShapeLayerIndices(this.pageId, this.id);
     }
 
+    /** Current rotation angle in degrees (0 if no Angle cell is set). */
+    get angle(): number {
+        const cell = this.internalShape.Cells['Angle'];
+        return cell ? (parseFloat(cell.V) * 180) / Math.PI : 0;
+    }
+
+    /**
+     * Rotate the shape to an absolute angle (degrees, clockwise).
+     * Replaces any existing rotation.
+     */
+    async rotate(degrees: number): Promise<this> {
+        await this.modifier.rotateShape(this.pageId, this.id, degrees);
+        const radians = (degrees * Math.PI) / 180;
+        this.setLocalCoord('Angle', radians);
+        return this;
+    }
+
+    /**
+     * Resize the shape to the given width and height (in inches).
+     * Updates LocPinX/LocPinY to keep the centre-pin at width/2, height/2.
+     */
+    async resize(width: number, height: number): Promise<this> {
+        if (width <= 0 || height <= 0) throw new Error('Shape dimensions must be positive');
+        await this.modifier.resizeShape(this.pageId, this.id, width, height);
+        this.setLocalCoord('Width', width);
+        this.setLocalCoord('Height', height);
+        this.setLocalCoord('LocPinX', width / 2);
+        this.setLocalCoord('LocPinY', height / 2);
+        return this;
+    }
+
+    /**
+     * Flip the shape horizontally. Pass `false` to un-flip.
+     */
+    async flipX(enabled: boolean = true): Promise<this> {
+        this.modifier.setShapeFlip(this.pageId, this.id, 'x', enabled);
+        this.setLocalRawCell('FlipX', enabled ? '1' : '0');
+        return this;
+    }
+
+    /**
+     * Flip the shape vertically. Pass `false` to un-flip.
+     */
+    async flipY(enabled: boolean = true): Promise<this> {
+        this.modifier.setShapeFlip(this.pageId, this.id, 'y', enabled);
+        this.setLocalRawCell('FlipY', enabled ? '1' : '0');
+        return this;
+    }
+
     async addMember(memberShape: Shape): Promise<this> {
         await this.modifier.addRelationship(this.pageId, this.id, memberShape.id, 'Container');
         return this;
@@ -239,5 +288,10 @@ export class Shape {
         const v = fmtCoord(value);
         if (this.internalShape.Cells[name]) this.internalShape.Cells[name].V = v;
         else this.internalShape.Cells[name] = { V: v, N: name };
+    }
+
+    private setLocalRawCell(name: string, value: string): void {
+        if (this.internalShape.Cells[name]) this.internalShape.Cells[name].V = value;
+        else this.internalShape.Cells[name] = { V: value, N: name };
     }
 }

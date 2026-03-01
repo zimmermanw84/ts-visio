@@ -45,9 +45,9 @@
 
 ### 3. Shape Transformations
 
-- **Rotation** — no `shape.rotate(degrees)` method (`Angle` cell)
-- **Flip** — no `shape.flipX()` / `shape.flipY()` methods (`FlipX`/`FlipY` cells)
-- **Resize** — `ShapeModifier.updateShapeDimensions` exists internally but `Shape` has no public `resize(w, h)` method
+- ~~**Rotation**~~ — ✅ Implemented (`shape.rotate(degrees)` / `shape.angle` getter; stored as radians in `Angle` cell)
+- ~~**Flip**~~ — ✅ Implemented (`shape.flipX(enabled?)` / `shape.flipY(enabled?)` via `FlipX`/`FlipY` cells)
+- ~~**Resize**~~ — ✅ Implemented (`shape.resize(width, height)`; updates Width, Height, LocPinX, LocPinY, and Geometry cache)
 
 ---
 
@@ -143,7 +143,7 @@ These classes exist in the codebase but are not exported from `src/index.ts`:
 | ✅ Done | `deleteShape`, `deletePage` |
 | ✅ Done | `page.getShapeById`, `page.findShapes`, `doc.getPage(name)` |
 | ✅ Done | Read properties/hyperlinks/layer indices back from existing shapes |
-| 🟡 Medium | Rotation and resize via `Shape` API |
+| ✅ Done | Rotation, flip, and resize via `Shape` API |
 | 🟡 Medium | Non-rectangular geometry (ellipse, diamond) |
 | 🟡 Medium | Connector routing style and line styling |
 | 🟡 Medium | Page size / orientation API |
