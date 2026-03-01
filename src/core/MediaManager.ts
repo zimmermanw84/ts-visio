@@ -1,6 +1,7 @@
 import { VisioPackage } from '../VisioPackage';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { MIME_TYPES } from './MediaConstants';
+import { createXmlParser, createXmlBuilder, buildXml } from '../utils/XmlHelper';
 
 export class MediaManager {
     private parser: XMLParser;
@@ -10,15 +11,8 @@ export class MediaManager {
     private indexed = false;
 
     constructor(private pkg: VisioPackage) {
-        this.parser = new XMLParser({
-            ignoreAttributes: false,
-            attributeNamePrefix: "@_"
-        });
-        this.builder = new XMLBuilder({
-            ignoreAttributes: false,
-            attributeNamePrefix: "@_",
-            format: true
-        });
+        this.parser = createXmlParser();
+        this.builder = createXmlBuilder();
     }
 
     private ensureIndex() {
@@ -97,7 +91,7 @@ export class MediaManager {
             });
             // Array reference is already mutating object
 
-            const newXml = this.builder.build(parsed);
+            const newXml = buildXml(this.builder, parsed);
             this.pkg.updateFile(ctPath, newXml);
         }
     }

@@ -13,6 +13,8 @@ export class Page {
     private media: MediaManager;
     private rels: RelsManager;
     private modifier: ShapeModifier;
+    /** Resolved OPC part path for this page's XML file. */
+    private pagePath: string;
 
     constructor(
         private internalPage: VisioPage,
@@ -21,9 +23,13 @@ export class Page {
         rels?: RelsManager,
         modifier?: ShapeModifier
     ) {
+        // Prefer the relationship-resolved path over the ID-derived fallback so
+        // that loaded files with non-sequential page filenames work correctly.
+        this.pagePath = internalPage.xmlPath ?? `visio/pages/page${internalPage.ID}.xml`;
         this.media = media || new MediaManager(pkg);
         this.rels = rels || new RelsManager(pkg);
         this.modifier = modifier || new ShapeModifier(pkg);
+        this.modifier.registerPage(internalPage.ID, this.pagePath);
     }
 
     get id(): string {
@@ -36,11 +42,8 @@ export class Page {
 
     getShapes(): Shape[] {
         const reader = new ShapeReader(this.pkg);
-        // Assuming standard path mapping for now
-        const pagePath = `visio/pages/page${this.id}.xml`;
-
         try {
-            const internalShapes = reader.readShapes(pagePath);
+            const internalShapes = reader.readShapes(this.pagePath);
             return internalShapes.map(s => new Shape(s, this.id, this.pkg));
         } catch (e) {
             // If page file doesn't exist or is empty, return empty array
@@ -78,8 +81,8 @@ export class Page {
         // 1. Upload Media
         const mediaPath = this.media.addMedia(name, data);
 
-        // 2. Link Page to Media
-        const rId = await this.rels.addPageImageRel(this.id, mediaPath);
+        // 2. Link Page to Media (use resolved path so loaded files work correctly)
+        const rId = await this.rels.addImageRelationship(this.pagePath, mediaPath);
 
         // 3. Create Shape
         const newId = await this.modifier.addShape(this.id, {

@@ -39,6 +39,7 @@ export class VisioDocument {
         const pageStub = {
             ID: newId,
             Name: name,
+            xmlPath: `visio/pages/page${newId}.xml`,
             Shapes: [],
             Connects: []
         };
@@ -49,10 +50,12 @@ export class VisioDocument {
         if (!this._pageCache) {
             const internalPages = this.pageManager.load();
             this._pageCache = internalPages.map(p => {
-                // Adapter for VisioPage interface
                 const pageStub = {
                     ID: p.id.toString(),
                     Name: p.name,
+                    // Thread the relationship-resolved path so that loaded files
+                    // with non-sequential page filenames are handled correctly.
+                    xmlPath: p.xmlPath,
                     Shapes: [],
                     Connects: [],
                     isBackground: p.isBackground,
@@ -75,6 +78,7 @@ export class VisioDocument {
         const pageStub = {
             ID: newId,
             Name: name,
+            xmlPath: `visio/pages/page${newId}.xml`,
             Shapes: [],
             Connects: [],
             isBackground: true

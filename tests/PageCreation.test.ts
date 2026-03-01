@@ -47,6 +47,7 @@ describe('PageManager Creation', () => {
         // 2. Check Content Types update
         const ctCall = calls.find(c => c[0] === '[Content_Types].xml');
         expect(ctCall).toBeDefined();
+        expect(ctCall![1]).toMatch(/^<\?xml version="1\.0"/);
         expect(ctCall![1]).toContain('PartName="/visio/pages/page1.xml"');
 
         // 3. Check Rels update

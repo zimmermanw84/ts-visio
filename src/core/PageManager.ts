@@ -2,6 +2,7 @@ import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { XML_NAMESPACES, RELATIONSHIP_TYPES, CONTENT_TYPES } from './VisioConstants';
 import { VisioPackage } from '../VisioPackage';
 import { RelsManager } from './RelsManager';
+import { createXmlParser, createXmlBuilder, buildXml } from '../utils/XmlHelper';
 
 export interface PageEntry {
     id: number;
@@ -20,15 +21,8 @@ export class PageManager {
     private loaded: boolean = false;
 
     constructor(private pkg: VisioPackage) {
-        this.parser = new XMLParser({
-            ignoreAttributes: false,
-            attributeNamePrefix: "@_"
-        });
-        this.builder = new XMLBuilder({
-            ignoreAttributes: false,
-            attributeNamePrefix: "@_",
-            format: true
-        });
+        this.parser = createXmlParser();
+        this.builder = createXmlBuilder();
         this.relsManager = new RelsManager(pkg);
     }
 
@@ -149,7 +143,7 @@ export class PageManager {
             '@_PartName': `/${relativePath}`,
             '@_ContentType': CONTENT_TYPES.VISIO_PAGE
         });
-        this.pkg.updateFile(ctPath, this.builder.build(parsedCt));
+        this.pkg.updateFile(ctPath, buildXml(this.builder, parsedCt));
 
         // 4. Update Relationships (pages.xml -> new page file)
         // Source is "visio/pages/pages.xml", Target is "page{ID}.xml" (relative to source dir)
@@ -173,7 +167,7 @@ export class PageManager {
             'Rel': { '@_r:id': rId }
         });
 
-        this.pkg.updateFile(pagesPath, this.builder.build(parsedPages));
+        this.pkg.updateFile(pagesPath, buildXml(this.builder, parsedPages));
 
         // Reload to include new page
         this.load(true);
@@ -225,7 +219,7 @@ export class PageManager {
             '@_PartName': `/${relativePath}`,
             '@_ContentType': CONTENT_TYPES.VISIO_PAGE
         });
-        this.pkg.updateFile(ctPath, this.builder.build(parsedCt));
+        this.pkg.updateFile(ctPath, buildXml(this.builder, parsedCt));
 
         // 4. Update Relationships
         const rId = await this.relsManager.ensureRelationship(
@@ -249,7 +243,7 @@ export class PageManager {
             'Rel': { '@_r:id': rId }
         });
 
-        this.pkg.updateFile(pagesPath, this.builder.build(parsedPages));
+        this.pkg.updateFile(pagesPath, buildXml(this.builder, parsedPages));
         this.load(true);
 
         return newId.toString();
@@ -282,7 +276,7 @@ export class PageManager {
             fgNode['@_BackPage'] = backgroundPageId.toString();
         }
 
-        this.pkg.updateFile(pagesPath, this.builder.build(parsedPages));
+        this.pkg.updateFile(pagesPath, buildXml(this.builder, parsedPages));
         this.load(true);
     }
 }

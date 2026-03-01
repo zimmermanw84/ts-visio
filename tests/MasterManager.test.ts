@@ -52,6 +52,16 @@ describe('MasterManager', () => {
         }));
     });
 
+    it('should return empty array for empty <Masters/> element (BUG 18)', () => {
+        // parsed.Masters.Master is undefined when the element has no children;
+        // previously this was wrapped as [undefined] causing a runtime crash.
+        const mockXml = `<Masters/>`;
+        vi.mocked(mockPkg.getFileText).mockReturnValue(mockXml);
+
+        expect(() => manager.load()).not.toThrow();
+        expect(manager.load()).toEqual([]);
+    });
+
     it('should handle single master entry (not array)', () => {
         const mockXml = `
             <Masters>

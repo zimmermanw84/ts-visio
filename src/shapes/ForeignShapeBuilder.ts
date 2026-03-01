@@ -8,7 +8,10 @@ export class ForeignShapeBuilder {
             '@_NameU': `Sheet.${id}`,
             '@_Name': `Sheet.${id}`,
             '@_Type': 'Foreign',
-            ForeignData: { '@_r:id': rId },
+            ForeignData: {
+                '@_ForeignType': 'Bitmap',
+                Rel: { '@_r:id': rId }
+            },
             Cell: [
                 { '@_N': 'PinX', '@_V': props.x.toString() },
                 { '@_N': 'PinY', '@_V': props.y.toString() },

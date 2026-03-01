@@ -74,4 +74,60 @@ describe('ShapeModifier AutoSave', () => {
         expect(content).toContain('Shape 3');
         expect(content).toContain('Modified Original');
     });
+
+    // --- BUG 4 regression: addContainer / addList must use the shared page cache ---
+
+    it('addShape then addContainer both survive flush (autoSave: false)', async () => {
+        modifier.autoSave = false;
+
+        await modifier.addShape('1', { text: 'MyShape', x: 1, y: 1, width: 1, height: 1 });
+        await modifier.addContainer('1', { text: 'MyContainer', x: 3, y: 3, width: 2, height: 2 });
+
+        // Neither should be on disk yet
+        const before = pkg.getFileText('visio/pages/page1.xml');
+        expect(before).not.toContain('MyShape');
+        expect(before).not.toContain('MyContainer');
+
+        modifier.flush();
+
+        const after = pkg.getFileText('visio/pages/page1.xml');
+        expect(after).toContain('MyShape');
+        expect(after).toContain('MyContainer');
+    });
+
+    it('addShape then addList both survive flush (autoSave: false)', async () => {
+        modifier.autoSave = false;
+
+        await modifier.addShape('1', { text: 'MyShape', x: 1, y: 1, width: 1, height: 1 });
+        await modifier.addList('1', { text: 'MyList', x: 4, y: 4, width: 2, height: 2 });
+
+        modifier.flush();
+
+        const content = pkg.getFileText('visio/pages/page1.xml');
+        expect(content).toContain('MyShape');
+        expect(content).toContain('MyList');
+    });
+
+    it('addContainer then addShape both survive flush (autoSave: false)', async () => {
+        modifier.autoSave = false;
+
+        await modifier.addContainer('1', { text: 'MyContainer', x: 3, y: 3, width: 2, height: 2 });
+        await modifier.addShape('1', { text: 'MyShape', x: 1, y: 1, width: 1, height: 1 });
+
+        modifier.flush();
+
+        const content = pkg.getFileText('visio/pages/page1.xml');
+        expect(content).toContain('MyContainer');
+        expect(content).toContain('MyShape');
+    });
+
+    it('addShape then addContainer both survive (autoSave: true)', async () => {
+        // autoSave: true is the default — verify the fix holds for the common case too
+        await modifier.addShape('1', { text: 'MyShape', x: 1, y: 1, width: 1, height: 1 });
+        await modifier.addContainer('1', { text: 'MyContainer', x: 3, y: 3, width: 2, height: 2 });
+
+        const content = pkg.getFileText('visio/pages/page1.xml');
+        expect(content).toContain('MyShape');
+        expect(content).toContain('MyContainer');
+    });
 });

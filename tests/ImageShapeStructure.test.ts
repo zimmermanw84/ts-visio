@@ -40,7 +40,10 @@ describe('Image Shape Structure (Phase 2)', () => {
         expect(shp).toBeDefined();
         expect(shp['@_Type']).toBe('Foreign');
         expect(shp.ForeignData).toBeDefined();
-        expect(shp.ForeignData['@_r:id']).toBe(rId);
+        // ForeignType attribute must be on ForeignData, r:id must be on the Rel child element
+        expect(shp.ForeignData['@_ForeignType']).toBe('Bitmap');
+        expect(shp.ForeignData.Rel).toBeDefined();
+        expect(shp.ForeignData.Rel['@_r:id']).toBe(rId);
 
         // 5. Verify Rel Exists
         const relsXml = pkg.getFileText('visio/pages/_rels/page1.xml.rels');
