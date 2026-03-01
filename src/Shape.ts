@@ -92,6 +92,19 @@ export class Shape {
         return this.modifier.addConnectionPoint(this.pageId, this.id, point);
     }
 
+    /**
+     * Apply a document-level stylesheet to this shape.
+     * Create styles via `doc.createStyle()` and pass the returned `id`.
+     *
+     * @param styleId  The stylesheet ID to apply.
+     * @param which    `'all'` (default) applies to line, fill, and text;
+     *                 `'line'`, `'fill'`, or `'text'` applies to only that category.
+     */
+    applyStyle(styleId: number, which: 'all' | 'line' | 'fill' | 'text' = 'all'): this {
+        this.modifier.applyStyle(this.pageId, this.id, styleId, which);
+        return this;
+    }
+
     async setStyle(style: ShapeStyle): Promise<this> {
         await this.modifier.updateShapeStyle(this.pageId, this.id, style);
         return this;

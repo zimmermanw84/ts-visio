@@ -96,7 +96,7 @@
 ### 8. Document-Level Properties
 
 - ~~**Document metadata**~~ — ✅ Implemented (`doc.setMetadata(props)`, `doc.getMetadata()`; writes `docProps/core.xml` and `docProps/app.xml`; supports title, author, description, keywords, lastModifiedBy, company, manager, created, modified)
-- **StyleSheet** — document-level line/fill/text styles that shapes can inherit from
+- ~~**StyleSheet**~~ — ✅ Implemented (`doc.createStyle(name, props)`, `doc.getStyles()`, `shape.applyStyle(id)`, `addShape({ styleId })`, `StyleSheetManager` in `visio/document.xml`)
 - **Color palette** — document-level color table
 
 ---
@@ -146,3 +146,4 @@
 | 🟢 Low | Masters / stencils public API |
 | ✅ Done | Rich text formatting (italic, underline, strikethrough, text margins, paragraph spacing) |
 | ✅ Done | Named connection points (`ConnectionPointDef`, `StandardConnectionPoints`, port-aware connectors) |
+| ✅ Done | StyleSheet — document-level styles (`createStyle`, `getStyles`, `applyStyle`, `styleId` on shapes) |
