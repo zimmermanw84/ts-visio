@@ -105,12 +105,12 @@ The gap between shapes was always `targetWidth/2 + thisWidth/2` too wide.
 
 ---
 
-### 🔴 BUG 9 — Geometry Rows Use Literal Coordinates — Resize Breaks
+### ✅ BUG 9 — Geometry Rows Use Literal Coordinates — Resize Breaks
 **Files:** `src/shapes/ShapeBuilder.ts:58-64`, `src/shapes/ForeignShapeBuilder.ts:36-41`
 
 Geometry row coordinates store raw numbers (e.g. `Width=2`, `Height=1`). Visio requires formula references (`Width*1`, `Height*1`) so that geometry tracks the bounding box when a shape is resized. Shapes created by ts-visio cannot be resized in Visio Desktop.
 
-**Fix:** Add `@_F` formula attributes (`'Width*1'`, `'Height*1'`) on geometry `LineTo` rows, or emit the standard Visio `Width` / `Height` cell references.
+**Fix:** Added `@_F: 'Width'` / `@_F: 'Height'` formula attributes to the `LineTo` geometry rows in both `ShapeBuilder` and `ForeignShapeBuilder`. Static `@_V` values are retained for initial render.
 
 ---
 
@@ -134,21 +134,21 @@ Pages created by `createPage()` and `createBackgroundPage()` were given `@_ID` a
 
 ---
 
-### 🟡 BUG 14 — `pageStub` Objects Cast as `any` in `VisioDocument`
+### ✅ BUG 14 — `pageStub` Objects Cast as `any` in `VisioDocument`
 **File:** `src/VisioDocument.ts:45, 61, 82`
 
 `pageStub as any` bypasses type checking when constructing `VisioPage` objects. If the `VisioPage` interface changes, these casts will silently produce broken objects.
 
-**Fix:** Introduce a typed factory function or use `Partial<VisioPage>` with explicit runtime validation.
+**Fix:** Typed stubs as `VisioPage` explicitly in all three construction sites (`addPage`, `pages` getter, `addBackgroundPage`). All `as any` casts removed.
 
 ---
 
-### 🟡 BUG 15 — Every `Shape` / `Layer` Method Creates a New `ShapeModifier`
+### ✅ BUG 15 — Every `Shape` / `Layer` Method Creates a New `ShapeModifier`
 **Files:** `src/Shape.ts`, `src/Layer.ts`
 
 Each mutating method instantiates `new ShapeModifier(this.pkg)` with its own empty `pageCache`. If `Page.modifier` has pending mutations in its cache and a `Shape` method then creates a separate modifier instance, the two caches diverge and can overwrite each other's changes.
 
-**Fix:** Pass the owning page's `ShapeModifier` instance into `Shape` and `Layer` at construction time instead of creating new instances per method call.
+**Fix:** Added optional `modifier?: ShapeModifier` parameter to both `Shape` and `Layer` constructors (defaulting to a fresh instance for standalone use). `Page` now passes `this.modifier` to every `Shape` and `Layer` it constructs, ensuring all mutations share a single cache.
 
 ---
 
@@ -195,23 +195,25 @@ parsed.PageContents.Shapes.Shape = parsed.PageContents.Shapes.Shape ? [parsed.Pa
 
 ## Low
 
-### 🟢 BUG 21 — `Page` Methods Create New `ShapeModifier` Inconsistently
-**File:** `src/Page.ts`
+### ✅ BUG 21 — `Shape` Methods Create New `ShapeModifier` Inconsistently
+**File:** `src/Shape.ts`
 
-`addListItem`, `resizeToFit`, and `refreshLocalState` create `new ShapeModifier(this.pkg)` instead of reusing `this.modifier`, wasting cache and risking incoherence.
+`addListItem`, `resizeToFit`, `refreshLocalState`, and all other mutating methods created `new ShapeModifier(this.pkg)` instead of reusing the shared instance, wasting cache and risking incoherence.
+
+**Fix:** Resolved by BUG 15 fix — all methods in `Shape` now use `this.modifier` which is injected from `Page`.
 
 ---
 
-### 🟢 BUG 22 — `require('crypto')` Incompatible with Pure ESM
+### ✅ BUG 22 — `require('crypto')` Incompatible with Pure ESM
 **File:** `src/core/MediaManager.ts:27, 49`
 
 Synchronous `require('crypto')` fails in a pure ESM environment. The package is dual-published CJS/ESM.
 
-**Fix:** `import { createHash } from 'node:crypto'` at the top of the file.
+**Fix:** Replaced both inline `require('crypto')` calls with a top-level `import { createHash } from 'node:crypto'`.
 
 ---
 
-### 🟢 BUG 23 — Content-Type Extension Comparison Is Case-Sensitive
+### ✅ BUG 23 — Content-Type Extension Comparison Is Case-Sensitive
 **File:** `src/core/MediaManager.ts:91`
 
 ```typescript
@@ -220,32 +222,38 @@ d['@_Extension']?.toLowerCase() === extension  // extension is NOT lowercased
 
 A file named `Image.PNG` produces extension `PNG`; `'png' === 'PNG'` is false, causing a duplicate `<Default>` entry in `[Content_Types].xml`.
 
-**Fix:** `extension.toLowerCase()` before comparison.
+**Fix:** Changed comparison to `extension.toLowerCase()` so both sides are normalised.
 
 ---
 
-### 🟢 BUG 24 — Float Precision Loss in `placeRightOf` / `placeBelow`
+### ✅ BUG 24 — Float Precision Loss in `placeRightOf` / `placeBelow`
 **File:** `src/Shape.ts:78-82, 98-102`
 
 Local state is updated via `newX.toString()`, then read back via `Number()`. Chained placement operations accumulate floating-point-to-string-to-float rounding errors.
 
+**Fix:** Introduced `fmtCoord(n)` helper that rounds to 10 decimal places before converting to string (`parseFloat(n.toFixed(10)).toString()`). All local-state coordinate writes now use this helper.
+
 ---
 
-### 🟢 BUG 25 — Background Page Template Missing `<Connects/>` Element
+### ✅ BUG 25 — Background Page Template Missing `<Connects/>` Element
 **File:** `src/core/PageManager.ts:213`
 
 The foreground page template includes `<Connects/>` but the background page template does not, causing asymmetry that can trigger issues if connectors are added to a background page.
 
+**Fix:** Added `<Connects/>` to the background page template string in `createBackgroundPage()`.
+
 ---
 
-### 🟢 BUG 26 — `LineWeight` Cell Missing Unit Attribute
+### ✅ BUG 26 — `LineWeight` Cell Missing Unit Attribute
 **File:** `src/utils/StyleHelpers.ts:87`
 
 `LineWeight` is emitted as `'0.01'` with no `@_U` unit attribute. Visio defaults to inches, which is probably correct, but the missing unit is inconsistent with other cells and may behave unexpectedly in non-English locales.
 
+**Fix:** Added `'@_U': 'IN'` to the `LineWeight` cell in `createLineSection()`.
+
 ---
 
-### 🟢 BUG 27 — `ContainerBuilder` Sets TextXform Formula Strings as Values
+### ✅ BUG 27 — `ContainerBuilder` Sets TextXform Formula Strings as Values
 **File:** `src/shapes/ContainerBuilder.ts:82-83`
 
 ```typescript
@@ -255,7 +263,7 @@ upsertCell('TxtLocPinY', 'TxtHeight', 'DY');
 
 These set `@_V` (value) to the strings `'Height'` and `'TxtHeight'`, which Visio will interpret as `0` or a parse error. They should be `@_F` (formula) attributes.
 
-**Fix:** Move the formula string to `@_F` and set `@_V` to the computed numeric value.
+**Fix:** `upsertCell` now accepts a `formula` and `val` parameter separately. `TxtPinY` gets `@_F: 'Height'` with `@_V` set to the shape's current height; `TxtLocPinY` gets `@_F: 'TxtHeight'` with `@_V: '0'`.
 
 ---
 
@@ -265,6 +273,6 @@ These set `@_V` (value) to the strings `'Height'` and `'TxtHeight'`, which Visio
 |----------|-------|-------|------|
 | Critical | 4 | 4 | 0 |
 | High | 6 | 6 | 0 |
-| Medium | 6 | 4 | 2 |
-| Low | 7 | 0 | 7 |
-| **Total** | **23** | **14** | **9** |
+| Medium | 6 | 6 | 0 |
+| Low | 7 | 7 | 0 |
+| **Total** | **23** | **23** | **0** |

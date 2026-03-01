@@ -44,7 +44,7 @@ export class Page {
         const reader = new ShapeReader(this.pkg);
         try {
             const internalShapes = reader.readShapes(this.pagePath);
-            return internalShapes.map(s => new Shape(s, this.id, this.pkg));
+            return internalShapes.map(s => new Shape(s, this.id, this.pkg, this.modifier));
         } catch (e) {
             // If page file doesn't exist or is empty, return empty array
             console.warn(`Could not read shapes for page ${this.id}:`, e);
@@ -71,7 +71,7 @@ export class Page {
             }
         });
 
-        return new Shape(internalStub, this.id, this.pkg);
+        return new Shape(internalStub, this.id, this.pkg, this.modifier);
     }
     async connectShapes(fromShape: Shape, toShape: Shape, beginArrow?: string, endArrow?: string): Promise<void> {
         await this.modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow);
@@ -103,7 +103,7 @@ export class Page {
             }
         });
 
-        return new Shape(internalStub, this.id, this.pkg);
+        return new Shape(internalStub, this.id, this.pkg, this.modifier);
     }
 
     async addContainer(props: NewShapeProps): Promise<Shape> {
@@ -120,7 +120,7 @@ export class Page {
             }
         });
 
-        return new Shape(internalStub, this.id, this.pkg);
+        return new Shape(internalStub, this.id, this.pkg, this.modifier);
     }
 
     async addList(props: NewShapeProps, direction: 'vertical' | 'horizontal' = 'vertical'): Promise<Shape> {
@@ -137,7 +137,7 @@ export class Page {
             }
         });
 
-        return new Shape(internalStub, this.id, this.pkg);
+        return new Shape(internalStub, this.id, this.pkg, this.modifier);
     }
 
     /**
@@ -218,6 +218,6 @@ export class Page {
 
     async addLayer(name: string, options?: { visible?: boolean, lock?: boolean, print?: boolean }): Promise<Layer> {
         const info = await this.modifier.addLayer(this.id, name, options);
-        return new Layer(info.name, info.index, this.id, this.pkg);
+        return new Layer(info.name, info.index, this.id, this.pkg, this.modifier);
     }
 }
