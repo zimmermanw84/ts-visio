@@ -122,6 +122,52 @@ export class VisioDocument {
     }
 
     /**
+     * Rename a page. Updates `page.name` in-memory as well as the pages.xml record.
+     *
+     * @example
+     * doc.renamePage(page, 'Architecture Overview');
+     */
+    renamePage(page: Page, newName: string): void {
+        this.pageManager.renamePage(page.id, newName);
+        page._updateName(newName);
+    }
+
+    /**
+     * Move a page to a new 0-based position in the tab order.
+     * Clamps `toIndex` to the valid range automatically.
+     *
+     * @example
+     * doc.movePage(page, 0);  // move to first position
+     */
+    movePage(page: Page, toIndex: number): void {
+        this.pageManager.reorderPage(page.id, toIndex);
+        this._pageCache = null;
+    }
+
+    /**
+     * Duplicate a page and return the new Page object.
+     * The duplicate is inserted directly after the source page in the tab order.
+     * If `newName` is omitted, `"<original name> (Copy)"` is used.
+     *
+     * @example
+     * const copy = await doc.duplicatePage(page, 'Page 2');
+     */
+    async duplicatePage(page: Page, newName?: string): Promise<Page> {
+        const resolvedName = newName ?? `${page.name} (Copy)`;
+        const newId = await this.pageManager.duplicatePage(page.id, resolvedName);
+        this._pageCache = null;
+
+        const pageStub: VisioPage = {
+            ID: newId,
+            Name: resolvedName,
+            xmlPath: `visio/pages/page${newId}.xml`,
+            Shapes: [],
+            Connects: []
+        };
+        return new Page(pageStub, this.pkg, this.mediaManager);
+    }
+
+    /**
      * Read document metadata from `docProps/core.xml` and `docProps/app.xml`.
      * Fields not present in the file are returned as `undefined`.
      */

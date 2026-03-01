@@ -324,6 +324,126 @@ export class PageManager {
     }
 
     /**
+     * Rename a page — updates Name and NameU in pages.xml.
+     */
+    renamePage(pageId: string, newName: string): void {
+        this.load();
+
+        const pagesPath = 'visio/pages/pages.xml';
+        const parsed = this.parser.parse(this.pkg.getFileText(pagesPath));
+
+        let pageNodes = parsed.Pages.Page;
+        if (!Array.isArray(pageNodes)) pageNodes = pageNodes ? [pageNodes] : [];
+
+        const node = pageNodes.find((n: any) => n['@_ID'] === pageId);
+        if (!node) throw new Error(`Page ${pageId} not found`);
+
+        node['@_Name']  = newName;
+        node['@_NameU'] = newName;
+
+        this.pkg.updateFile(pagesPath, buildXml(this.builder, parsed));
+        this.load(true);
+    }
+
+    /**
+     * Move a page to a new 0-based position in the pages.xml order (which
+     * controls the tab order in the Visio UI).
+     */
+    reorderPage(pageId: string, toIndex: number): void {
+        this.load();
+
+        const pagesPath = 'visio/pages/pages.xml';
+        const parsed = this.parser.parse(this.pkg.getFileText(pagesPath));
+
+        let pageNodes: any[] = parsed.Pages.Page;
+        if (!Array.isArray(pageNodes)) pageNodes = pageNodes ? [pageNodes] : [];
+
+        const fromIndex = pageNodes.findIndex((n: any) => n['@_ID'] === pageId);
+        if (fromIndex === -1) throw new Error(`Page ${pageId} not found`);
+
+        const clamped = Math.max(0, Math.min(toIndex, pageNodes.length - 1));
+        const [moved] = pageNodes.splice(fromIndex, 1);
+        pageNodes.splice(clamped, 0, moved);
+
+        parsed.Pages.Page = pageNodes;
+        this.pkg.updateFile(pagesPath, buildXml(this.builder, parsed));
+        this.load(true);
+    }
+
+    /**
+     * Duplicate a page: copies the page XML (and its rels file if present),
+     * registers the new page in pages.xml and pages.xml.rels, and returns
+     * the new page ID.
+     */
+    async duplicatePage(pageId: string, newName: string): Promise<string> {
+        this.load();
+
+        const source = this.pages.find(p => p.id.toString() === pageId);
+        if (!source) throw new Error(`Page ${pageId} not found`);
+
+        // 1. Calculate new ID and paths
+        const maxId = Math.max(...this.pages.map(p => p.id));
+        const newId = maxId + 1;
+        const newFileName = `page${newId}.xml`;
+        const newPath = `visio/pages/${newFileName}`;
+
+        // 2. Copy page XML verbatim
+        const sourceXml = this.pkg.getFileText(source.xmlPath);
+        this.pkg.updateFile(newPath, sourceXml);
+
+        // 3. Copy the page's .rels file if one exists (image refs etc.)
+        const sourceFileName = source.xmlPath.split('/').pop()!;
+        const sourceRelsPath = `visio/pages/_rels/${sourceFileName}.rels`;
+        const newRelsPath    = `visio/pages/_rels/${newFileName}.rels`;
+        try {
+            this.pkg.updateFile(newRelsPath, this.pkg.getFileText(sourceRelsPath));
+        } catch { /* no rels file — fine */ }
+
+        // 4. Add Content Types override
+        const ctPath = '[Content_Types].xml';
+        const parsedCt = this.parser.parse(this.pkg.getFileText(ctPath));
+        if (!parsedCt.Types.Override) parsedCt.Types.Override = [];
+        if (!Array.isArray(parsedCt.Types.Override)) parsedCt.Types.Override = [parsedCt.Types.Override];
+        parsedCt.Types.Override.push({
+            '@_PartName': `/${newPath}`,
+            '@_ContentType': CONTENT_TYPES.VISIO_PAGE
+        });
+        this.pkg.updateFile(ctPath, buildXml(this.builder, parsedCt));
+
+        // 5. Add relationship in pages.xml.rels
+        const rId = await this.relsManager.ensureRelationship(
+            'visio/pages/pages.xml',
+            newFileName,
+            RELATIONSHIP_TYPES.PAGE
+        );
+
+        // 6. Append entry to pages.xml (directly after the source page)
+        const pagesPath = 'visio/pages/pages.xml';
+        const parsedPages = this.parser.parse(this.pkg.getFileText(pagesPath));
+        if (!parsedPages.Pages.Page) parsedPages.Pages.Page = [];
+        if (!Array.isArray(parsedPages.Pages.Page)) parsedPages.Pages.Page = [parsedPages.Pages.Page];
+
+        const newEntry: Record<string, any> = {
+            '@_ID':    newId.toString(),
+            '@_Name':  newName,
+            '@_NameU': newName,
+            'Rel':     { '@_r:id': rId }
+        };
+        if (source.isBackground) newEntry['@_Background'] = '1';
+
+        // Insert right after the source page so the duplicate is adjacent in the tab bar
+        const srcIdx = (parsedPages.Pages.Page as any[]).findIndex(
+            (n: any) => n['@_ID'] === pageId
+        );
+        parsedPages.Pages.Page.splice(srcIdx + 1, 0, newEntry);
+
+        this.pkg.updateFile(pagesPath, buildXml(this.builder, parsedPages));
+        this.load(true);
+
+        return newId.toString();
+    }
+
+    /**
      * Set a background page for a foreground page
      */
     async setBackgroundPage(foregroundPageId: string, backgroundPageId: string): Promise<void> {

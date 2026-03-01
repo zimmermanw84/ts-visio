@@ -333,4 +333,9 @@ export class Page {
             l => new Layer(l.name, l.index, this.id, this.pkg, this.modifier, l.visible, l.locked)
         );
     }
+
+    /** @internal Used by VisioDocument.renamePage() to keep in-memory state in sync. */
+    _updateName(newName: string): void {
+        this.internalPage.Name = newName;
+    }
 }
