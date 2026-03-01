@@ -95,7 +95,7 @@
 
 ### 8. Document-Level Properties
 
-- **Document metadata** — title, author, description, keywords (`docProps/core.xml`)
+- ~~**Document metadata**~~ — ✅ Implemented (`doc.setMetadata(props)`, `doc.getMetadata()`; writes `docProps/core.xml` and `docProps/app.xml`; supports title, author, description, keywords, lastModifiedBy, company, manager, created, modified)
 - **StyleSheet** — document-level line/fill/text styles that shapes can inherit from
 - **Color palette** — document-level color table
 
@@ -142,6 +142,6 @@
 | ✅ Done | Connector routing style and line styling |
 | ✅ Done | Missing exports (`Layer`, `SchemaDiagram`, `VisioValidator`) |
 | ✅ Done | Page size / orientation API (`PageSizes`, `setSize`, `setNamedSize`, `setOrientation`) |
-| 🟢 Low | Document metadata |
+| ✅ Done | Document metadata (`setMetadata`, `getMetadata` on `VisioDocument`) |
 | 🟢 Low | Masters / stencils public API |
 | 🟢 Low | Rich text / paragraph formatting |

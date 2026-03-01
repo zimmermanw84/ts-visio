@@ -2,16 +2,19 @@ import { VisioPackage } from './VisioPackage';
 import { PageManager } from './core/PageManager';
 import { Page } from './Page';
 import { MediaManager } from './core/MediaManager';
-import { VisioPage } from './types/VisioTypes';
+import { MetadataManager } from './core/MetadataManager';
+import { VisioPage, DocumentMetadata } from './types/VisioTypes';
 
 export class VisioDocument {
     private pageManager: PageManager;
     private _pageCache: Page[] | null = null;
     private mediaManager: MediaManager;
+    private metadataManager: MetadataManager;
 
     private constructor(private pkg: VisioPackage) {
         this.pageManager = new PageManager(pkg);
         this.mediaManager = new MediaManager(pkg);
+        this.metadataManager = new MetadataManager(pkg);
     }
 
     static async create(): Promise<VisioDocument> {
@@ -110,6 +113,25 @@ export class VisioDocument {
     async deletePage(page: Page): Promise<void> {
         await this.pageManager.deletePage(page.id);
         this._pageCache = null;
+    }
+
+    /**
+     * Read document metadata from `docProps/core.xml` and `docProps/app.xml`.
+     * Fields not present in the file are returned as `undefined`.
+     */
+    getMetadata(): DocumentMetadata {
+        return this.metadataManager.getMetadata();
+    }
+
+    /**
+     * Write document metadata. Only the supplied fields are changed;
+     * all other fields keep their existing values.
+     *
+     * @example
+     * doc.setMetadata({ title: 'My Diagram', author: 'Alice', company: 'ACME' });
+     */
+    setMetadata(props: Partial<DocumentMetadata>): void {
+        this.metadataManager.setMetadata(props);
     }
 
     async save(filename?: string): Promise<Buffer> {
