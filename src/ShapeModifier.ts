@@ -3,7 +3,8 @@ import { VisioPackage } from './VisioPackage';
 import { RelsManager } from './core/RelsManager';
 import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, vertAlignValue, HorzAlign, VertAlign } from './utils/StyleHelpers';
 import { RELATIONSHIP_TYPES } from './core/VisioConstants';
-import { NewShapeProps } from './types/VisioTypes';
+import { NewShapeProps, VisioPropType } from './types/VisioTypes';
+import type { ShapeData, ShapeHyperlink } from './Shape';
 import { ForeignShapeBuilder } from './shapes/ForeignShapeBuilder';
 import { ShapeBuilder } from './shapes/ShapeBuilder';
 import { ConnectorBuilder } from './shapes/ConnectorBuilder';
@@ -983,6 +984,123 @@ export class ShapeModifier {
         }
 
         this.saveParsed(pageId, parsed);
+    }
+
+    /**
+     * Read back all custom property (shape data) entries for a shape.
+     * Returns a map of property key → ShapeData, with values coerced to
+     * the declared type (Number, Boolean, Date, or String).
+     */
+    getShapeProperties(pageId: string, shapeId: string): Record<string, ShapeData> {
+        const parsed = this.getParsed(pageId);
+        const shape = this.getShapeMap(parsed).get(shapeId);
+        if (!shape) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+
+        const result: Record<string, ShapeData> = {};
+        if (!shape.Section) return result;
+
+        const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
+        const propSection = sections.find((s: any) => s['@_N'] === 'Property');
+        if (!propSection?.Row) return result;
+
+        const rows = Array.isArray(propSection.Row) ? propSection.Row : [propSection.Row];
+        for (const row of rows) {
+            // Row names are "Prop.KeyName" — strip the prefix to recover the user-facing key
+            const rawKey: string = row['@_N'] ?? '';
+            const key = rawKey.startsWith('Prop.') ? rawKey.slice(5) : rawKey;
+            if (!key) continue;
+
+            const cells: any[] = Array.isArray(row.Cell) ? row.Cell : (row.Cell ? [row.Cell] : []);
+            const getCell = (name: string): string | undefined =>
+                cells.find((c: any) => c['@_N'] === name)?.['@_V'];
+
+            const rawValue = getCell('Value') ?? '';
+            const type = parseInt(getCell('Type') ?? '0') as VisioPropType;
+            const label = getCell('Label');
+            const hidden = getCell('Invisible') === '1';
+
+            let value: string | number | boolean | Date;
+            switch (type) {
+                case VisioPropType.Number:
+                case VisioPropType.Currency:
+                case VisioPropType.Duration:
+                    value = parseFloat(rawValue) || 0;
+                    break;
+                case VisioPropType.Boolean:
+                    value = rawValue === '1' || rawValue.toLowerCase() === 'true';
+                    break;
+                case VisioPropType.Date:
+                    value = new Date(rawValue);
+                    break;
+                default:
+                    value = rawValue;
+            }
+
+            result[key] = { value, label, hidden, type };
+        }
+
+        return result;
+    }
+
+    /**
+     * Read back all hyperlinks attached to a shape.
+     */
+    getShapeHyperlinks(pageId: string, shapeId: string): ShapeHyperlink[] {
+        const parsed = this.getParsed(pageId);
+        const shape = this.getShapeMap(parsed).get(shapeId);
+        if (!shape) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+
+        const result: ShapeHyperlink[] = [];
+        if (!shape.Section) return result;
+
+        const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
+        const linkSection = sections.find((s: any) => s['@_N'] === 'Hyperlink');
+        if (!linkSection?.Row) return result;
+
+        const rows = Array.isArray(linkSection.Row) ? linkSection.Row : [linkSection.Row];
+        for (const row of rows) {
+            const cells: any[] = Array.isArray(row.Cell) ? row.Cell : (row.Cell ? [row.Cell] : []);
+            const getCell = (name: string): string | undefined =>
+                cells.find((c: any) => c['@_N'] === name)?.['@_V'];
+
+            result.push({
+                address: getCell('Address'),
+                subAddress: getCell('SubAddress'),
+                description: getCell('Description'),
+                newWindow: getCell('NewWindow') === '1',
+            });
+        }
+
+        return result;
+    }
+
+    /**
+     * Read back the layer indices a shape is assigned to.
+     * Returns an empty array if the shape has no layer assignment.
+     */
+    getShapeLayerIndices(pageId: string, shapeId: string): number[] {
+        const parsed = this.getParsed(pageId);
+        const shape = this.getShapeMap(parsed).get(shapeId);
+        if (!shape) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+
+        if (!shape.Section) return [];
+        const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
+        const memSection = sections.find((s: any) => s['@_N'] === 'LayerMem');
+        if (!memSection?.Row) return [];
+
+        const rows = Array.isArray(memSection.Row) ? memSection.Row : [memSection.Row];
+        const row = rows[0];
+        if (!row) return [];
+
+        const cells: any[] = Array.isArray(row.Cell) ? row.Cell : (row.Cell ? [row.Cell] : []);
+        const memberCell = cells.find((c: any) => c['@_N'] === 'LayerMember');
+        if (!memberCell?.['@_V']) return [];
+
+        return (memberCell['@_V'] as string)
+            .split(';')
+            .filter((s: string) => s.length > 0)
+            .map((s: string) => parseInt(s))
+            .filter((n: number) => !isNaN(n));
     }
 }
 

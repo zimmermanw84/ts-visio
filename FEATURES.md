@@ -66,9 +66,9 @@
 
 `ShapeReader` parses `Sections` internally but they are not surfaced through the `Shape` public API:
 
-- `shape.getProperties()` — read custom shape data
-- `shape.getHyperlinks()` — read hyperlinks
-- `shape.getLayerIndices()` — read layer assignments
+- ~~`shape.getProperties()`~~ — ✅ Implemented (typed value coercion: String, Number, Boolean, Date)
+- ~~`shape.getHyperlinks()`~~ — ✅ Implemented (address, subAddress, description, newWindow)
+- ~~`shape.getLayerIndices()`~~ — ✅ Implemented (returns `number[]`)
 - `page.getConnectors()` — read existing `<Connect>` elements from a loaded file
 - `page.getLayers()` — read existing layers from a loaded file
 - Sub-shapes of groups are parsed but not accessible (top-level only via `getShapes()`)
@@ -142,7 +142,7 @@ These classes exist in the codebase but are not exported from `src/index.ts`:
 | ✅ Done | Font size & family, text alignment |
 | ✅ Done | `deleteShape`, `deletePage` |
 | ✅ Done | `page.getShapeById`, `page.findShapes`, `doc.getPage(name)` |
-| 🔴 High | Read properties/hyperlinks back from existing shapes |
+| ✅ Done | Read properties/hyperlinks/layer indices back from existing shapes |
 | 🟡 Medium | Rotation and resize via `Shape` API |
 | 🟡 Medium | Non-rectangular geometry (ellipse, diamond) |
 | 🟡 Medium | Connector routing style and line styling |
