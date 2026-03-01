@@ -34,7 +34,7 @@ export class MasterManager {
 
         let masterNodes = parsed.Masters ? parsed.Masters.Master : [];
         if (!Array.isArray(masterNodes)) {
-            masterNodes = [masterNodes];
+            masterNodes = masterNodes ? [masterNodes] : [];
         }
 
         this.masters = masterNodes.map((node: any) => ({

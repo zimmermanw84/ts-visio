@@ -44,6 +44,10 @@ export interface VisioPage {
     ID: string;
     Name: string;
     NameU?: string;
+    /** Resolved OPC part path (e.g. "visio/pages/page2.xml"). When present,
+     *  this takes precedence over the ID-derived fallback path so that loaded
+     *  files with non-sequential page filenames are handled correctly. */
+    xmlPath?: string;
     Shapes: VisioShape[];
     Connects: VisioConnect[];
     isBackground?: boolean;

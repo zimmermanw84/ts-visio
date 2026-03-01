@@ -56,7 +56,9 @@ describe('Image Embedding (E2E)', () => {
 
         expect(targetShape).toBeDefined();
         expect(targetShape['@_Type']).toBe('Foreign');
-        expect(targetShape.ForeignData['@_r:id']).toBe(rId);
+        // ForeignType on ForeignData, r:id on the Rel child element
+        expect(targetShape.ForeignData['@_ForeignType']).toBe('Bitmap');
+        expect(targetShape.ForeignData.Rel['@_r:id']).toBe(rId);
 
         // 4. Verify Content Types
         const ctXml = (pkg as any).getFileText('[Content_Types].xml');

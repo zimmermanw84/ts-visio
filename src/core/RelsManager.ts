@@ -1,21 +1,15 @@
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { VisioPackage } from '../VisioPackage';
 import { XML_NAMESPACES, RELATIONSHIP_TYPES } from './VisioConstants';
+import { createXmlParser, createXmlBuilder, buildXml } from '../utils/XmlHelper';
 
 export class RelsManager {
     private parser: XMLParser;
     private builder: XMLBuilder;
 
     constructor(private pkg: VisioPackage) {
-        this.parser = new XMLParser({
-            ignoreAttributes: false,
-            attributeNamePrefix: "@_"
-        });
-        this.builder = new XMLBuilder({
-            ignoreAttributes: false,
-            attributeNamePrefix: "@_",
-            format: true
-        });
+        this.parser = createXmlParser();
+        this.builder = createXmlBuilder();
     }
 
     private getRelsPath(partPath: string): string {
@@ -75,7 +69,7 @@ export class RelsManager {
         });
 
         // Save back
-        const newXml = this.builder.build(parsed);
+        const newXml = buildXml(this.builder, parsed);
         this.pkg.updateFile(relsPath, newXml);
 
         return newId;

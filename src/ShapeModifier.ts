@@ -8,16 +8,13 @@ import { ForeignShapeBuilder } from './shapes/ForeignShapeBuilder';
 import { ShapeBuilder } from './shapes/ShapeBuilder';
 import { ConnectorBuilder } from './shapes/ConnectorBuilder';
 import { ContainerBuilder } from './shapes/ContainerBuilder';
+import { createXmlParser, createXmlBuilder, buildXml } from './utils/XmlHelper';
 
 export class ShapeModifier {
     // ...
     async addContainer(pageId: string, props: NewShapeProps): Promise<string> {
+        const parsed = this.getParsed(pageId);
 
-        const pagePath = this.getPagePath(pageId);
-        let content = this.pkg.getFileText(pagePath);
-        const parsed = this.parser.parse(content);
-
-        // Ensure Shapes container...
         if (!parsed.PageContents.Shapes) parsed.PageContents.Shapes = { Shape: [] };
         let topLevelShapes = parsed.PageContents.Shapes.Shape;
         if (!Array.isArray(topLevelShapes)) {
@@ -25,23 +22,19 @@ export class ShapeModifier {
             parsed.PageContents.Shapes.Shape = topLevelShapes;
         }
 
-        let newId = props.id || this.getNextId(parsed);
+        const newId = props.id || this.getNextId(parsed);
         const containerShape = ContainerBuilder.createContainerShape(newId, props);
 
         topLevelShapes.push(containerShape);
         this.getShapeMap(parsed).set(newId, containerShape);
 
-        const newXml = this.builder.build(parsed);
-        this.pkg.updateFile(pagePath, newXml);
+        this.saveParsed(pageId, parsed);
         return newId;
     }
 
     async addList(pageId: string, props: NewShapeProps, direction: 'vertical' | 'horizontal' = 'vertical'): Promise<string> {
-        const pagePath = this.getPagePath(pageId);
-        let content = this.pkg.getFileText(pagePath);
-        const parsed = this.parser.parse(content);
+        const parsed = this.getParsed(pageId);
 
-        // Ensure Shapes container...
         if (!parsed.PageContents.Shapes) parsed.PageContents.Shapes = { Shape: [] };
         let topLevelShapes = parsed.PageContents.Shapes.Shape;
         if (!Array.isArray(topLevelShapes)) {
@@ -49,15 +42,14 @@ export class ShapeModifier {
             parsed.PageContents.Shapes.Shape = topLevelShapes;
         }
 
-        let newId = props.id || this.getNextId(parsed);
+        const newId = props.id || this.getNextId(parsed);
         const listShape = ContainerBuilder.createContainerShape(newId, props);
         ContainerBuilder.makeList(listShape, direction);
 
         topLevelShapes.push(listShape);
         this.getShapeMap(parsed).set(newId, listShape);
 
-        const newXml = this.builder.build(parsed);
-        this.pkg.updateFile(pagePath, newXml);
+        this.saveParsed(pageId, parsed);
         return newId;
     }
 
@@ -67,23 +59,26 @@ export class ShapeModifier {
     private pageCache: Map<string, { content: string, parsed: any }> = new Map();
     private dirtyPages: Set<string> = new Set();
     private shapeCache = new WeakMap<object, Map<string, any>>();
+    private pagePathRegistry = new Map<string, string>();
     public autoSave: boolean = true;
 
+    /**
+     * Register the resolved OPC part path for a page ID.
+     * Must be called before any operation on a loaded file to ensure the
+     * correct file is targeted rather than the ID-derived fallback name.
+     */
+    registerPage(pageId: string, xmlPath: string): void {
+        this.pagePathRegistry.set(pageId, xmlPath);
+    }
+
     constructor(private pkg: VisioPackage) {
-        this.parser = new XMLParser({
-            ignoreAttributes: false,
-            attributeNamePrefix: "@_"
-        });
-        this.builder = new XMLBuilder({
-            ignoreAttributes: false,
-            attributeNamePrefix: "@_",
-            format: true
-        });
+        this.parser = createXmlParser();
+        this.builder = createXmlBuilder();
         this.relsManager = new RelsManager(pkg);
     }
 
     private getPagePath(pageId: string): string {
-        return `visio/pages/page${pageId}.xml`;
+        return this.pagePathRegistry.get(pageId) ?? `visio/pages/page${pageId}.xml`;
     }
 
     private getShapeMap(parsed: any): Map<string, any> {
@@ -201,7 +196,7 @@ export class ShapeModifier {
     }
 
     private performSave(pagePath: string, parsed: any): void {
-        const newXml = this.builder.build(parsed);
+        const newXml = buildXml(this.builder, parsed);
         this.pkg.updateFile(pagePath, newXml);
         this.pageCache.set(pagePath, { content: newXml, parsed });
     }

@@ -33,6 +33,7 @@ describe('RelsManager', () => {
         expect(updateCall[0]).toBe('visio/pages/_rels/page1.xml.rels');
 
         const newXml = updateCall[1];
+        expect(newXml).toMatch(/^<\?xml version="1\.0"/);
         const parsed = parser.parse(newXml);
         expect(parsed.Relationships.Relationship['@_Target']).toBe('masters/masters.xml');
     });
@@ -65,6 +66,7 @@ describe('RelsManager', () => {
 
         const updateCall = vi.mocked(mockPkg.updateFile).mock.calls[0];
         const newXml = updateCall[1];
+        expect(newXml).toMatch(/^<\?xml version="1\.0"/);
         const parsed = parser.parse(newXml);
         const rels = parsed.Relationships.Relationship;
         expect(rels).toHaveLength(2);
