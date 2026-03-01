@@ -71,6 +71,20 @@ export enum VisioPropType {
     Currency = 7
 }
 
+export type PageOrientation = 'portrait' | 'landscape';
+
+/** Common paper sizes in inches (width × height in portrait orientation). */
+export const PageSizes = {
+    Letter:  { width: 8.5,    height: 11 },
+    Legal:   { width: 8.5,    height: 14 },
+    Tabloid: { width: 11,     height: 17 },
+    A3:      { width: 11.693, height: 16.535 },
+    A4:      { width: 8.268,  height: 11.693 },
+    A5:      { width: 5.827,  height: 8.268 },
+} as const;
+
+export type PageSizeName = keyof typeof PageSizes;
+
 /** Connector line-routing algorithm. */
 export type ConnectorRouting = 'straight' | 'orthogonal' | 'curved';
 

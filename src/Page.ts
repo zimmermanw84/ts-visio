@@ -1,4 +1,4 @@
-import { VisioPage, ConnectorStyle } from './types/VisioTypes';
+import { VisioPage, ConnectorStyle, PageOrientation, PageSizes, PageSizeName } from './types/VisioTypes';
 import { VisioPackage } from './VisioPackage';
 import { ShapeReader } from './ShapeReader';
 import { ShapeModifier } from './ShapeModifier';
@@ -38,6 +38,56 @@ export class Page {
 
     get name(): string {
         return this.internalPage.Name;
+    }
+
+    /** Width of the page canvas in inches. */
+    get pageWidth(): number {
+        return this.modifier.getPageDimensions(this.id).width;
+    }
+
+    /** Height of the page canvas in inches. */
+    get pageHeight(): number {
+        return this.modifier.getPageDimensions(this.id).height;
+    }
+
+    /** Current page orientation derived from the canvas dimensions. */
+    get orientation(): PageOrientation {
+        return this.pageWidth > this.pageHeight ? 'landscape' : 'portrait';
+    }
+
+    /**
+     * Set the page canvas size in inches.
+     * @example page.setSize(11, 8.5)  // landscape letter
+     */
+    setSize(width: number, height: number): this {
+        this.modifier.setPageSize(this.id, width, height);
+        return this;
+    }
+
+    /**
+     * Convenience: change the page to a named standard size (portrait by default).
+     * @example page.setNamedSize('A4')
+     */
+    setNamedSize(sizeName: PageSizeName, orientation: PageOrientation = 'portrait'): this {
+        const { width, height } = PageSizes[sizeName];
+        return orientation === 'landscape'
+            ? this.setSize(height, width)
+            : this.setSize(width, height);
+    }
+
+    /**
+     * Rotate the canvas between portrait and landscape without changing the paper size.
+     * Swaps width and height when the current orientation does not match the requested one.
+     */
+    setOrientation(orientation: PageOrientation): this {
+        const w = this.pageWidth;
+        const h = this.pageHeight;
+        if (orientation === 'landscape' && h > w) {
+            this.modifier.setPageSize(this.id, h, w);
+        } else if (orientation === 'portrait' && w > h) {
+            this.modifier.setPageSize(this.id, h, w);
+        }
+        return this;
     }
 
     getShapes(): Shape[] {
