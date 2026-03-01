@@ -3,7 +3,8 @@ import { VisioPackage } from './VisioPackage';
 import { RelsManager } from './core/RelsManager';
 import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, createTextBlockSection, vertAlignValue, HorzAlign, VertAlign } from './utils/StyleHelpers';
 import { RELATIONSHIP_TYPES } from './core/VisioConstants';
-import { NewShapeProps, VisioPropType, ConnectorStyle } from './types/VisioTypes';
+import { NewShapeProps, VisioPropType, ConnectorStyle, ConnectionTarget, ConnectionPointDef } from './types/VisioTypes';
+import { ConnectionPointBuilder } from './shapes/ConnectionPointBuilder';
 import type { ShapeData, ShapeHyperlink } from './Shape';
 import { ForeignShapeBuilder } from './shapes/ForeignShapeBuilder';
 import { ShapeBuilder } from './shapes/ShapeBuilder';
@@ -212,7 +213,16 @@ export class ShapeModifier {
         this.dirtyPages.clear();
     }
 
-    async addConnector(pageId: string, fromShapeId: string, toShapeId: string, beginArrow?: string, endArrow?: string, style?: ConnectorStyle): Promise<string> {
+    async addConnector(
+        pageId: string,
+        fromShapeId: string,
+        toShapeId: string,
+        beginArrow?: string,
+        endArrow?: string,
+        style?: ConnectorStyle,
+        fromPort?: ConnectionTarget,
+        toPort?: ConnectionTarget,
+    ): Promise<string> {
         const parsed = this.getParsed(pageId);
 
         // Ensure Shapes collection exists
@@ -234,18 +244,48 @@ export class ShapeModifier {
             return val;
         };
 
-        const layout = ConnectorBuilder.calculateConnectorLayout(fromShapeId, toShapeId, shapeHierarchy);
+        const layout = ConnectorBuilder.calculateConnectorLayout(fromShapeId, toShapeId, shapeHierarchy, fromPort, toPort);
         const connectorShape = ConnectorBuilder.createConnectorShapeObject(newId, layout, validateArrow(beginArrow), validateArrow(endArrow), style);
 
         const topLevelShapes = parsed.PageContents.Shapes.Shape;
         topLevelShapes.push(connectorShape);
         this.getShapeMap(parsed).set(newId, connectorShape);
 
-        ConnectorBuilder.addConnectorToConnects(parsed, newId, fromShapeId, toShapeId);
+        ConnectorBuilder.addConnectorToConnects(parsed, newId, fromShapeId, toShapeId, shapeHierarchy, fromPort, toPort);
 
         this.saveParsed(pageId, parsed);
 
         return newId;
+    }
+
+    /**
+     * Add a single connection point to an existing shape.
+     * Returns the zero-based IX (row index) of the newly added point.
+     */
+    addConnectionPoint(pageId: string, shapeId: string, point: ConnectionPointDef): number {
+        const parsed = this.getParsed(pageId);
+        const shapeMap = this.getShapeMap(parsed);
+        const shape = shapeMap.get(shapeId);
+        if (!shape) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+
+        // Ensure Section array exists
+        if (!shape.Section) shape.Section = [];
+        if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
+
+        // Find or create Connection section
+        let connSection = shape.Section.find((s: any) => s['@_N'] === 'Connection');
+        if (!connSection) {
+            connSection = { '@_N': 'Connection', Row: [] };
+            shape.Section.push(connSection);
+        }
+        if (!connSection.Row) connSection.Row = [];
+        if (!Array.isArray(connSection.Row)) connSection.Row = [connSection.Row];
+
+        const ix = connSection.Row.length;
+        connSection.Row.push(ConnectionPointBuilder.buildRow(point, ix));
+
+        this.saveParsed(pageId, parsed);
+        return ix;
     }
 
 

@@ -89,7 +89,7 @@
 
 - ~~**Line color, weight, and pattern**~~ — ✅ Implemented (`ConnectorStyle.lineColor`, `lineWeight` in pt, `linePattern`)
 - ~~**Routing style**~~ — ✅ Implemented (`ConnectorStyle.routing`: `'straight'` / `'orthogonal'` / `'curved'`; maps to Visio `ShapeRouteStyle` 2/1/16)
-- Named connection points — connecting to a specific port on a shape rather than shape-to-shape center
+- ~~**Named connection points**~~ — ✅ Implemented (`ConnectionPointDef`, `ConnectionTarget`, `StandardConnectionPoints` presets; `connectionPoints` prop on `addShape`; `shape.addConnectionPoint()`; `fromPort`/`toPort` on `connectShapes`/`connectTo`; encodes `ToPart=100+IX` / `ToCell=Connections.X{n}` per Visio spec)
 
 ---
 
@@ -145,3 +145,4 @@
 | ✅ Done | Document metadata (`setMetadata`, `getMetadata` on `VisioDocument`) |
 | 🟢 Low | Masters / stencils public API |
 | ✅ Done | Rich text formatting (italic, underline, strikethrough, text margins, paragraph spacing) |
+| ✅ Done | Named connection points (`ConnectionPointDef`, `StandardConnectionPoints`, port-aware connectors) |

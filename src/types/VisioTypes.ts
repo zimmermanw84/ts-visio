@@ -140,6 +140,65 @@ export type ShapeGeometry =
     | 'triangle'
     | 'parallelogram';
 
+/** Whether a connection point accepts incoming glue, outgoing glue, or both. */
+export type ConnectionPointType = 'inward' | 'outward' | 'both';
+
+/**
+ * Definition of a single connection point on a shape.
+ * Positions are expressed as fractions of the shape's width/height
+ * (0.0 = left/bottom, 1.0 = right/top in Visio's coordinate system).
+ */
+export interface ConnectionPointDef {
+    /** Optional display name (e.g. `'Top'`, `'Right'`). Referenced when connecting by name. */
+    name?: string;
+    /** Horizontal position as a fraction of shape width. 0 = left edge, 1 = right edge. */
+    xFraction: number;
+    /** Vertical position as a fraction of shape height. 0 = bottom edge, 1 = top edge. */
+    yFraction: number;
+    /** Glue direction vector. Defaults to `{ x: 0, y: 0 }` (no preferred direction). */
+    direction?: { x: number; y: number };
+    /** Connection point type. Defaults to `'inward'`. */
+    type?: ConnectionPointType;
+    /** Optional tooltip shown in the Visio UI. */
+    prompt?: string;
+}
+
+/**
+ * Specifies which connection point to use when attaching a connector endpoint.
+ * - `'center'`       → shape centre (default behaviour, `ToPart=3`)
+ * - `{ name }`       → named connection point (e.g. `{ name: 'Top' }`)
+ * - `{ index }`      → connection point by zero-based row index
+ */
+export type ConnectionTarget =
+    | 'center'
+    | { name: string }
+    | { index: number };
+
+/** Ready-made connection-point presets. */
+export const StandardConnectionPoints: {
+    /** Four cardinal points: Top, Right, Bottom, Left. */
+    cardinal: ConnectionPointDef[];
+    /** Eight points: four cardinal + four corners. */
+    full: ConnectionPointDef[];
+} = {
+    cardinal: [
+        { name: 'Top',    xFraction: 0.5, yFraction: 1.0, direction: { x:  0, y:  1 } },
+        { name: 'Right',  xFraction: 1.0, yFraction: 0.5, direction: { x:  1, y:  0 } },
+        { name: 'Bottom', xFraction: 0.5, yFraction: 0.0, direction: { x:  0, y: -1 } },
+        { name: 'Left',   xFraction: 0.0, yFraction: 0.5, direction: { x: -1, y:  0 } },
+    ],
+    full: [
+        { name: 'Top',         xFraction: 0.5, yFraction: 1.0, direction: { x:  0, y:  1 } },
+        { name: 'Right',       xFraction: 1.0, yFraction: 0.5, direction: { x:  1, y:  0 } },
+        { name: 'Bottom',      xFraction: 0.5, yFraction: 0.0, direction: { x:  0, y: -1 } },
+        { name: 'Left',        xFraction: 0.0, yFraction: 0.5, direction: { x: -1, y:  0 } },
+        { name: 'TopLeft',     xFraction: 0.0, yFraction: 1.0, direction: { x: -1, y:  1 } },
+        { name: 'TopRight',    xFraction: 1.0, yFraction: 1.0, direction: { x:  1, y:  1 } },
+        { name: 'BottomRight', xFraction: 1.0, yFraction: 0.0, direction: { x:  1, y: -1 } },
+        { name: 'BottomLeft',  xFraction: 0.0, yFraction: 0.0, direction: { x: -1, y: -1 } },
+    ],
+};
+
 export interface NewShapeProps {
     text: string;
     x: number;
@@ -186,4 +245,10 @@ export interface NewShapeProps {
     textMarginLeft?: number;
     /** Right text margin in inches. */
     textMarginRight?: number;
+    /**
+     * Connection points to add to the shape.
+     * Use `StandardConnectionPoints.cardinal` for the four cardinal points,
+     * or `StandardConnectionPoints.full` for eight points.
+     */
+    connectionPoints?: ConnectionPointDef[];
 }

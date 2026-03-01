@@ -1,4 +1,4 @@
-import { VisioShape, ConnectorStyle } from './types/VisioTypes';
+import { VisioShape, ConnectorStyle, ConnectionTarget, ConnectionPointDef } from './types/VisioTypes';
 import { VisioPackage } from './VisioPackage';
 import { ShapeModifier, ShapeStyle } from './ShapeModifier';
 import { VisioPropType } from './types/VisioTypes';
@@ -72,9 +72,24 @@ export class Shape {
         await this.modifier.deleteShape(this.pageId, this.id);
     }
 
-    async connectTo(targetShape: Shape, beginArrow?: string, endArrow?: string, style?: ConnectorStyle): Promise<this> {
-        await this.modifier.addConnector(this.pageId, this.id, targetShape.id, beginArrow, endArrow, style);
+    async connectTo(
+        targetShape: Shape,
+        beginArrow?: string,
+        endArrow?: string,
+        style?: ConnectorStyle,
+        fromPort?: ConnectionTarget,
+        toPort?: ConnectionTarget,
+    ): Promise<this> {
+        await this.modifier.addConnector(this.pageId, this.id, targetShape.id, beginArrow, endArrow, style, fromPort, toPort);
         return this;
+    }
+
+    /**
+     * Add a connection point to this shape.
+     * Returns the zero-based index (IX) of the newly added point.
+     */
+    addConnectionPoint(point: ConnectionPointDef): number {
+        return this.modifier.addConnectionPoint(this.pageId, this.id, point);
     }
 
     async setStyle(style: ShapeStyle): Promise<this> {

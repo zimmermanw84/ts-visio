@@ -1,6 +1,7 @@
 
-import { ConnectorStyle } from '../types/VisioTypes';
+import { ConnectorStyle, ConnectionTarget } from '../types/VisioTypes';
 import { createLineSection } from '../utils/StyleHelpers';
+import { ConnectionPointBuilder } from './ConnectionPointBuilder';
 
 const ROUTING_VALUES: Record<string, string> = {
     straight: '2',
@@ -79,7 +80,9 @@ export class ConnectorBuilder {
     static calculateConnectorLayout(
         fromShapeId: string,
         toShapeId: string,
-        shapeHierarchy: Map<string, { shape: any; parent: any }>
+        shapeHierarchy: Map<string, { shape: any; parent: any }>,
+        fromPort?: ConnectionTarget,
+        toPort?: ConnectionTarget,
     ) {
         let beginX = 0, beginY = 0, endX = 0, endY = 0;
         let sourceGeom: { x: number, y: number, w: number, h: number } | null = null;
@@ -107,12 +110,31 @@ export class ConnectorBuilder {
         }
 
         if (sourceGeom && targetGeom) {
-            const startNode = this.getEdgePoint(sourceGeom.x, sourceGeom.y, sourceGeom.w, sourceGeom.h, targetGeom.x, targetGeom.y);
-            const endNode = this.getEdgePoint(targetGeom.x, targetGeom.y, targetGeom.w, targetGeom.h, sourceGeom.x, sourceGeom.y);
-            beginX = startNode.x;
-            beginY = startNode.y;
-            endX = endNode.x;
-            endY = endNode.y;
+            // Compute begin (from-side) endpoint
+            const beginPt = fromPort && fromPort !== 'center'
+                ? this.resolveConnectionPointPos(fromShapeId, fromPort, shapeHierarchy, sourceGeom)
+                : null;
+            if (beginPt) {
+                beginX = beginPt.x;
+                beginY = beginPt.y;
+            } else {
+                const sp = this.getEdgePoint(sourceGeom.x, sourceGeom.y, sourceGeom.w, sourceGeom.h, targetGeom.x, targetGeom.y);
+                beginX = sp.x;
+                beginY = sp.y;
+            }
+
+            // Compute end (to-side) endpoint
+            const endPt = toPort && toPort !== 'center'
+                ? this.resolveConnectionPointPos(toShapeId, toPort, shapeHierarchy, targetGeom)
+                : null;
+            if (endPt) {
+                endX = endPt.x;
+                endY = endPt.y;
+            } else {
+                const ep = this.getEdgePoint(targetGeom.x, targetGeom.y, targetGeom.w, targetGeom.h, sourceGeom.x, sourceGeom.y);
+                endX = ep.x;
+                endY = ep.y;
+            }
         }
 
         const dx = endX - beginX;
@@ -121,6 +143,33 @@ export class ConnectorBuilder {
         const angle = Math.atan2(dy, dx);
 
         return { beginX, beginY, endX, endY, width, angle };
+    }
+
+    /**
+     * Resolve a ConnectionTarget to an absolute page position using the shape hierarchy.
+     * Returns null when the target is 'center' or the named/indexed point is not found,
+     * signalling the caller to fall back to edge-intersection logic.
+     */
+    private static resolveConnectionPointPos(
+        shapeId: string,
+        target: ConnectionTarget,
+        shapeHierarchy: Map<string, { shape: any; parent: any }>,
+        geom: { x: number; y: number; w: number; h: number },
+    ): { x: number; y: number } | null {
+        const entry = shapeHierarchy.get(shapeId);
+        if (!entry) return null;
+
+        const resolved = ConnectionPointBuilder.resolveTarget(target, entry.shape);
+        if (resolved.xFraction === undefined || resolved.yFraction === undefined) return null;
+
+        const locPinX = parseFloat(this.getCellVal(entry.shape, 'LocPinX'));
+        const locPinY = parseFloat(this.getCellVal(entry.shape, 'LocPinY'));
+        const abs = this.getAbsolutePos(shapeId, shapeHierarchy);
+
+        return {
+            x: (abs.x - locPinX) + geom.w * resolved.xFraction,
+            y: (abs.y - locPinY) + geom.h * resolved.yFraction,
+        };
     }
 
     static createConnectorShapeObject(id: string, layout: any, beginArrow?: string, endArrow?: string, style?: ConnectorStyle) {
@@ -176,7 +225,15 @@ export class ConnectorBuilder {
         };
     }
 
-    static addConnectorToConnects(parsed: any, connectorId: string, fromShapeId: string, toShapeId: string) {
+    static addConnectorToConnects(
+        parsed: any,
+        connectorId: string,
+        fromShapeId: string,
+        toShapeId: string,
+        shapeHierarchy?: Map<string, { shape: any; parent: any }>,
+        fromPort?: ConnectionTarget,
+        toPort?: ConnectionTarget,
+    ) {
         if (!parsed.PageContents.Connects) {
             parsed.PageContents.Connects = { Connect: [] };
         }
@@ -188,13 +245,37 @@ export class ConnectorBuilder {
             parsed.PageContents.Connects.Connect = connectCollection;
         }
 
+        // Resolve from-side ToPart/ToCell
+        let fromToCell = 'PinX';
+        let fromToPart = '3';
+        if (fromPort && fromPort !== 'center' && shapeHierarchy) {
+            const fromEntry = shapeHierarchy.get(fromShapeId);
+            if (fromEntry) {
+                const r = ConnectionPointBuilder.resolveTarget(fromPort, fromEntry.shape);
+                fromToCell = r.toCell;
+                fromToPart = r.toPart;
+            }
+        }
+
+        // Resolve to-side ToPart/ToCell
+        let toToCell = 'PinX';
+        let toToPart = '3';
+        if (toPort && toPort !== 'center' && shapeHierarchy) {
+            const toEntry = shapeHierarchy.get(toShapeId);
+            if (toEntry) {
+                const r = ConnectionPointBuilder.resolveTarget(toPort, toEntry.shape);
+                toToCell = r.toCell;
+                toToPart = r.toPart;
+            }
+        }
+
         connectCollection.push({
             '@_FromSheet': connectorId,
             '@_FromCell': 'BeginX',
             '@_FromPart': '9',
             '@_ToSheet': fromShapeId,
-            '@_ToCell': 'PinX',
-            '@_ToPart': '3'
+            '@_ToCell': fromToCell,
+            '@_ToPart': fromToPart,
         });
 
         connectCollection.push({
@@ -202,8 +283,8 @@ export class ConnectorBuilder {
             '@_FromCell': 'EndX',
             '@_FromPart': '12',
             '@_ToSheet': toShapeId,
-            '@_ToCell': 'PinX',
-            '@_ToPart': '3'
+            '@_ToCell': toToCell,
+            '@_ToPart': toToPart,
         });
     }
 }
