@@ -1,4 +1,5 @@
 import { VisioPage, ConnectorStyle, PageOrientation, PageSizes, PageSizeName, ConnectionTarget } from './types/VisioTypes';
+import { Connector } from './Connector';
 import { VisioPackage } from './VisioPackage';
 import { ShapeReader } from './ShapeReader';
 import { ShapeModifier } from './ShapeModifier';
@@ -145,6 +146,22 @@ export class Page {
 
         return new Shape(internalStub, this.id, this.pkg, this.modifier);
     }
+    /**
+     * Return all connector shapes on the page.
+     * Each `Connector` exposes the from/to shape IDs, port targets, line style, arrows,
+     * and a `delete()` method to remove the connector.
+     */
+    getConnectors(): Connector[] {
+        const reader = new ShapeReader(this.pkg);
+        try {
+            const data = reader.readConnectors(this.pagePath);
+            return data.map(d => new Connector(d, this.id, this.modifier));
+        } catch (e) {
+            console.warn(`Could not read connectors for page ${this.id}:`, e);
+            return [];
+        }
+    }
+
     async connectShapes(
         fromShape: Shape,
         toShape: Shape,

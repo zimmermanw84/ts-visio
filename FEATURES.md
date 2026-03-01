@@ -5,7 +5,7 @@
 - **Document**: Create, load (path/Buffer/ArrayBuffer/Uint8Array), save
 - **Pages**: Add foreground/background pages, set background page, enumerate pages
 - **Shapes**: Standard rectangles, foreign/image shapes, containers, lists, swimlane pools/lanes, tables, groups
-- **Connectors**: Connect shapes with begin/end arrow styles
+- **Connectors**: Connect shapes with begin/end arrow styles; read connectors back via `page.getConnectors()`
 - **Shape positioning**: `placeRightOf`, `placeBelow`, absolute position update
 - **Shape data**: Custom properties (typed: string, number, boolean, date)
 - **Hyperlinks**: External URLs, internal page links
@@ -26,7 +26,7 @@
 - ~~`shape.delete()`~~ — ✅ Implemented (removes shape, orphaned Connects, and container Relationships)
 - ~~`doc.deletePage(page)`~~ — ✅ Implemented (removes page file, rels, pages.xml entry, Content Types override, BackPage refs)
 - `layer.delete()`
-- `connector.delete()`
+- ~~`connector.delete()`~~ — ✅ Implemented (`Connector` class returned by `page.getConnectors()`)
 
 ---
 
@@ -67,7 +67,7 @@
 - ~~`shape.getProperties()`~~ — ✅ Implemented (typed value coercion: String, Number, Boolean, Date)
 - ~~`shape.getHyperlinks()`~~ — ✅ Implemented (address, subAddress, description, newWindow)
 - ~~`shape.getLayerIndices()`~~ — ✅ Implemented (returns `number[]`)
-- `page.getConnectors()` — read existing `<Connect>` elements from a loaded file
+- ~~`page.getConnectors()`~~ — ✅ Implemented (returns `Connector[]` with `fromShapeId`, `toShapeId`, `fromPort`, `toPort`, `style`, `beginArrow`, `endArrow`, and `delete()`)
 - `page.getLayers()` — read existing layers from a loaded file
 - Sub-shapes of groups are parsed but not accessible (top-level only via `getShapes()`)
 
@@ -147,3 +147,4 @@
 | ✅ Done | Rich text formatting (italic, underline, strikethrough, text margins, paragraph spacing) |
 | ✅ Done | Named connection points (`ConnectionPointDef`, `StandardConnectionPoints`, port-aware connectors) |
 | ✅ Done | StyleSheet — document-level styles (`createStyle`, `getStyles`, `applyStyle`, `styleId` on shapes) |
+| ✅ Done | `page.getConnectors()` — read connectors from loaded files; `Connector` class with `fromShapeId`, `toShapeId`, `style`, arrows, and `delete()` |
