@@ -1,4 +1,4 @@
-import { VisioPage, ConnectorStyle, PageOrientation, PageSizes, PageSizeName, ConnectionTarget } from './types/VisioTypes';
+import { VisioPage, ConnectorStyle, PageOrientation, PageSizes, PageSizeName, ConnectionTarget, DrawingScaleInfo, LengthUnit } from './types/VisioTypes';
 import { Connector } from './Connector';
 import { VisioPackage } from './VisioPackage';
 import { ShapeReader } from './ShapeReader';
@@ -332,6 +332,44 @@ export class Page {
         return infos.map(
             l => new Layer(l.name, l.index, this.id, this.pkg, this.modifier, l.visible, l.locked)
         );
+    }
+
+    /**
+     * Return the current drawing scale, or `null` if no custom scale is set (1:1).
+     *
+     * @example
+     * const scale = page.getDrawingScale();
+     * // { pageScale: 1, pageUnit: 'in', drawingScale: 10, drawingUnit: 'ft' }
+     */
+    getDrawingScale(): DrawingScaleInfo | null {
+        return this.modifier.getDrawingScale(this.id);
+    }
+
+    /**
+     * Set a custom drawing scale for the page.
+     * One `pageScale` `pageUnit` on paper equals `drawingScale` `drawingUnit` in the real world.
+     *
+     * @example
+     * // 1 inch on paper = 10 feet in the real world
+     * page.setDrawingScale(1, 'in', 10, 'ft');
+     *
+     * // 1:100 metric
+     * page.setDrawingScale(1, 'cm', 100, 'cm');
+     */
+    setDrawingScale(
+        pageScale: number, pageUnit: LengthUnit,
+        drawingScale: number, drawingUnit: LengthUnit
+    ): this {
+        this.modifier.setDrawingScale(this.id, pageScale, pageUnit, drawingScale, drawingUnit);
+        return this;
+    }
+
+    /**
+     * Remove any custom drawing scale, reverting the page to a 1:1 ratio.
+     */
+    clearDrawingScale(): this {
+        this.modifier.clearDrawingScale(this.id);
+        return this;
     }
 
     /** @internal Used by VisioDocument.renamePage() to keep in-memory state in sync. */
