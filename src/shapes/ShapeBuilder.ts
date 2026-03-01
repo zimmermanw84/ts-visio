@@ -1,6 +1,6 @@
 
 import { NewShapeProps } from '../types/VisioTypes';
-import { createFillSection, createCharacterSection, createLineSection } from '../utils/StyleHelpers';
+import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, vertAlignValue } from '../utils/StyleHelpers';
 
 export class ShapeBuilder {
     static createStandardShape(id: string, props: NewShapeProps): any {
@@ -41,11 +41,21 @@ export class ShapeBuilder {
             }));
         }
 
-        if (props.fontColor || props.bold) {
+        if (props.fontColor || props.bold || props.fontSize !== undefined || props.fontFamily !== undefined) {
             shape.Section.push(createCharacterSection({
                 bold: props.bold,
-                color: props.fontColor
+                color: props.fontColor,
+                fontSize: props.fontSize,
+                fontFamily: props.fontFamily,
             }));
+        }
+
+        if (props.horzAlign !== undefined) {
+            shape.Section.push(createParagraphSection(props.horzAlign));
+        }
+
+        if (props.verticalAlign !== undefined) {
+            (shape.Cell as any[]).push({ '@_N': 'VerticalAlign', '@_V': vertAlignValue(props.verticalAlign) });
         }
 
         // Add Geometry

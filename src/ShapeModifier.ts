@@ -1,7 +1,7 @@
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { VisioPackage } from './VisioPackage';
 import { RelsManager } from './core/RelsManager';
-import { createFillSection, createCharacterSection, createLineSection } from './utils/StyleHelpers';
+import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, vertAlignValue, HorzAlign, VertAlign } from './utils/StyleHelpers';
 import { RELATIONSHIP_TYPES } from './core/VisioConstants';
 import { NewShapeProps } from './types/VisioTypes';
 import { ForeignShapeBuilder } from './shapes/ForeignShapeBuilder';
@@ -361,13 +361,32 @@ export class ShapeModifier {
         }
 
         // Update/Add Character (Font/Text Style)
-        if (style.fontColor || style.bold !== undefined) {
-            // Remove existing Character section if any
+        if (style.fontColor || style.bold !== undefined || style.fontSize !== undefined || style.fontFamily !== undefined) {
             shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Character');
             shape.Section.push(createCharacterSection({
                 bold: style.bold,
-                color: style.fontColor
+                color: style.fontColor,
+                fontSize: style.fontSize,
+                fontFamily: style.fontFamily,
             }));
+        }
+
+        // Update/Add Paragraph (Horizontal Alignment)
+        if (style.horzAlign !== undefined) {
+            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Paragraph');
+            shape.Section.push(createParagraphSection(style.horzAlign));
+        }
+
+        // Update/Add VerticalAlign (top-level shape Cell)
+        if (style.verticalAlign !== undefined) {
+            if (!shape.Cell) shape.Cell = [];
+            if (!Array.isArray(shape.Cell)) shape.Cell = [shape.Cell];
+            const existingCell = shape.Cell.find((c: any) => c['@_N'] === 'VerticalAlign');
+            if (existingCell) {
+                existingCell['@_V'] = vertAlignValue(style.verticalAlign);
+            } else {
+                shape.Cell.push({ '@_N': 'VerticalAlign', '@_V': vertAlignValue(style.verticalAlign) });
+            }
         }
 
         this.saveParsed(pageId, parsed);
@@ -915,4 +934,12 @@ export interface ShapeStyle {
     fillColor?: string;
     fontColor?: string;
     bold?: boolean;
+    /** Font size in points (e.g. 14 for 14pt). */
+    fontSize?: number;
+    /** Font family name (e.g. "Arial"). */
+    fontFamily?: string;
+    /** Horizontal text alignment. */
+    horzAlign?: HorzAlign;
+    /** Vertical text alignment. */
+    verticalAlign?: VertAlign;
 }

@@ -81,6 +81,14 @@ export interface NewShapeProps {
     fillColor?: string;
     fontColor?: string;
     bold?: boolean;
+    /** Font size in points (e.g. 14 for 14pt). */
+    fontSize?: number;
+    /** Font family name (e.g. "Arial", "Times New Roman"). */
+    fontFamily?: string;
+    /** Horizontal text alignment within the shape. */
+    horzAlign?: 'left' | 'center' | 'right' | 'justify';
+    /** Vertical text alignment within the shape. */
+    verticalAlign?: 'top' | 'middle' | 'bottom';
     type?: string;
     masterId?: string;
     imgRelId?: string;

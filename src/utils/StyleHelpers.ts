@@ -40,24 +40,63 @@ export const ArrowHeads = {
     // There are many variants, but 29 is the standard "Fork"
 };
 
-export function createCharacterSection(props: { bold?: boolean; color?: string }): VisioSection {
-    // Visio Character Section
-    // N="Character"
-    // Row T="Character"
-    //   Cell N="Color" V="#FF0000"
-    //   Cell N="Style" V="1" (1=Bold, 2=Italic, 4=Underline) - Bitwise
+const HORZ_ALIGN_VALUES = {
+    left: '0',
+    center: '1',
+    right: '2',
+    justify: '3',
+} as const;
 
-    // Visio booleans are often 0 or 1.
-    // Style=1 (Bold)
+const VERT_ALIGN_VALUES = {
+    top: '0',
+    middle: '1',
+    bottom: '2',
+} as const;
 
-    // Default Style is 0 (Normal)
+export type HorzAlign = keyof typeof HORZ_ALIGN_VALUES;
+export type VertAlign = keyof typeof VERT_ALIGN_VALUES;
+
+export function horzAlignValue(align: HorzAlign): string {
+    return HORZ_ALIGN_VALUES[align];
+}
+
+export function vertAlignValue(align: VertAlign): string {
+    return VERT_ALIGN_VALUES[align];
+}
+
+export function createCharacterSection(props: {
+    bold?: boolean;
+    color?: string;
+    /** Font size in points (e.g. 12 for 12pt). Stored internally as inches (pt / 72). */
+    fontSize?: number;
+    /** Font family name (e.g. "Arial"). Uses FONT() formula for portability. */
+    fontFamily?: string;
+}): VisioSection {
     let styleVal = 0;
     if (props.bold) {
-        styleVal += 1; // Add Bold bit
+        styleVal += 1; // Bold bit
     }
 
-    // Default Color is usually 0 (Black) or specific hex
     const colorVal = props.color || '#000000';
+
+    const cells: any[] = [
+        { '@_N': 'Color', '@_V': colorVal, '@_F': hexToRgb(colorVal) },
+        { '@_N': 'Style', '@_V': styleVal.toString() },
+    ];
+
+    if (props.fontSize !== undefined) {
+        // Visio stores size in inches internally; @_U="PT" is a display hint for the ShapeSheet UI
+        const sizeInInches = props.fontSize / 72;
+        cells.push({ '@_N': 'Size', '@_V': sizeInInches.toString(), '@_U': 'PT' });
+    }
+
+    if (props.fontFamily !== undefined) {
+        // FONT("name") formula lets Visio resolve the font by name at load time.
+        // @_V="0" is a safe placeholder (document default font) used before Visio evaluates the formula.
+        cells.push({ '@_N': 'Font', '@_V': '0', '@_F': `FONT("${props.fontFamily}")` });
+    } else {
+        cells.push({ '@_N': 'Font', '@_V': '1' }); // Default (Calibri)
+    }
 
     return {
         '@_N': 'Character',
@@ -65,11 +104,21 @@ export function createCharacterSection(props: { bold?: boolean; color?: string }
             {
                 '@_T': 'Character',
                 '@_IX': '0',
+                Cell: cells,
+            }
+        ]
+    };
+}
+
+export function createParagraphSection(horzAlign: HorzAlign): VisioSection {
+    return {
+        '@_N': 'Paragraph',
+        Row: [
+            {
+                '@_T': 'Paragraph',
+                '@_IX': '0',
                 Cell: [
-                    { '@_N': 'Color', '@_V': colorVal, '@_F': hexToRgb(colorVal) },
-                    { '@_N': 'Style', '@_V': styleVal.toString() },
-                    // Size, Font, etc could go here
-                    { '@_N': 'Font', '@_V': '1' } // Default font (Calibri usually)
+                    { '@_N': 'HorzAlign', '@_V': HORZ_ALIGN_VALUES[horzAlign] },
                 ]
             }
         ]
