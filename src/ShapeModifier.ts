@@ -5,7 +5,9 @@ import { createFillSection, createCharacterSection, createLineSection, createPar
 import { RELATIONSHIP_TYPES } from './core/VisioConstants';
 import { NewShapeProps, VisioPropType, ConnectorStyle, ConnectionTarget, ConnectionPointDef } from './types/VisioTypes';
 import { ConnectionPointBuilder } from './shapes/ConnectionPointBuilder';
+import { ShapeReader } from './ShapeReader';
 import type { ShapeData, ShapeHyperlink } from './Shape';
+import type { VisioShape } from './types/VisioTypes';
 import { ForeignShapeBuilder } from './shapes/ForeignShapeBuilder';
 import { ShapeBuilder } from './shapes/ShapeBuilder';
 import { ConnectorBuilder } from './shapes/ConnectorBuilder';
@@ -1340,6 +1342,16 @@ export class ShapeModifier {
             .filter((s: string) => s.length > 0)
             .map((s: string) => parseInt(s))
             .filter((n: number) => !isNaN(n));
+    }
+
+    /**
+     * Return the direct child shapes of a group or container shape.
+     * Returns an empty array for non-group shapes or shapes with no children.
+     */
+    getShapeChildren(pageId: string, shapeId: string): VisioShape[] {
+        const pagePath = this.getPagePath(pageId);
+        const reader = new ShapeReader(this.pkg);
+        return reader.readChildShapes(pagePath, shapeId);
     }
 }
 

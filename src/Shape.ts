@@ -43,6 +43,22 @@ export class Shape {
         return this.internalShape.Name;
     }
 
+    /**
+     * The shape's Type attribute — `'Group'` for group shapes, `'Shape'` (or `undefined`
+     * normalised to `'Shape'`) for regular shapes.
+     */
+    get type(): string {
+        return this.internalShape.Type ?? 'Shape';
+    }
+
+    /**
+     * `true` if this shape is a Group (i.e. it can contain nested child shapes).
+     * Use `shape.getChildren()` to retrieve those children.
+     */
+    get isGroup(): boolean {
+        return this.internalShape.Type === 'Group';
+    }
+
     get text(): string {
         return this.internalShape.Text || '';
     }
@@ -189,6 +205,24 @@ export class Shape {
      */
     getLayerIndices(): number[] {
         return this.modifier.getShapeLayerIndices(this.pageId, this.id);
+    }
+
+    /**
+     * Return the direct child shapes of this group.
+     * Returns an empty array for non-group shapes or groups with no children.
+     *
+     * Only direct children are returned — grandchildren are accessible by calling
+     * `getChildren()` on the child shape.
+     *
+     * @example
+     * const group = await page.addShape({ text: 'G', x: 5, y: 5, width: 4, height: 4, type: 'Group' });
+     * await page.addShape({ text: 'Child A', x: 1, y: 1, width: 1, height: 1 }, group.id);
+     * await page.addShape({ text: 'Child B', x: 2, y: 1, width: 1, height: 1 }, group.id);
+     * group.getChildren(); // → [Shape('Child A'), Shape('Child B')]
+     */
+    getChildren(): Shape[] {
+        const children = this.modifier.getShapeChildren(this.pageId, this.id);
+        return children.map(c => new Shape(c, this.pageId, this.pkg, this.modifier));
     }
 
     /** Current rotation angle in degrees (0 if no Angle cell is set). */
