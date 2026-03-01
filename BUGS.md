@@ -61,7 +61,7 @@ Both methods called `pkg.getFileText()` + `parser.parse()` directly instead of `
 
 ## High
 
-### 🔴 BUG 5 — `as any` Cast on JSZip `.async()` Type
+### ✅ BUG 5 — `as any` Cast on JSZip `.async()` Type
 **File:** `src/VisioPackage.ts:44`
 
 `file.async(type as any)` suppresses TypeScript's ability to catch type mismatches on the JSZip API call.
@@ -70,25 +70,25 @@ Both methods called `pkg.getFileText()` + `parser.parse()` directly instead of `
 
 ---
 
-### 🔴 BUG 6 — `backPageId` Type Mismatch
+### ✅ BUG 6 — `backPageId` Type Mismatch
 **Files:** `src/core/PageManager.ts:12`, `src/types/VisioTypes.ts:50`
 
 `PageEntry.backPageId` is typed as `number`; `VisioPage.backPageId` is typed as `string`. The assignment in `VisioDocument.pages` silently coerces between the two.
 
-**Fix:** Settle on `string` throughout and convert at the parse boundary in `PageManager.load()`.
+**Fix:** Changed `PageEntry.backPageId` from `number` to `string`. Parse boundary in `PageManager.load()` now uses `.toString()` instead of `parseInt()`. Regression test added to `tests/PageManager.test.ts`.
 
 ---
 
-### 🔴 BUG 7 — Two Conflicting `PageManager` Classes
+### ✅ BUG 7 — Two Conflicting `PageManager` Classes
 **Files:** `src/PageManager.ts`, `src/core/PageManager.ts`
 
 `index.ts` exports the top-level `src/PageManager.ts` (a simpler implementation without relationship resolution or page creation). `VisioDocument` uses `src/core/PageManager.ts`. Consumers who import `{ PageManager }` from the package get the wrong class.
 
-**Fix:** Either remove `src/PageManager.ts` or update `index.ts` to re-export from `src/core/PageManager.ts`.
+**Fix:** Deleted `src/PageManager.ts`. Updated `src/index.ts` to re-export `PageManager` and `PageEntry` from `src/core/PageManager.ts`. Updated `tests/BlankCreation.test.ts` to use the correct `load()` method and `PageEntry` field names.
 
 ---
 
-### 🔴 BUG 8 — `placeRightOf` Position Calculation Wrong
+### ✅ BUG 8 — `placeRightOf` Position Calculation Wrong
 **File:** `src/Shape.ts:71`
 
 ```typescript
@@ -99,7 +99,9 @@ const newX = targetShape.x + targetShape.width + options.gap;
 const newX = targetShape.x + (targetShape.width / 2) + options.gap + (this.width / 2);
 ```
 
-The gap between shapes is always `targetWidth/2 + thisWidth/2` too wide.
+The gap between shapes was always `targetWidth/2 + thisWidth/2` too wide.
+
+**Fix:** Applied the correct formula. Updated `tests/Layout.test.ts` expected values to match correct geometry.
 
 ---
 
@@ -112,23 +114,23 @@ Geometry row coordinates store raw numbers (e.g. `Width=2`, `Height=1`). Visio r
 
 ---
 
-### 🔴 BUG 11 — `isBinaryExtension` Only Recognises Image Formats
+### ✅ BUG 11 — `isBinaryExtension` Only Recognises Image Formats
 **File:** `src/core/MediaConstants.ts:13-15`
 
-Only `png`, `jpg`, `jpeg`, `gif`, `bmp`, `tiff` are treated as binary. Loading a `.vsdx` that contains `emf`, `wmf`, `svg`, `ole`, or other binary assets causes them to be decoded as UTF-8 strings, permanently corrupting the data when the file is saved.
+Only `png`, `jpg`, `jpeg`, `gif`, `bmp`, `tiff` were treated as binary. Loading a `.vsdx` that contains `emf`, `wmf`, `svg`, `ole`, or other binary assets caused them to be decoded as UTF-8 strings, permanently corrupting the data when the file is saved.
 
-**Fix:** Expand the binary extension list to include at minimum `emf`, `wmf`, `svg`, `ole`, `bin`, `ico`, `tif`, `wdp`. Consider defaulting to binary for unknown extensions.
+**Fix:** Inverted the logic — introduced a `TEXT_EXTENSIONS = new Set(['xml', 'rels'])` allowlist and changed `isBinaryExtension()` to return `!TEXT_EXTENSIONS.has(ext.toLowerCase())`. Unknown extensions now default to binary, preventing corruption of any current or future binary asset type. Also expanded `MIME_TYPES` with `emf`, `wmf`, `svg`, `ico`, `tif`, `wdp`. The `type as any` cast in `VisioPackage.ts` was also replaced with the correct `'string' | 'nodebuffer'` union (BUG 5). Three regression tests added to `tests/VisioPackage.test.ts`.
 
 ---
 
 ## Medium
 
-### 🟡 BUG 12 — New Pages Missing `NameU` Attribute
+### ✅ BUG 12 — New Pages Missing `NameU` Attribute
 **File:** `src/core/PageManager.ts:170-174, 245-249`
 
-Pages created by `createPage()` and `createBackgroundPage()` are given `@_ID` and `@_Name` but not `@_NameU` (universal/culture-invariant name), which Visio uses internally for cross-locale references.
+Pages created by `createPage()` and `createBackgroundPage()` were given `@_ID` and `@_Name` but not `@_NameU` (universal/culture-invariant name), which Visio uses internally for cross-locale references.
 
-**Fix:** Add `'@_NameU': name` to the page node object in both creation paths.
+**Fix:** Added `'@_NameU': name` to the page node object in both `createPage()` and `createBackgroundPage()`. Two regression tests added to `tests/BackgroundPages.test.ts`.
 
 ---
 
@@ -262,7 +264,7 @@ These set `@_V` (value) to the strings `'Height'` and `'TxtHeight'`, which Visio
 | Severity | Total | Fixed | Open |
 |----------|-------|-------|------|
 | Critical | 4 | 4 | 0 |
-| High | 6 | 1 | 5 |
-| Medium | 6 | 3 | 3 |
+| High | 6 | 6 | 0 |
+| Medium | 6 | 4 | 2 |
 | Low | 7 | 0 | 7 |
-| **Total** | **23** | **8** | **15** |
+| **Total** | **23** | **14** | **9** |

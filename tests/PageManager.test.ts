@@ -50,6 +50,34 @@ describe('PageManager', () => {
         });
     });
 
+    it('should parse backPageId as string, not number (BUG 6)', () => {
+        const pagesXml = `
+            <Pages>
+                <Page ID="1" Name="Page-1" BackPage="2" r:id="rId1"/>
+                <Page ID="2" Name="BG" Background="1" r:id="rId2"/>
+            </Pages>
+        `;
+        const relsXml = `
+            <Relationships>
+                <Relationship Id="rId1" Type="http://..." Target="page1.xml"/>
+                <Relationship Id="rId2" Type="http://..." Target="page2.xml"/>
+            </Relationships>
+        `;
+
+        vi.mocked(mockPkg.getFileText).mockImplementation((path) => {
+            if (path === 'visio/pages/pages.xml') return pagesXml;
+            if (path === 'visio/pages/_rels/pages.xml.rels') return relsXml;
+            throw new Error(`Unexpected path: ${path}`);
+        });
+
+        const pages = manager.load();
+        const fgPage = pages.find(p => p.name === 'Page-1')!;
+
+        // Must be a string, not a number, to match VisioPage.backPageId type
+        expect(fgPage.backPageId).toBe('2');
+        expect(typeof fgPage.backPageId).toBe('string');
+    });
+
     it('should parse multiple pages', () => {
         const pagesXml = `
             <Pages>
