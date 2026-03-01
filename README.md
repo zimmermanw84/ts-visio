@@ -25,6 +25,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Read-Back API**: Read custom properties, hyperlinks, and layer assignments from existing shapes.
 - **Page Size & Orientation**: Set canvas dimensions with named sizes (`Letter`, `A4`, …) or raw inches; rotate between portrait and landscape.
 - **Document Metadata**: Read and write document properties (title, author, description, keywords, company, dates) via `doc.getMetadata()` / `doc.setMetadata()`.
+- **Named Connection Points**: Define specific ports on shapes (`Top`, `Right`, etc.) and connect to them precisely using `fromPort`/`toPort` on any connector API.
 
 Feature gaps are being tracked in [FEATURES.md](./FEATURES.md).
 
@@ -555,6 +556,57 @@ await shape.setStyle({
 
 `lineSpacing` is a multiplier: `1.0` = single, `1.5` = 1.5×, `2.0` = double.
 `spaceBefore` / `spaceAfter` are in **points**. Text margins are in **inches**.
+
+---
+
+#### 28. Named Connection Points
+Define specific ports on shapes and connect to them precisely instead of relying on edge-intersection.
+
+```typescript
+import { StandardConnectionPoints } from 'ts-visio';
+
+// 1. Add connection points at shape-creation time
+const nodeA = await page.addShape({
+    text: 'A', x: 2, y: 3, width: 2, height: 1,
+    connectionPoints: StandardConnectionPoints.cardinal, // Top, Right, Bottom, Left
+});
+
+const nodeB = await page.addShape({
+    text: 'B', x: 6, y: 3, width: 2, height: 1,
+    connectionPoints: StandardConnectionPoints.cardinal,
+});
+
+// 2. Connect using named ports (Right of A → Left of B)
+await page.connectShapes(nodeA, nodeB, undefined, undefined, undefined,
+    { name: 'Right' },   // fromPort
+    { name: 'Left' },    // toPort
+);
+
+// 3. Fluent Shape API
+await nodeA.connectTo(nodeB, undefined, undefined, undefined,
+    { name: 'Right' }, { name: 'Left' });
+
+// 4. Add a point to an existing shape by index
+const ix = nodeA.addConnectionPoint({
+    name: 'Center',
+    xFraction: 0.5, yFraction: 0.5,
+    type: 'both',
+});
+
+// 5. Connect by zero-based index instead of name
+await page.connectShapes(nodeA, nodeB, undefined, undefined, undefined,
+    { index: 1 }, // Right (IX=1 in cardinal preset)
+    { index: 3 }, // Left  (IX=3 in cardinal preset)
+);
+
+// 6. 'center' target (default behaviour) works alongside named ports
+await page.connectShapes(nodeA, nodeB, undefined, undefined, undefined,
+    'center', { name: 'Left' });
+```
+
+`StandardConnectionPoints.cardinal` — 4 points: `Top`, `Right`, `Bottom`, `Left`.
+`StandardConnectionPoints.full` — 8 points: cardinal + `TopLeft`, `TopRight`, `BottomRight`, `BottomLeft`.
+Unknown port names fall back gracefully to edge-intersection routing without throwing.
 
 ---
 
