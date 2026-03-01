@@ -318,4 +318,19 @@ export class Page {
         const info = await this.modifier.addLayer(this.id, name, options);
         return new Layer(info.name, info.index, this.id, this.pkg, this.modifier);
     }
+
+    /**
+     * Return all layers defined on this page, ordered by index.
+     * Works for both newly created documents and loaded `.vsdx` files.
+     *
+     * @example
+     * const layers = page.getLayers();
+     * // [{ name: 'Background', index: 0, visible: true, locked: false }, ...]
+     */
+    getLayers(): Layer[] {
+        const infos = this.modifier.getPageLayers(this.id);
+        return infos.map(
+            l => new Layer(l.name, l.index, this.id, this.pkg, this.modifier, l.visible, l.locked)
+        );
+    }
 }

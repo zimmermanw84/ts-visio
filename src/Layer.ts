@@ -9,9 +9,21 @@ export class Layer {
         public index: number,
         private pageId?: string,
         private pkg?: VisioPackage,
-        modifier?: ShapeModifier
+        modifier?: ShapeModifier,
+        private _visible: boolean = true,
+        private _locked: boolean = false,
     ) {
         this.modifier = modifier ?? (pkg ? new ShapeModifier(pkg) : null);
+    }
+
+    /** Whether the layer is currently visible. */
+    get visible(): boolean {
+        return this._visible;
+    }
+
+    /** Whether the layer is currently locked. */
+    get locked(): boolean {
+        return this._locked;
     }
 
     async setVisible(visible: boolean): Promise<this> {
@@ -19,6 +31,7 @@ export class Layer {
             throw new Error('Layer was not created with page context. Cannot update properties.');
         }
         await this.modifier.updateLayerProperty(this.pageId, this.index, 'Visible', visible ? '1' : '0');
+        this._visible = visible;
         return this;
     }
 
@@ -27,6 +40,7 @@ export class Layer {
             throw new Error('Layer was not created with page context. Cannot update properties.');
         }
         await this.modifier.updateLayerProperty(this.pageId, this.index, 'Lock', locked ? '1' : '0');
+        this._locked = locked;
         return this;
     }
 
@@ -36,5 +50,28 @@ export class Layer {
 
     async show(): Promise<this> {
         return this.setVisible(true);
+    }
+
+    /**
+     * Rename this layer.
+     */
+    async rename(newName: string): Promise<this> {
+        if (!this.pageId || !this.modifier) {
+            throw new Error('Layer was not created with page context. Cannot update properties.');
+        }
+        await this.modifier.updateLayerProperty(this.pageId, this.index, 'Name', newName);
+        this.name = newName;
+        return this;
+    }
+
+    /**
+     * Delete this layer from the page.
+     * Removes the layer definition and strips it from all shape LayerMember cells.
+     */
+    async delete(): Promise<void> {
+        if (!this.pageId || !this.modifier) {
+            throw new Error('Layer was not created with page context. Cannot delete.');
+        }
+        this.modifier.deleteLayer(this.pageId, this.index);
     }
 }
