@@ -219,7 +219,7 @@ export class ShapeModifier {
             parsed.PageContents.Shapes = { Shape: [] };
         }
         if (!Array.isArray(parsed.PageContents.Shapes.Shape)) {
-            parsed.PageContents.Shapes.Shape = [parsed.PageContents.Shapes.Shape];
+            parsed.PageContents.Shapes.Shape = parsed.PageContents.Shapes.Shape ? [parsed.PageContents.Shapes.Shape] : [];
         }
 
         const newId = this.getNextId(parsed);

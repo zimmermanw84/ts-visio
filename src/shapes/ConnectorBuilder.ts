@@ -63,9 +63,8 @@ export class ConnectorBuilder {
                 }
             }
         };
-        const topShapes = parsed.PageContents.Shapes ?
-            (Array.isArray(parsed.PageContents.Shapes.Shape) ? parsed.PageContents.Shapes.Shape : [parsed.PageContents.Shapes.Shape])
-            : [];
+        const rawShapes = parsed.PageContents.Shapes?.Shape;
+        const topShapes = Array.isArray(rawShapes) ? rawShapes : rawShapes ? [rawShapes] : [];
         mapHierarchy(topShapes, null);
         return shapeHierarchy;
     }

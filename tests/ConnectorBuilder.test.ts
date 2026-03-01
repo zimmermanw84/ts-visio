@@ -124,6 +124,20 @@ describe('ConnectorBuilder Helpers', () => {
             expect(map.get('2')!.parent).toBeNull();
         });
 
+        it('should return empty map for empty <Shapes/> element without crashing (BUG 19)', () => {
+            // When fast-xml-parser parses <Shapes/>, Shapes.Shape is undefined.
+            // Previously [undefined] was passed to mapHierarchy, crashing on s['@_ID'].
+            const parsed = { PageContents: { Shapes: {} } }; // Shape key absent
+            expect(() => ConnectorBuilder.buildShapeHierarchy(parsed)).not.toThrow();
+            expect(ConnectorBuilder.buildShapeHierarchy(parsed).size).toBe(0);
+        });
+
+        it('should return empty map when Shapes element is absent (BUG 19)', () => {
+            const parsed = { PageContents: {} };
+            expect(() => ConnectorBuilder.buildShapeHierarchy(parsed)).not.toThrow();
+            expect(ConnectorBuilder.buildShapeHierarchy(parsed).size).toBe(0);
+        });
+
         it('should build nested hierarchy correctly', () => {
             const parsed = {
                 PageContents: {
