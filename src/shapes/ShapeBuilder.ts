@@ -2,6 +2,7 @@
 import { NewShapeProps } from '../types/VisioTypes';
 import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, createTextBlockSection, vertAlignValue } from '../utils/StyleHelpers';
 import { GeometryBuilder } from './GeometryBuilder';
+import { ConnectionPointBuilder } from './ConnectionPointBuilder';
 
 export class ShapeBuilder {
     static createStandardShape(id: string, props: NewShapeProps): any {
@@ -92,6 +93,11 @@ export class ShapeBuilder {
 
         if (props.verticalAlign !== undefined) {
             (shape.Cell as any[]).push({ '@_N': 'VerticalAlign', '@_V': vertAlignValue(props.verticalAlign) });
+        }
+
+        // Connection points
+        if (props.connectionPoints && props.connectionPoints.length > 0) {
+            shape.Section.push(ConnectionPointBuilder.buildConnectionSection(props.connectionPoints));
         }
 
         // Add Geometry
