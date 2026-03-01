@@ -14,6 +14,28 @@ describe('Connectors', () => {
         }
     });
 
+    it('should connect shapes on a page that starts empty (BUG 20)', async () => {
+        // addConnector normalised <Shapes/> (Shape=undefined) as [undefined] before the fix,
+        // producing malformed XML with an empty phantom shape before the connector.
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        // Add both shapes — first addShape call hits the empty-page normalisation path
+        const a = await page.addShape({ text: 'A', x: 1, y: 1, width: 1, height: 1 });
+        const b = await page.addShape({ text: 'B', x: 4, y: 1, width: 1, height: 1 });
+        await page.connectShapes(a, b);
+
+        const buffer = await doc.save();
+        const pkg = new VisioPackage();
+        await pkg.load(buffer);
+        const reader = new ShapeReader(pkg);
+        const shapes = reader.readShapes('visio/pages/page1.xml');
+
+        // There must be exactly 3 shapes: A, B, and the connector — no phantom undefined shape
+        expect(shapes).toHaveLength(3);
+        expect(shapes.every(s => s.ID !== undefined)).toBe(true);
+    });
+
     it('should create a connector between two shapes with correct visibility properties', async () => {
         const doc = await VisioDocument.create();
         const page = doc.pages[0];

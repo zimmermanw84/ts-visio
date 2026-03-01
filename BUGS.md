@@ -162,27 +162,32 @@ masterNodes = masterNodes ? [masterNodes] : [];
 
 ---
 
-### 🟡 BUG 19 — `ConnectorBuilder.buildShapeHierarchy` Crashes on Empty `<Shapes/>`
+### ✅ BUG 19 — `ConnectorBuilder.buildShapeHierarchy` Crashes on Empty `<Shapes/>`
 **File:** `src/shapes/ConnectorBuilder.ts:66-68`
 
-When a page has a `<Shapes/>` element with no `Shape` children, `parsed.PageContents.Shapes.Shape` is `undefined`. The code wraps it as `[undefined]`, which causes `mapHierarchy` to crash accessing `undefined['@_ID']`.
+When a page has a `<Shapes/>` element with no `Shape` children, `parsed.PageContents.Shapes.Shape` is `undefined`. The code wrapped it as `[undefined]`, which caused `mapHierarchy` to crash accessing `undefined['@_ID']`.
 
-**Fix:** Add a null guard: `[parsed.PageContents.Shapes.Shape].filter(Boolean)` or check for `undefined` before wrapping.
+**Fix:**
+```typescript
+const rawShapes = parsed.PageContents.Shapes?.Shape;
+const topShapes = Array.isArray(rawShapes) ? rawShapes : rawShapes ? [rawShapes] : [];
+```
 
 ---
 
-### 🟡 BUG 20 — First Shape Added to an Empty Page Produces `[undefined, shape]`
-**File:** `src/ShapeModifier.ts:227`
+### ✅ BUG 20 — `addConnector` on an Empty Page Produces `[undefined, connector]`
+**File:** `src/ShapeModifier.ts` (`addConnector`)
 
-When `parsed.PageContents.Shapes` exists but `.Shape` is `undefined` (parsed from `<Shapes/>`), the normalization:
+When `parsed.PageContents.Shapes` exists but `.Shape` is `undefined` (parsed from `<Shapes/>`), the normalization in `addConnector`:
 ```typescript
-if (!Array.isArray(parsed.PageContents.Shapes.Shape)) {
-    parsed.PageContents.Shapes.Shape = [parsed.PageContents.Shapes.Shape]; // [undefined]
-}
+parsed.PageContents.Shapes.Shape = [parsed.PageContents.Shapes.Shape]; // [undefined]
 ```
-produces `[undefined]`. Pushing the new shape yields `[undefined, newShape]`, and the serialised XML contains a malformed empty shape element before the real one.
+produced a phantom `undefined` entry before the connector shape, resulting in malformed XML.
 
-**Fix:** `topLevelShapes = topLevelShapes ? [topLevelShapes] : [];` (same pattern used elsewhere).
+**Fix:** Added null guard matching the pattern used in `addShape`, `addContainer`, and `addList`:
+```typescript
+parsed.PageContents.Shapes.Shape = parsed.PageContents.Shapes.Shape ? [parsed.PageContents.Shapes.Shape] : [];
+```
 
 ---
 
@@ -258,6 +263,6 @@ These set `@_V` (value) to the strings `'Height'` and `'TxtHeight'`, which Visio
 |----------|-------|-------|------|
 | Critical | 4 | 4 | 0 |
 | High | 6 | 1 | 5 |
-| Medium | 6 | 1 | 5 |
+| Medium | 6 | 3 | 3 |
 | Low | 7 | 0 | 7 |
-| **Total** | **23** | **6** | **17** |
+| **Total** | **23** | **8** | **15** |
