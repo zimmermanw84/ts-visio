@@ -1,6 +1,7 @@
 
 import { NewShapeProps } from '../types/VisioTypes';
 import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, vertAlignValue } from '../utils/StyleHelpers';
+import { GeometryBuilder } from './GeometryBuilder';
 
 export class ShapeBuilder {
     static createStandardShape(id: string, props: NewShapeProps): any {
@@ -61,18 +62,7 @@ export class ShapeBuilder {
         // Add Geometry
         // Only if NOT a Group AND NOT a Master Instance
         if (props.type !== 'Group' && !props.masterId) {
-            shape.Section.push({
-                '@_N': 'Geometry',
-                '@_IX': '0',
-                Cell: [{ '@_N': 'NoFill', '@_V': props.fillColor ? '0' : '1' }],
-                Row: [
-                    { '@_T': 'MoveTo', '@_IX': '1', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] },
-                    { '@_T': 'LineTo', '@_IX': '2', Cell: [{ '@_N': 'X', '@_V': props.width.toString(), '@_F': 'Width' }, { '@_N': 'Y', '@_V': '0' }] },
-                    { '@_T': 'LineTo', '@_IX': '3', Cell: [{ '@_N': 'X', '@_V': props.width.toString(), '@_F': 'Width' }, { '@_N': 'Y', '@_V': props.height.toString(), '@_F': 'Height' }] },
-                    { '@_T': 'LineTo', '@_IX': '4', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': props.height.toString(), '@_F': 'Height' }] },
-                    { '@_T': 'LineTo', '@_IX': '5', Cell: [{ '@_N': 'X', '@_V': '0' }, { '@_N': 'Y', '@_V': '0' }] }
-                ]
-            });
+            shape.Section.push(GeometryBuilder.build(props));
         }
 
         // Handle Text if provided
