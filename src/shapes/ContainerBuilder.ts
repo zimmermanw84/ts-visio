@@ -70,17 +70,20 @@ export class ContainerBuilder {
         if (!textXform.Cell) textXform.Cell = [];
         if (!Array.isArray(textXform.Cell)) textXform.Cell = [textXform.Cell];
 
-        const upsertCell = (name: string, val: string, unit: string) => {
+        // Extract the shape's current height for use as the static @_V on TxtPinY.
+        const heightVal = (shape.Cell as any[])?.find((c: any) => c['@_N'] === 'Height')?.['@_V'] ?? '1';
+
+        const upsertCell = (name: string, formula: string, unit: string, val: string) => {
             const idx = textXform.Cell.findIndex((c: any) => c['@_N'] === name);
-            const cell = { '@_N': name, '@_V': val, '@_U': unit };
+            const cell = { '@_N': name, '@_V': val, '@_F': formula, '@_U': unit };
             if (idx >= 0) textXform.Cell[idx] = cell;
             else textXform.Cell.push(cell);
         };
 
-        // Move text to top of shape: TxtPinY = Height, TxtLocPinY = TxtHeight
-        // Removed redundant '*1' from formulas
-        upsertCell('TxtPinY', 'Height', 'DY');
-        upsertCell('TxtLocPinY', 'TxtHeight', 'DY');
+        // Move text to top of shape: formula drives dynamic sizing; @_V is the static initial value.
+        // TxtHeight is Visio-computed, so its static value is left as '0'.
+        upsertCell('TxtPinY',    'Height',    'DY', heightVal);
+        upsertCell('TxtLocPinY', 'TxtHeight', 'DY', '0');
     }
 
     static makeList(shape: any, direction: 'vertical' | 'horizontal' = 'vertical') {

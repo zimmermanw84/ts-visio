@@ -205,6 +205,7 @@ export class PageManager {
         <Cell N="PageDrawSizeType" V="0"/>
     </PageSheet>
     <Shapes/>
+    <Connects/>
 </PageContents>`;
         this.pkg.updateFile(relativePath, pageContent);
 

@@ -2,6 +2,7 @@ import { VisioPackage } from './VisioPackage';
 import { PageManager } from './core/PageManager';
 import { Page } from './Page';
 import { MediaManager } from './core/MediaManager';
+import { VisioPage } from './types/VisioTypes';
 
 export class VisioDocument {
     private pageManager: PageManager;
@@ -36,21 +37,21 @@ export class VisioDocument {
         const newId = await this.pageManager.createPage(name);
         this._pageCache = null;
 
-        const pageStub = {
+        const pageStub: VisioPage = {
             ID: newId,
             Name: name,
             xmlPath: `visio/pages/page${newId}.xml`,
             Shapes: [],
             Connects: []
         };
-        return new Page(pageStub as any, this.pkg, this.mediaManager);
+        return new Page(pageStub, this.pkg, this.mediaManager);
     }
 
     get pages(): Page[] {
         if (!this._pageCache) {
             const internalPages = this.pageManager.load();
             this._pageCache = internalPages.map(p => {
-                const pageStub = {
+                const pageStub: VisioPage = {
                     ID: p.id.toString(),
                     Name: p.name,
                     // Thread the relationship-resolved path so that loaded files
@@ -61,7 +62,7 @@ export class VisioDocument {
                     isBackground: p.isBackground,
                     backPageId: p.backPageId
                 };
-                return new Page(pageStub as any, this.pkg, this.mediaManager);
+                return new Page(pageStub, this.pkg, this.mediaManager);
             });
         }
 
@@ -75,7 +76,7 @@ export class VisioDocument {
         const newId = await this.pageManager.createBackgroundPage(name);
         this._pageCache = null;
 
-        const pageStub = {
+        const pageStub: VisioPage = {
             ID: newId,
             Name: name,
             xmlPath: `visio/pages/page${newId}.xml`,
@@ -83,7 +84,7 @@ export class VisioDocument {
             Connects: [],
             isBackground: true
         };
-        return new Page(pageStub as any, this.pkg, this.mediaManager);
+        return new Page(pageStub, this.pkg, this.mediaManager);
     }
 
     /**

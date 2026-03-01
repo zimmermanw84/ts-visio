@@ -2,6 +2,7 @@ import { VisioPackage } from '../VisioPackage';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { MIME_TYPES } from './MediaConstants';
 import { createXmlParser, createXmlBuilder, buildXml } from '../utils/XmlHelper';
+import { createHash } from 'node:crypto';
 
 export class MediaManager {
     private parser: XMLParser;
@@ -18,10 +19,9 @@ export class MediaManager {
     private ensureIndex() {
         if (this.indexed) return;
 
-        const crypto = require('crypto');
         for (const [path, content] of this.pkg.filesMap.entries()) {
             if (path.startsWith('visio/media/') && Buffer.isBuffer(content)) {
-                const hash = crypto.createHash('sha1').update(content).digest('hex');
+                const hash = createHash('sha1').update(content).digest('hex');
                 // Store relative path suitable for relationships
                 const filename = path.split('/').pop();
                 if (filename) {
@@ -40,8 +40,7 @@ export class MediaManager {
 
     addMedia(name: string, data: Buffer): string {
         this.ensureIndex();
-        const crypto = require('crypto');
-        const hash = crypto.createHash('sha1').update(data).digest('hex');
+        const hash = createHash('sha1').update(data).digest('hex');
 
         if (this.deduplicationMap.has(hash)) {
             return this.deduplicationMap.get(hash)!;
@@ -82,7 +81,7 @@ export class MediaManager {
         }
 
         const defaults = parsed.Types.Default;
-        const exists = defaults.some((d: any) => d['@_Extension']?.toLowerCase() === extension);
+        const exists = defaults.some((d: any) => d['@_Extension']?.toLowerCase() === extension.toLowerCase());
 
         if (!exists) {
             defaults.push({

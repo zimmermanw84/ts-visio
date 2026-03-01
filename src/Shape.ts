@@ -11,12 +11,22 @@ export interface ShapeData {
     type?: VisioPropType;
 }
 
+/** Round a coordinate to 10 decimal places to prevent float-to-string-to-float precision drift. */
+function fmtCoord(n: number): string {
+    return parseFloat(n.toFixed(10)).toString();
+}
+
 export class Shape {
+    private modifier: ShapeModifier;
+
     constructor(
         private internalShape: VisioShape,
         private pageId: string,
-        private pkg: VisioPackage
-    ) { }
+        private pkg: VisioPackage,
+        modifier?: ShapeModifier
+    ) {
+        this.modifier = modifier ?? new ShapeModifier(pkg);
+    }
 
     get id(): string {
         return this.internalShape.ID;
@@ -31,9 +41,7 @@ export class Shape {
     }
 
     async setText(newText: string): Promise<void> {
-        const modifier = new ShapeModifier(this.pkg);
-        await modifier.updateShapeText(this.pageId, this.id, newText);
-        // Update local state to reflect change
+        await this.modifier.updateShapeText(this.pageId, this.id, newText);
         this.internalShape.Text = newText;
     }
 
@@ -54,16 +62,12 @@ export class Shape {
     }
 
     async connectTo(targetShape: Shape, beginArrow?: string, endArrow?: string): Promise<this> {
-        const modifier = new ShapeModifier(this.pkg);
-        await modifier.addConnector(this.pageId, this.id, targetShape.id, beginArrow, endArrow);
+        await this.modifier.addConnector(this.pageId, this.id, targetShape.id, beginArrow, endArrow);
         return this;
     }
 
     async setStyle(style: ShapeStyle): Promise<this> {
-        const modifier = new ShapeModifier(this.pkg);
-        await modifier.updateShapeStyle(this.pageId, this.id, style);
-        // Minimal local state update to reflect changes if necessary
-        // For now, valid XML is the priority.
+        await this.modifier.updateShapeStyle(this.pageId, this.id, style);
         return this;
     }
 
@@ -73,53 +77,40 @@ export class Shape {
         const newX = targetShape.x + (targetShape.width / 2) + options.gap + (this.width / 2);
         const newY = targetShape.y; // Align centres vertically
 
-        const modifier = new ShapeModifier(this.pkg);
-        await modifier.updateShapePosition(this.pageId, this.id, newX, newY);
+        await this.modifier.updateShapePosition(this.pageId, this.id, newX, newY);
 
-        // Update local state is crucial for chaining successive placements
-        if (this.internalShape.Cells['PinX']) this.internalShape.Cells['PinX'].V = newX.toString();
-        else this.internalShape.Cells['PinX'] = { V: newX.toString(), N: 'PinX' };
-
-        if (this.internalShape.Cells['PinY']) this.internalShape.Cells['PinY'].V = newY.toString();
-        else this.internalShape.Cells['PinY'] = { V: newY.toString(), N: 'PinY' };
+        // Update local state — rounded to avoid float precision drift in chained placements
+        this.setLocalCoord('PinX', newX);
+        this.setLocalCoord('PinY', newY);
 
         return this;
     }
 
     async placeBelow(targetShape: Shape, options: { gap: number } = { gap: 1 }): Promise<this> {
-        const newX = targetShape.x; // Align Centers
-        // Target Bottom = target.y - target.height / 2
-        // My Top = Target Bottom - gap
-        // My Center = My Top - my.height / 2
-        // My Center = target.y - target.height/2 - gap - my.height/2
+        const newX = targetShape.x; // Align centres horizontally
+        // Target bottom edge = target.y - target.height/2
+        // This centre = target bottom - gap - this.height/2
         const newY = targetShape.y - (targetShape.height + this.height) / 2 - options.gap;
 
-        const modifier = new ShapeModifier(this.pkg);
-        await modifier.updateShapePosition(this.pageId, this.id, newX, newY);
+        await this.modifier.updateShapePosition(this.pageId, this.id, newX, newY);
 
-        if (this.internalShape.Cells['PinX']) this.internalShape.Cells['PinX'].V = newX.toString();
-        else this.internalShape.Cells['PinX'] = { V: newX.toString(), N: 'PinX' };
-
-        if (this.internalShape.Cells['PinY']) this.internalShape.Cells['PinY'].V = newY.toString();
-        else this.internalShape.Cells['PinY'] = { V: newY.toString(), N: 'PinY' };
+        this.setLocalCoord('PinX', newX);
+        this.setLocalCoord('PinY', newY);
 
         return this;
     }
 
     addPropertyDefinition(name: string, type: number, options: { label?: string, invisible?: boolean } = {}): this {
-        const modifier = new ShapeModifier(this.pkg);
-        modifier.addPropertyDefinition(this.pageId, this.id, name, type, options);
+        this.modifier.addPropertyDefinition(this.pageId, this.id, name, type, options);
         return this;
     }
 
     setPropertyValue(name: string, value: string | number | boolean | Date): this {
-        const modifier = new ShapeModifier(this.pkg);
-        modifier.setPropertyValue(this.pageId, this.id, name, value);
+        this.modifier.setPropertyValue(this.pageId, this.id, name, value);
         return this;
     }
 
     addData(key: string, data: ShapeData): this {
-        // Auto-detect type if not provided
         let type = data.type;
         if (type === undefined) {
             if (data.value instanceof Date) {
@@ -132,70 +123,43 @@ export class Shape {
                 type = VisioPropType.String;
             }
         }
-
-        // 1. Define Property
-        this.addPropertyDefinition(key, type, {
-            label: data.label,
-            invisible: data.hidden
-        });
-
-        // 2. Set Value
+        this.addPropertyDefinition(key, type, { label: data.label, invisible: data.hidden });
         this.setPropertyValue(key, data.value);
-
         return this;
     }
 
     async addMember(memberShape: Shape): Promise<this> {
-        const modifier = new ShapeModifier(this.pkg);
-        // Type="Container" is the standard for Container relationships
-        await modifier.addRelationship(this.pageId, this.id, memberShape.id, 'Container');
+        await this.modifier.addRelationship(this.pageId, this.id, memberShape.id, 'Container');
         return this;
     }
 
     async addListItem(item: Shape): Promise<this> {
-        const modifier = new ShapeModifier(this.pkg);
-        await modifier.addListItem(this.pageId, this.id, item.id);
-
-        // Refresh local state after modifer updates (resizeToFit called internally)
+        await this.modifier.addListItem(this.pageId, this.id, item.id);
         await this.refreshLocalState();
         return this;
     }
 
     async resizeToFit(padding: number = 0.25): Promise<this> {
-        const modifier = new ShapeModifier(this.pkg);
-        await modifier.resizeContainerToFit(this.pageId, this.id, padding);
-
+        await this.modifier.resizeContainerToFit(this.pageId, this.id, padding);
         await this.refreshLocalState();
         return this;
     }
 
     private async refreshLocalState() {
-        // Reloads internal Cells from modifier's fresh XML
-        // This is a bit expensive but ensures consistency
-        const modifier = new ShapeModifier(this.pkg);
-        const geo = modifier.getShapeGeometry(this.pageId, this.id);
-
-        const update = (n: string, v: string) => {
-            if (this.internalShape.Cells[n]) this.internalShape.Cells[n].V = v;
-            else this.internalShape.Cells[n] = { V: v, N: n };
-        };
-
-        update('PinX', geo.x.toString());
-        update('PinY', geo.y.toString());
-        update('Width', geo.width.toString());
-        update('Height', geo.height.toString());
+        const geo = this.modifier.getShapeGeometry(this.pageId, this.id);
+        this.setLocalCoord('PinX', geo.x);
+        this.setLocalCoord('PinY', geo.y);
+        this.setLocalCoord('Width', geo.width);
+        this.setLocalCoord('Height', geo.height);
     }
 
     async addHyperlink(address: string, description?: string): Promise<this> {
-        const modifier = new ShapeModifier(this.pkg);
-        await modifier.addHyperlink(this.pageId, this.id, { address, description });
+        await this.modifier.addHyperlink(this.pageId, this.id, { address, description });
         return this;
     }
 
     async linkToPage(targetPage: { name: string }, description?: string): Promise<this> {
-        const modifier = new ShapeModifier(this.pkg);
-        // Internal links use SubAddress='PageName' and empty Address
-        await modifier.addHyperlink(this.pageId, this.id, {
+        await this.modifier.addHyperlink(this.pageId, this.id, {
             address: '',
             subAddress: targetPage.name,
             description
@@ -225,8 +189,7 @@ export class Shape {
 
     async assignLayer(layer: Layer | number): Promise<this> {
         const index = typeof layer === 'number' ? layer : layer.index;
-        const modifier = new ShapeModifier(this.pkg);
-        await modifier.assignLayer(this.pageId, this.id, index);
+        await this.modifier.assignLayer(this.pageId, this.id, index);
         return this;
     }
 
@@ -235,5 +198,11 @@ export class Shape {
      */
     async addToLayer(layer: Layer | number): Promise<this> {
         return this.assignLayer(layer);
+    }
+
+    private setLocalCoord(name: string, value: number): void {
+        const v = fmtCoord(value);
+        if (this.internalShape.Cells[name]) this.internalShape.Cells[name].V = v;
+        else this.internalShape.Cells[name] = { V: v, N: name };
     }
 }
