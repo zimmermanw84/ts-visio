@@ -1129,6 +1129,46 @@ export class ShapeModifier {
     }
 
     /**
+     * Set the page canvas size. Writes PageWidth / PageHeight into the PageSheet
+     * and sets DrawingSizeType=0 (Custom) so Visio does not override the values.
+     */
+    setPageSize(pageId: string, width: number, height: number): void {
+        if (width <= 0 || height <= 0) throw new Error('Page dimensions must be positive');
+        const parsed = this.getParsed(pageId);
+        this.ensurePageSheet(parsed);
+        const ps = parsed.PageContents.PageSheet;
+
+        const upsert = (name: string, value: string) => {
+            const existing = ps.Cell.find((c: any) => c['@_N'] === name);
+            if (existing) existing['@_V'] = value;
+            else ps.Cell.push({ '@_N': name, '@_V': value });
+        };
+
+        upsert('PageWidth',       width.toString());
+        upsert('PageHeight',      height.toString());
+        upsert('DrawingSizeType', '0');
+        upsert('PageDrawSizeType', '0');
+
+        this.saveParsed(pageId, parsed);
+    }
+
+    /**
+     * Read the current page canvas dimensions.
+     * Returns 8.5 × 11 (US Letter) if no PageSheet cells are present.
+     */
+    getPageDimensions(pageId: string): { width: number; height: number } {
+        const parsed = this.getParsed(pageId);
+        const ps = parsed.PageContents?.PageSheet;
+        if (!ps?.Cell) return { width: 8.5, height: 11 };
+        const cells: any[] = Array.isArray(ps.Cell) ? ps.Cell : [ps.Cell];
+        const getVal = (name: string, def: number): number => {
+            const c = cells.find((cell: any) => cell['@_N'] === name);
+            return c ? parseFloat(c['@_V']) : def;
+        };
+        return { width: getVal('PageWidth', 8.5), height: getVal('PageHeight', 11) };
+    }
+
+    /**
      * Read back all hyperlinks attached to a shape.
      */
     getShapeHyperlinks(pageId: string, shapeId: string): ShapeHyperlink[] {

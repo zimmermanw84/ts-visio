@@ -80,7 +80,7 @@
 - `doc.deletePage(page)`
 - Page reordering
 - Page duplication
-- **Page size / orientation** — hardcoded 8.5×11 in `PageManager`; no public API to change it
+- ~~**Page size / orientation**~~ — ✅ Implemented (`page.setSize(w, h)`, `page.setNamedSize('A4')`, `page.setOrientation('landscape')`, `page.pageWidth`, `page.pageHeight`, `page.orientation`; `PageSizes` constant exported)
 - **Drawing scale** — scale settings are fixed in the page template
 
 ---
@@ -141,7 +141,7 @@
 | ✅ Done | Non-rectangular geometry (ellipse, diamond, rounded-rect, triangle, parallelogram) |
 | ✅ Done | Connector routing style and line styling |
 | ✅ Done | Missing exports (`Layer`, `SchemaDiagram`, `VisioValidator`) |
-| 🟡 Medium | Page size / orientation API |
+| ✅ Done | Page size / orientation API (`PageSizes`, `setSize`, `setNamedSize`, `setOrientation`) |
 | 🟢 Low | Document metadata |
 | 🟢 Low | Masters / stencils public API |
 | 🟢 Low | Rich text / paragraph formatting |

@@ -23,6 +23,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Deletion**: Remove shapes and pages cleanly (including orphaned connectors and relationships).
 - **Lookup API**: Find shapes by ID, predicate, or look up pages by name.
 - **Read-Back API**: Read custom properties, hyperlinks, and layer assignments from existing shapes.
+- **Page Size & Orientation**: Set canvas dimensions with named sizes (`Letter`, `A4`, …) or raw inches; rotate between portrait and landscape.
 
 Feature gaps are being tracked in [FEATURES.md](./FEATURES.md).
 
@@ -458,6 +459,36 @@ await shape1.connectTo(shape2, ArrowHeads.One, ArrowHeads.CrowsFoot, {
 // Via page.connectShapes()
 await page.connectShapes(a, b, undefined, undefined, { routing: 'straight' });
 ```
+
+#### 25. Page Size & Orientation
+Control the canvas dimensions using named paper sizes or raw inch values.
+
+```typescript
+import { PageSizes } from 'ts-visio';
+
+// Use a named paper size (portrait by default)
+page.setNamedSize('A4');                     // 8.268" × 11.693"
+page.setNamedSize('Letter', 'landscape');   // 11" × 8.5"
+
+// Set arbitrary dimensions in inches
+page.setSize(13.33, 7.5);    // 13.33" × 7.5" widescreen
+
+// Rotate the existing canvas without changing the paper size
+page.setOrientation('landscape');  // swaps width and height if needed
+page.setOrientation('portrait');
+
+// Read current dimensions
+console.log(page.pageWidth);    // e.g. 11
+console.log(page.pageHeight);   // e.g. 8.5
+console.log(page.orientation);  // 'landscape' | 'portrait'
+
+// All size methods are chainable
+page.setNamedSize('A3').setOrientation('landscape');
+```
+
+Available named sizes in `PageSizes`: `Letter`, `Legal`, `Tabloid`, `A3`, `A4`, `A5`.
+
+---
 
 ## Examples
 
