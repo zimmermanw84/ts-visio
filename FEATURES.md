@@ -25,7 +25,7 @@
 
 - ~~`shape.delete()`~~ — ✅ Implemented (removes shape, orphaned Connects, and container Relationships)
 - ~~`doc.deletePage(page)`~~ — ✅ Implemented (removes page file, rels, pages.xml entry, Content Types override, BackPage refs)
-- `layer.delete()`
+- ~~`layer.delete()`~~ — ✅ Implemented (`layer.delete()` removes row from PageSheet and cleans up LayerMember cells on all shapes)
 - ~~`connector.delete()`~~ — ✅ Implemented (`Connector` class returned by `page.getConnectors()`)
 
 ---
@@ -68,18 +68,18 @@
 - ~~`shape.getHyperlinks()`~~ — ✅ Implemented (address, subAddress, description, newWindow)
 - ~~`shape.getLayerIndices()`~~ — ✅ Implemented (returns `number[]`)
 - ~~`page.getConnectors()`~~ — ✅ Implemented (returns `Connector[]` with `fromShapeId`, `toShapeId`, `fromPort`, `toPort`, `style`, `beginArrow`, `endArrow`, and `delete()`)
-- `page.getLayers()` — read existing layers from a loaded file
-- Sub-shapes of groups are parsed but not accessible (top-level only via `getShapes()`)
+- ~~`page.getLayers()`~~ — ✅ Implemented (returns `Layer[]` with `visible`/`locked` state; `layer.rename()`, `layer.delete()`)
+- ~~Sub-shapes of groups accessible via `shape.getChildren()`~~ — ✅ Implemented (`ShapeReader.readChildShapes`; `shape.isGroup`, `shape.type`)
 
 ---
 
 ### 6. Page Operations
 
-- `doc.getPage(name)` / `doc.findPage(name)` — no lookup by name or ID
-- `page.rename(name)`
-- `doc.deletePage(page)`
-- Page reordering
-- Page duplication
+- ~~`doc.getPage(name)`~~ — ✅ Implemented (exact name match, case-sensitive)
+- ~~`doc.renamePage(page, newName)`~~ — ✅ Implemented (updates pages.xml and in-memory `page.name`)
+- ~~`doc.deletePage(page)`~~ — ✅ Implemented (removes page file, rels, pages.xml entry, Content Types override, BackPage refs)
+- ~~Page reordering (`doc.movePage(page, toIndex)`~~) — ✅ Implemented (clamps to valid range)
+- ~~Page duplication (`doc.duplicatePage(page, newName?)`~~) — ✅ Implemented (copies XML + rels, inserts adjacent to source)
 - ~~**Page size / orientation**~~ — ✅ Implemented (`page.setSize(w, h)`, `page.setNamedSize('A4')`, `page.setOrientation('landscape')`, `page.pageWidth`, `page.pageHeight`, `page.orientation`; `PageSizes` constant exported)
 - **Drawing scale** — scale settings are fixed in the page template
 
@@ -97,7 +97,7 @@
 
 - ~~**Document metadata**~~ — ✅ Implemented (`doc.setMetadata(props)`, `doc.getMetadata()`; writes `docProps/core.xml` and `docProps/app.xml`; supports title, author, description, keywords, lastModifiedBy, company, manager, created, modified)
 - ~~**StyleSheet**~~ — ✅ Implemented (`doc.createStyle(name, props)`, `doc.getStyles()`, `shape.applyStyle(id)`, `addShape({ styleId })`, `StyleSheetManager` in `visio/document.xml`)
-- **Color palette** — document-level color table
+- ~~**Color palette**~~ — ✅ Implemented (`doc.addColor(hex)`, `doc.getColors()`, `doc.getColorIndex(hex)`; de-duplicates; built-in black/white at indices 0/1)
 
 ---
 
@@ -124,7 +124,7 @@
 - ~~`page.findShapes(predicate)`~~ — ✅ Implemented (searches all shapes including nested group children)
 - ~~`page.getShapeById(id)`~~ — ✅ Implemented (recursive search through group tree)
 - ~~`doc.getPage(name)`~~ — ✅ Implemented (exact name match, case-sensitive)
-- `shape.getChildren()` — access sub-shapes of groups/containers
+- ~~`shape.getChildren()`~~ — ✅ Implemented (direct children of groups/containers; `shape.isGroup`, `shape.type`)
 - ~~`Shape.setStyle` only accepts `ShapeStyle` which does not cover line style~~  — ✅ Implemented (`lineColor`, `lineWeight` (pt), `linePattern` added to `ShapeStyle`; `setStyle({ lineColor: '#cc0000' })` works post-creation)
 
 ---
@@ -143,7 +143,12 @@
 | ✅ Done | Missing exports (`Layer`, `SchemaDiagram`, `VisioValidator`) |
 | ✅ Done | Page size / orientation API (`PageSizes`, `setSize`, `setNamedSize`, `setOrientation`) |
 | ✅ Done | Document metadata (`setMetadata`, `getMetadata` on `VisioDocument`) |
+| ✅ Done | `layer.delete()`, `layer.rename()`, `page.getLayers()` |
+| ✅ Done | `shape.getChildren()`, `shape.isGroup`, `shape.type` |
+| ✅ Done | `doc.renamePage()`, `doc.movePage()`, `doc.duplicatePage()` |
+| ✅ Done | Color palette (`doc.addColor`, `getColors`, `getColorIndex`) |
 | 🟢 Low | Masters / stencils public API |
+| 🟡 Medium | Drawing scale (page-level unit mapping) |
 | ✅ Done | Rich text formatting (italic, underline, strikethrough, text margins, paragraph spacing) |
 | ✅ Done | Named connection points (`ConnectionPointDef`, `StandardConnectionPoints`, port-aware connectors) |
 | ✅ Done | StyleSheet — document-level styles (`createStyle`, `getStyles`, `applyStyle`, `styleId` on shapes) |
