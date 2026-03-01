@@ -71,6 +71,15 @@ export enum VisioPropType {
     Currency = 7
 }
 
+/** Non-rectangular geometry variants supported by ShapeBuilder. */
+export type ShapeGeometry =
+    | 'rectangle'
+    | 'ellipse'
+    | 'diamond'
+    | 'rounded-rectangle'
+    | 'triangle'
+    | 'parallelogram';
+
 export interface NewShapeProps {
     text: string;
     x: number;
@@ -89,6 +98,10 @@ export interface NewShapeProps {
     horzAlign?: 'left' | 'center' | 'right' | 'justify';
     /** Vertical text alignment within the shape. */
     verticalAlign?: 'top' | 'middle' | 'bottom';
+    /** Shape geometry. Defaults to 'rectangle'. */
+    geometry?: ShapeGeometry;
+    /** Corner radius in inches for 'rounded-rectangle'. Defaults to 10% of the smaller dimension. */
+    cornerRadius?: number;
     type?: string;
     masterId?: string;
     imgRelId?: string;

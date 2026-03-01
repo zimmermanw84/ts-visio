@@ -53,12 +53,10 @@
 
 ### 4. Non-Rectangular Geometry
 
-`ShapeBuilder` always produces a rectangle. No built-in support for:
-
-- Ellipse / circle (`EllipticalArcTo` geometry rows)
-- Rounded rectangle
-- Diamond / rhombus
-- Common flowchart primitives (process, decision, start/end, etc.)
+- ~~**Ellipse / circle**~~ — ✅ Implemented (Visio `Ellipse` row; `geometry: 'ellipse'`)
+- ~~**Rounded rectangle**~~ — ✅ Implemented (`EllipticalArcTo` corners; `geometry: 'rounded-rectangle'`, optional `cornerRadius` in inches)
+- ~~**Diamond / rhombus**~~ — ✅ Implemented (4-vertex polygon starting at top; `geometry: 'diamond'`)
+- ~~**Flowchart primitives**~~ — ✅ Implemented: `'triangle'` (right-pointing), `'parallelogram'` (Data/IO shape, 20% skew)
 
 ---
 
@@ -144,7 +142,7 @@ These classes exist in the codebase but are not exported from `src/index.ts`:
 | ✅ Done | `page.getShapeById`, `page.findShapes`, `doc.getPage(name)` |
 | ✅ Done | Read properties/hyperlinks/layer indices back from existing shapes |
 | ✅ Done | Rotation, flip, and resize via `Shape` API |
-| 🟡 Medium | Non-rectangular geometry (ellipse, diamond) |
+| ✅ Done | Non-rectangular geometry (ellipse, diamond, rounded-rect, triangle, parallelogram) |
 | 🟡 Medium | Connector routing style and line styling |
 | 🟡 Medium | Page size / orientation API |
 | 🟡 Medium | Missing exports (`Layer`, `SchemaDiagram`, `VisioValidator`) |

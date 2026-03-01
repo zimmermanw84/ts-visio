@@ -8,8 +8,6 @@
 A Node.js library to strict-type interact with Visio (`.vsdx`) files.
 Built using specific schema-level abstractions to handle the complex internal structure of Visio documents (ShapeSheets, Pages, Masters).
 
-> **Status**: Work In Progress (TDD).
-
 ## Features
 
 - **Read VSDX**: Open and parse `.vsdx` files (zipped XML).
@@ -25,6 +23,8 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Deletion**: Remove shapes and pages cleanly (including orphaned connectors and relationships).
 - **Lookup API**: Find shapes by ID, predicate, or look up pages by name.
 - **Read-Back API**: Read custom properties, hyperlinks, and layer assignments from existing shapes.
+
+Feature gaps are being tracked in [FEATURES.md](./FEATURES.md).
 
 ## Installation
 
