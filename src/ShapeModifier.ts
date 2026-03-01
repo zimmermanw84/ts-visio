@@ -471,6 +471,92 @@ export class ShapeModifier {
         this.saveParsed(pageId, parsed);
     }
 
+    /**
+     * Set the rotation angle of a shape. Degrees are converted to radians
+     * for storage in the Angle cell (Visio's native unit).
+     */
+    async rotateShape(pageId: string, shapeId: string, degrees: number): Promise<void> {
+        const parsed = this.getParsed(pageId);
+        const shape = this.getShapeMap(parsed).get(shapeId);
+        if (!shape) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+
+        if (!shape.Cell) shape.Cell = [];
+        if (!Array.isArray(shape.Cell)) shape.Cell = [shape.Cell];
+
+        const radians = (degrees * Math.PI) / 180;
+        const existing = shape.Cell.find((c: any) => c['@_N'] === 'Angle');
+        if (existing) existing['@_V'] = radians.toString();
+        else shape.Cell.push({ '@_N': 'Angle', '@_V': radians.toString() });
+
+        this.saveParsed(pageId, parsed);
+    }
+
+    /**
+     * Set the flip state for a shape along the X or Y axis.
+     * FlipX mirrors left-to-right; FlipY mirrors top-to-bottom.
+     */
+    setShapeFlip(pageId: string, shapeId: string, axis: 'x' | 'y', enabled: boolean): void {
+        const parsed = this.getParsed(pageId);
+        const shape = this.getShapeMap(parsed).get(shapeId);
+        if (!shape) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+
+        if (!shape.Cell) shape.Cell = [];
+        if (!Array.isArray(shape.Cell)) shape.Cell = [shape.Cell];
+
+        const cellName = axis === 'x' ? 'FlipX' : 'FlipY';
+        const value = enabled ? '1' : '0';
+        const existing = shape.Cell.find((c: any) => c['@_N'] === cellName);
+        if (existing) existing['@_V'] = value;
+        else shape.Cell.push({ '@_N': cellName, '@_V': value });
+
+        this.saveParsed(pageId, parsed);
+    }
+
+    /**
+     * Resize a shape, keeping it centred on its current PinX/PinY.
+     * Updates Width, Height, LocPinX, LocPinY, and the cached @_V on any
+     * Geometry cells whose @_F formula references Width or Height, so that
+     * non-Visio renderers see consistent values.
+     */
+    async resizeShape(pageId: string, shapeId: string, width: number, height: number): Promise<void> {
+        const parsed = this.getParsed(pageId);
+        const shape = this.getShapeMap(parsed).get(shapeId);
+        if (!shape) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+
+        if (!shape.Cell) shape.Cell = [];
+        if (!Array.isArray(shape.Cell)) shape.Cell = [shape.Cell];
+
+        const upsert = (name: string, val: string) => {
+            const cell = shape.Cell.find((c: any) => c['@_N'] === name);
+            if (cell) cell['@_V'] = val;
+            else shape.Cell.push({ '@_N': name, '@_V': val });
+        };
+
+        upsert('Width',   width.toString());
+        upsert('Height',  height.toString());
+        upsert('LocPinX', (width  / 2).toString());
+        upsert('LocPinY', (height / 2).toString());
+
+        // Keep cached @_V consistent for renderers that don't evaluate formulas
+        if (shape.Section) {
+            const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
+            for (const section of sections) {
+                if (section['@_N'] !== 'Geometry' || !section.Row) continue;
+                const rows = Array.isArray(section.Row) ? section.Row : [section.Row];
+                for (const row of rows) {
+                    if (!row.Cell) continue;
+                    const cells = Array.isArray(row.Cell) ? row.Cell : [row.Cell];
+                    for (const cell of cells) {
+                        if (cell['@_F'] === 'Width')  cell['@_V'] = width.toString();
+                        if (cell['@_F'] === 'Height') cell['@_V'] = height.toString();
+                    }
+                }
+            }
+        }
+
+        this.saveParsed(pageId, parsed);
+    }
+
     async updateShapePosition(pageId: string, shapeId: string, x: number, y: number): Promise<void> {
         const parsed = this.getParsed(pageId);
         const shape = this.getShapeMap(parsed).get(shapeId);

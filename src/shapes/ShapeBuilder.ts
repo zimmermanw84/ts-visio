@@ -19,8 +19,8 @@ export class ShapeBuilder {
                 { '@_N': 'PinY', '@_V': props.y.toString() },
                 { '@_N': 'Width', '@_V': props.width.toString() },
                 { '@_N': 'Height', '@_V': props.height.toString() },
-                { '@_N': 'LocPinX', '@_V': (props.width / 2).toString() },
-                { '@_N': 'LocPinY', '@_V': (props.height / 2).toString() }
+                { '@_N': 'LocPinX', '@_V': (props.width / 2).toString(), '@_F': 'Width*0.5' },
+                { '@_N': 'LocPinY', '@_V': (props.height / 2).toString(), '@_F': 'Height*0.5' }
             ],
             Section: []
             // Text added at end by caller or we can do it here if props.text is final
