@@ -16,8 +16,8 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Connections**: Analyze connectivity between shapes.
 - **Modular Architecture**: Use specialized components for loading, page management, shape reading, and modification.
 - **Modify Content**: Update text content of shapes.
-- **Create Shapes**: Add new rectangular shapes with text to pages.
-- **Connect Shapes**: Create dynamic connectors between shapes.
+- **Create Shapes**: Rectangles, ellipses, diamonds, rounded rectangles, triangles, parallelograms.
+- **Connect Shapes**: Dynamic connectors with arrow styles, line styling, and routing (straight / orthogonal / curved).
 - **Text Styling**: Font size, font family, bold, color, horizontal/vertical alignment.
 - **Shape Transformations**: Rotate, flip (X/Y), and resize shapes via a fluent API.
 - **Deletion**: Remove shapes and pages cleanly (including orphaned connectors and relationships).
@@ -416,6 +416,47 @@ const links = shape.getHyperlinks();
 
 // Layer indices
 const indices = shape.getLayerIndices(); // e.g. [0, 2]
+```
+
+#### 23. Non-Rectangular Geometry
+Use the `geometry` prop on `addShape()` to create common flowchart primitives without touching XML.
+
+```typescript
+// Ellipse / circle
+await page.addShape({ text: "Start", x: 1, y: 5, width: 2, height: 2, geometry: 'ellipse' });
+
+// Decision diamond
+await page.addShape({ text: "Yes?", x: 4, y: 5, width: 2, height: 2, geometry: 'diamond' });
+
+// Rounded rectangle (optional corner radius in inches)
+await page.addShape({ text: "Process", x: 7, y: 5, width: 3, height: 2,
+    geometry: 'rounded-rectangle', cornerRadius: 0.2 });
+
+// Right-pointing triangle
+await page.addShape({ text: "Extract", x: 1, y: 2, width: 2, height: 2, geometry: 'triangle' });
+
+// Parallelogram (Data / IO shape)
+await page.addShape({ text: "Input", x: 4, y: 2, width: 3, height: 1.5, geometry: 'parallelogram' });
+```
+
+Supported values: `'rectangle'` (default), `'ellipse'`, `'diamond'`, `'rounded-rectangle'`, `'triangle'`, `'parallelogram'`.
+
+#### 24. Connector Styling
+Control line appearance and routing algorithm on any connector.
+
+```typescript
+import { ArrowHeads } from 'ts-visio/utils/StyleHelpers';
+
+// Styled connector with crow's foot arrow and custom line
+await shape1.connectTo(shape2, ArrowHeads.One, ArrowHeads.CrowsFoot, {
+    lineColor: '#cc0000',   // Hex stroke color
+    lineWeight: 1.5,        // Stroke width in points
+    linePattern: 2,         // 1=solid, 2=dash, 3=dot, 4=dash-dot
+    routing: 'curved',      // 'straight' | 'orthogonal' (default) | 'curved'
+});
+
+// Via page.connectShapes()
+await page.connectShapes(a, b, undefined, undefined, { routing: 'straight' });
 ```
 
 ## Examples
