@@ -12,7 +12,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 
 ## Features
 
-- **Read VSDX**: Open and parse `.vsdx` files (zippped XML).
+- **Read VSDX**: Open and parse `.vsdx` files (zipped XML).
 - **Strict Typing**: Interact with `VisioPage`, `VisioShape`, and `VisioConnect` objects.
 - **ShapeSheet Access**: Read `Cells`, `Rows`, and `Sections` directly.
 - **Connections**: Analyze connectivity between shapes.
@@ -20,6 +20,11 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Modify Content**: Update text content of shapes.
 - **Create Shapes**: Add new rectangular shapes with text to pages.
 - **Connect Shapes**: Create dynamic connectors between shapes.
+- **Text Styling**: Font size, font family, bold, color, horizontal/vertical alignment.
+- **Shape Transformations**: Rotate, flip (X/Y), and resize shapes via a fluent API.
+- **Deletion**: Remove shapes and pages cleanly (including orphaned connectors and relationships).
+- **Lookup API**: Find shapes by ID, predicate, or look up pages by name.
+- **Read-Back API**: Read custom properties, hyperlinks, and layer assignments from existing shapes.
 
 ## Installation
 
@@ -63,9 +68,13 @@ const shape = await page.addShape({
     y: 1,
     width: 3,
     height: 1,
-    fillColor: "#ff0000", // Option hexadecimal fill color
+    fillColor: "#ff0000",   // Hex fill color
     fontColor: "#ffffff",
-    bold: true
+    bold: true,
+    fontSize: 14,           // Points
+    fontFamily: "Segoe UI",
+    horzAlign: "center",    // "left" | "center" | "right" | "justify"
+    verticalAlign: "middle" // "top" | "middle" | "bottom"
 });
 
 // Modify text
@@ -343,6 +352,70 @@ await pool.addListItem(lane2);
 // This binds their movement so they stay inside the lane
 await lane1.addMember(startShape);
 await lane2.addMember(serverShape);
+```
+
+#### 19. Shape Transformations
+Rotate, flip, and resize shapes using a fluent API.
+
+```typescript
+const shape = await page.addShape({ text: "Widget", x: 3, y: 3, width: 2, height: 1 });
+
+// Rotate 45 degrees (clockwise)
+await shape.rotate(45);
+console.log(shape.angle); // 45
+
+// Mirror horizontally or vertically
+await shape.flipX();
+await shape.flipY(false); // un-flip
+
+// Resize (keeps the pin point centred)
+await shape.resize(4, 2);
+console.log(shape.width, shape.height); // 4, 2
+
+// Chainable
+await shape.rotate(90).then(s => s.resize(3, 1));
+```
+
+#### 20. Deleting Shapes and Pages
+Remove shapes or entire pages. Orphaned connectors and relationships are cleaned up automatically.
+
+```typescript
+// Delete a shape
+await shape.delete();
+
+// Delete a page (removes page file, rels, and all back-page references)
+await doc.deletePage(page2);
+```
+
+#### 21. Lookup API
+Find shapes and pages without iterating manually.
+
+```typescript
+// Find a shape by its numeric ID (searches nested groups too)
+const target = await page.getShapeById("42");
+
+// Find all shapes matching a predicate
+const servers = await page.findShapes(s => s.text.startsWith("Server"));
+
+// Look up a page by name (exact, case-sensitive)
+const detailPage = doc.getPage("Architecture Diagram");
+```
+
+#### 22. Reading Shape Data Back
+Retrieve custom properties, hyperlinks, and layer assignments that were previously written.
+
+```typescript
+// Custom properties (shape data)
+const props = shape.getProperties();
+console.log(props["IP"].value);    // "192.168.1.10"
+console.log(props["Port"].type);   // VisioPropType.Number
+
+// Hyperlinks
+const links = shape.getHyperlinks();
+// [ { address: "https://example.com", description: "Docs", newWindow: false } ]
+
+// Layer indices
+const indices = shape.getLayerIndices(); // e.g. [0, 2]
 ```
 
 ## Examples
