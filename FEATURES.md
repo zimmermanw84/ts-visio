@@ -81,7 +81,7 @@
 - ~~Page reordering (`doc.movePage(page, toIndex)`~~) — ✅ Implemented (clamps to valid range)
 - ~~Page duplication (`doc.duplicatePage(page, newName?)`~~) — ✅ Implemented (copies XML + rels, inserts adjacent to source)
 - ~~**Page size / orientation**~~ — ✅ Implemented (`page.setSize(w, h)`, `page.setNamedSize('A4')`, `page.setOrientation('landscape')`, `page.pageWidth`, `page.pageHeight`, `page.orientation`; `PageSizes` constant exported)
-- **Drawing scale** — scale settings are fixed in the page template
+- ~~**Drawing scale**~~ — ✅ Implemented (`page.setDrawingScale(pageScale, pageUnit, drawingScale, drawingUnit)`, `page.getDrawingScale()`, `page.clearDrawingScale()`; `LengthUnit` and `DrawingScaleInfo` exported; reads/writes `PageScale`/`DrawingScale` PageSheet cells with `Unit` attribute; treats `Unit="MSG"` as no-scale sentinel)
 
 ---
 
@@ -147,8 +147,8 @@
 | ✅ Done | `shape.getChildren()`, `shape.isGroup`, `shape.type` |
 | ✅ Done | `doc.renamePage()`, `doc.movePage()`, `doc.duplicatePage()` |
 | ✅ Done | Color palette (`doc.addColor`, `getColors`, `getColorIndex`) |
+| ✅ Done | Drawing scale (`setDrawingScale`, `getDrawingScale`, `clearDrawingScale`; `LengthUnit`, `DrawingScaleInfo`) |
 | 🟢 Low | Masters / stencils public API |
-| 🟡 Medium | Drawing scale (page-level unit mapping) |
 | ✅ Done | Rich text formatting (italic, underline, strikethrough, text margins, paragraph spacing) |
 | ✅ Done | Named connection points (`ConnectionPointDef`, `StandardConnectionPoints`, port-aware connectors) |
 | ✅ Done | StyleSheet — document-level styles (`createStyle`, `getStyles`, `applyStyle`, `styleId` on shapes) |

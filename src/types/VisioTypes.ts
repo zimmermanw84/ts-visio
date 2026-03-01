@@ -107,6 +107,38 @@ export const PageSizes = {
 
 export type PageSizeName = keyof typeof PageSizes;
 
+/**
+ * Physical length units supported for drawing-scale cells.
+ * Imperial: `'in'` (inches), `'ft'` (feet), `'yd'` (yards), `'mi'` (miles)
+ * Metric:   `'mm'`, `'cm'`, `'m'`, `'km'`
+ */
+export type LengthUnit = 'in' | 'ft' | 'yd' | 'mi' | 'mm' | 'cm' | 'm' | 'km';
+
+/**
+ * Drawing-scale description returned by `page.getDrawingScale()` and
+ * accepted by `page.setDrawingScale()`.
+ *
+ * The ratio `drawingScale / pageScale` (after unit conversion to a common
+ * base) is the factor by which one page unit maps to real-world distance.
+ *
+ * @example
+ * // 1 inch on paper = 10 feet in the real world
+ * { pageScale: 1, pageUnit: 'in', drawingScale: 10, drawingUnit: 'ft' }
+ *
+ * // 1:100 metric
+ * { pageScale: 1, pageUnit: 'cm', drawingScale: 100, drawingUnit: 'cm' }
+ */
+export interface DrawingScaleInfo {
+    /** Measurement on the paper (e.g. 1). */
+    pageScale: number;
+    /** Unit for the paper measurement. */
+    pageUnit: LengthUnit;
+    /** Corresponding real-world measurement (e.g. 10). */
+    drawingScale: number;
+    /** Unit for the real-world measurement. */
+    drawingUnit: LengthUnit;
+}
+
 /** Connector line-routing algorithm. */
 export type ConnectorRouting = 'straight' | 'orthogonal' | 'curved';
 

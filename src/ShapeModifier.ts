@@ -2,8 +2,8 @@ import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { VisioPackage } from './VisioPackage';
 import { RelsManager } from './core/RelsManager';
 import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, createTextBlockSection, vertAlignValue, HorzAlign, VertAlign } from './utils/StyleHelpers';
-import { RELATIONSHIP_TYPES, SECTION_NAMES, SHAPE_TYPES, STRUCT_RELATIONSHIP_TYPES } from './core/VisioConstants';
-import { NewShapeProps, VisioPropType, ConnectorStyle, ConnectionTarget, ConnectionPointDef } from './types/VisioTypes';
+import { RELATIONSHIP_TYPES, SECTION_NAMES, SHAPE_TYPES, STRUCT_RELATIONSHIP_TYPES, LENGTH_UNIT_TO_VISIO, VISIO_TO_LENGTH_UNIT } from './core/VisioConstants';
+import { NewShapeProps, VisioPropType, ConnectorStyle, ConnectionTarget, ConnectionPointDef, DrawingScaleInfo, LengthUnit } from './types/VisioTypes';
 import { ConnectionPointBuilder } from './shapes/ConnectionPointBuilder';
 import { ShapeReader } from './ShapeReader';
 import type { ShapeData, ShapeHyperlink } from './Shape';
@@ -1348,6 +1348,96 @@ export class ShapeModifier {
             return c ? parseFloat(c['@_V']) : def;
         };
         return { width: getVal('PageWidth', 8.5), height: getVal('PageHeight', 11) };
+    }
+
+    /**
+     * Read the drawing scale from the PageSheet.
+     * Returns `null` when no custom scale is set (i.e. 1:1 / no-scale default).
+     */
+    getDrawingScale(pageId: string): DrawingScaleInfo | null {
+        const parsed = this.getParsed(pageId);
+        const ps = parsed.PageContents?.PageSheet;
+        if (!ps?.Cell) return null;
+        const cells: any[] = Array.isArray(ps.Cell) ? ps.Cell : [ps.Cell];
+        const getCell = (name: string) => cells.find((c: any) => c['@_N'] === name);
+
+        const psCell = getCell('PageScale');
+        const dsCell = getCell('DrawingScale');
+        if (!psCell && !dsCell) return null;
+
+        const psUnit  = psCell?.['@_Unit'] ?? 'MSG';
+        const dsUnit  = dsCell?.['@_Unit'] ?? 'MSG';
+        // "MSG" is Visio's sentinel for "no real unit" — treat as 1:1
+        if (psUnit === 'MSG' && dsUnit === 'MSG') return null;
+
+        const toUserUnit = (v: string): LengthUnit =>
+            (VISIO_TO_LENGTH_UNIT[v] as LengthUnit | undefined) ?? 'in';
+
+        return {
+            pageScale:   parseFloat(psCell?.['@_V'] ?? '1'),
+            pageUnit:    toUserUnit(psUnit),
+            drawingScale: parseFloat(dsCell?.['@_V'] ?? '1'),
+            drawingUnit:  toUserUnit(dsUnit),
+        };
+    }
+
+    /**
+     * Set a custom drawing scale on the PageSheet.
+     * @param pageScale   Measurement on paper (e.g. 1).
+     * @param pageUnit    Unit for the paper measurement (e.g. `'in'`).
+     * @param drawingScale Real-world measurement (e.g. 10).
+     * @param drawingUnit  Unit for the real-world measurement (e.g. `'ft'`).
+     */
+    setDrawingScale(
+        pageId: string,
+        pageScale: number, pageUnit: LengthUnit,
+        drawingScale: number, drawingUnit: LengthUnit
+    ): void {
+        if (pageScale <= 0 || drawingScale <= 0) {
+            throw new Error('Drawing scale values must be positive');
+        }
+        const parsed = this.getParsed(pageId);
+        this.ensurePageSheet(parsed);
+        const ps = parsed.PageContents.PageSheet;
+
+        const upsertWithUnit = (name: string, value: string, unit: string) => {
+            const existing = ps.Cell.find((c: any) => c['@_N'] === name);
+            if (existing) {
+                existing['@_V'] = value;
+                existing['@_Unit'] = unit;
+            } else {
+                ps.Cell.push({ '@_N': name, '@_V': value, '@_Unit': unit });
+            }
+        };
+
+        upsertWithUnit('PageScale',   pageScale.toString(),   LENGTH_UNIT_TO_VISIO[pageUnit]);
+        upsertWithUnit('DrawingScale', drawingScale.toString(), LENGTH_UNIT_TO_VISIO[drawingUnit]);
+
+        this.saveParsed(pageId, parsed);
+    }
+
+    /**
+     * Reset the drawing scale to 1:1 (no custom scale).
+     * Restores `PageScale` and `DrawingScale` to `V="1" Unit="MSG"`.
+     */
+    clearDrawingScale(pageId: string): void {
+        const parsed = this.getParsed(pageId);
+        this.ensurePageSheet(parsed);
+        const ps = parsed.PageContents.PageSheet;
+
+        const reset = (name: string) => {
+            const existing = ps.Cell.find((c: any) => c['@_N'] === name);
+            if (existing) {
+                existing['@_V'] = '1';
+                existing['@_Unit'] = 'MSG';
+            } else {
+                ps.Cell.push({ '@_N': name, '@_V': '1', '@_Unit': 'MSG' });
+            }
+        };
+
+        reset('PageScale');
+        reset('DrawingScale');
+        this.saveParsed(pageId, parsed);
     }
 
     /**

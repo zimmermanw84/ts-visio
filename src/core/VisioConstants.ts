@@ -57,6 +57,33 @@ export const STRUCT_RELATIONSHIP_TYPES = {
     Container: 'Container',
 } as const;
 
+/**
+ * Maps the user-facing `LengthUnit` strings to the Visio XML `Unit` attribute
+ * values used in PageSheet drawing-scale cells (`PageScale`, `DrawingScale`).
+ */
+export const LENGTH_UNIT_TO_VISIO: Record<string, string> = {
+    in:  'IN',
+    ft:  'FT',
+    yd:  'YD',
+    mi:  'MI',
+    mm:  'MM',
+    cm:  'CM',
+    m:   'M',
+    km:  'KM',
+} as const;
+
+/** Reverse map: Visio unit string → `LengthUnit`. */
+export const VISIO_TO_LENGTH_UNIT: Record<string, string> = {
+    IN:  'in',
+    FT:  'ft',
+    YD:  'yd',
+    MI:  'mi',
+    MM:  'mm',
+    CM:  'cm',
+    M:   'm',
+    KM:  'km',
+} as const;
+
 export const CONTENT_TYPES = {
     PNG: 'image/png',
     JPEG: 'image/jpeg',

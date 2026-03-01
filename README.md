@@ -30,6 +30,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Color Palette**: Register named colors in the document's color table via `doc.addColor()` and look them up by index or hex value with `doc.getColors()` / `doc.getColorIndex()`.
 - **Read Layers Back**: Enumerate existing layers from loaded files via `page.getLayers()`; delete a layer with `layer.delete()`, rename with `layer.rename()`, and read `layer.visible` / `layer.locked` state.
 - **Group Traversal**: Access nested child shapes via `shape.getChildren()`, check `shape.isGroup`, and read `shape.type`.
+- **Drawing Scale**: Set a real-world unit mapping on any page (`page.setDrawingScale()`), read it back (`page.getDrawingScale()`), or reset to 1:1 (`page.clearDrawingScale()`). Supports all common imperial and metric units.
 
 Feature gaps are being tracked in [FEATURES.md](./FEATURES.md).
 
@@ -788,6 +789,47 @@ for (const g of groups) {
 ```
 
 `getChildren()` returns `[]` for non-group shapes. Children are full `Shape` instances — all existing methods (`setStyle()`, `getProperties()`, `delete()`, etc.) work on them.
+
+#### 33. Drawing Scale
+Map page coordinates to real-world units. One `pageScale` `pageUnit` on the paper equals `drawingScale` `drawingUnit` in reality. Visio uses this to display rulers, grids, and shape dimensions in real-world terms.
+
+```typescript
+import type { LengthUnit, DrawingScaleInfo } from 'ts-visio';
+
+// 1 inch on paper = 10 feet in the real world (architectural)
+page.setDrawingScale(1, 'in', 10, 'ft');
+
+// 1:100 metric (1 cm on paper = 100 cm = 1 m in reality)
+page.setDrawingScale(1, 'cm', 100, 'cm');
+
+// Engineering: 1 inch = 20 feet
+page.setDrawingScale(1, 'in', 20, 'ft');
+
+// Read the current scale back
+const scale: DrawingScaleInfo | null = page.getDrawingScale();
+if (scale) {
+    console.log(`${scale.pageScale} ${scale.pageUnit} = ${scale.drawingScale} ${scale.drawingUnit}`);
+    // → "1 in = 10 ft"
+}
+
+// Returns null when no custom scale is set
+const freshPage = doc.pages[0];
+console.log(freshPage.getDrawingScale()); // null
+
+// Reset to 1:1 (no scale)
+page.clearDrawingScale();
+console.log(page.getDrawingScale()); // null
+
+// All methods are chainable
+page.setDrawingScale(1, 'mm', 1000, 'mm')
+    .setNamedSize('A1');  // combine with page size changes
+```
+
+Supported `LengthUnit` values:
+- Imperial: `'in'` (inches), `'ft'` (feet), `'yd'` (yards), `'mi'` (miles)
+- Metric: `'mm'`, `'cm'`, `'m'`, `'km'`
+
+The drawing scale does not affect the internal coordinate system — shape positions and sizes are still specified in page-inches. The scale is purely a display/annotation mapping applied by Visio's ruler and grid.
 
 ---
 
