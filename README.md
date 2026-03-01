@@ -28,6 +28,8 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Named Connection Points**: Define specific ports on shapes (`Top`, `Right`, etc.) and connect to them precisely using `fromPort`/`toPort` on any connector API.
 - **StyleSheets**: Create document-level named styles with fill, line, and text properties via `doc.createStyle()` and apply them to shapes at creation time (`styleId`) or post-creation (`shape.applyStyle()`).
 - **Color Palette**: Register named colors in the document's color table via `doc.addColor()` and look them up by index or hex value with `doc.getColors()` / `doc.getColorIndex()`.
+- **Read Layers Back**: Enumerate existing layers from loaded files via `page.getLayers()`; delete a layer with `layer.delete()`, rename with `layer.rename()`, and read `layer.visible` / `layer.locked` state.
+- **Group Traversal**: Access nested child shapes via `shape.getChildren()`, check `shape.isGroup`, and read `shape.type`.
 
 Feature gaps are being tracked in [FEATURES.md](./FEATURES.md).
 
@@ -316,12 +318,12 @@ await shape.toUrl('https://google.com')
 ```
 
 #### 17. Layers
-Organize complex diagrams with layers. Control visibility and locking programmatically.
+Organize complex diagrams with layers. Control visibility and locking programmatically, and read layers back from loaded files.
 
 ```typescript
 // 1. Define Layers
-const wireframe = await page.addLayer('Wireframe');
-const annotations = await page.addLayer('Annotations');
+const wireframe   = await page.addLayer('Wireframe');
+const annotations = await page.addLayer('Annotations', { visible: false });
 
 // 2. Assign Shapes to Layers
 await shape.addToLayer(wireframe);
@@ -333,6 +335,21 @@ await annotations.show();  // Show again
 
 // 4. Lock Layer
 await wireframe.setLocked(true);
+
+// 5. Read all layers back (works on loaded files too)
+const layers = page.getLayers();
+// [ { name: 'Wireframe', index: 0, visible: true, locked: true },
+//   { name: 'Annotations', index: 1, visible: true, locked: false } ]
+
+for (const layer of layers) {
+    console.log(layer.name, layer.visible, layer.locked);
+}
+
+// 6. Rename a layer
+await wireframe.rename('Structural');
+
+// 7. Delete a layer (cleans up shape assignments automatically)
+await annotations.delete();
 ```
 
 #### 18. Cross-Functional Flowcharts (Swimlanes)
@@ -725,6 +742,52 @@ doc.getColorIndex('#123456');  // → undefined (not registered)
 ```
 
 Built-in colors: IX 0 = `#000000` (black), IX 1 = `#FFFFFF` (white). User colors start at IX 2 and increment sequentially.
+
+---
+
+#### 32. Group Traversal (`shape.getChildren()`)
+Access nested child shapes of a group without touching XML. Only **direct** children are returned — call `getChildren()` recursively to walk a deeper tree.
+
+```typescript
+// 1. Create a group with children
+const group = await page.addShape({
+    text: 'Container', x: 5, y: 5, width: 6, height: 6, type: 'Group'
+});
+const childA = await page.addShape({ text: 'A', x: 1, y: 1, width: 2, height: 1 }, group.id);
+const childB = await page.addShape({ text: 'B', x: 1, y: 3, width: 2, height: 1 }, group.id);
+
+// 2. Check if a shape is a group
+console.log(group.isGroup);   // true
+console.log(childA.isGroup);  // false
+console.log(group.type);      // 'Group'
+
+// 3. Get direct children
+const children = group.getChildren();
+// → [Shape('A'), Shape('B')]
+
+for (const child of children) {
+    console.log(child.text, child.id);
+}
+
+// 4. Recursively walk a nested tree
+function walk(shape, depth = 0) {
+    console.log(' '.repeat(depth * 2) + shape.text);
+    for (const child of shape.getChildren()) {
+        walk(child, depth + 1);
+    }
+}
+walk(group);
+
+// 5. Works on shapes loaded from an existing .vsdx file
+const doc2   = await VisioDocument.load('existing.vsdx');
+const shapes = doc2.pages[0].getShapes();
+const groups = shapes.filter(s => s.isGroup);
+for (const g of groups) {
+    console.log(`Group "${g.text}" has ${g.getChildren().length} children`);
+}
+```
+
+`getChildren()` returns `[]` for non-group shapes. Children are full `Shape` instances — all existing methods (`setStyle()`, `getProperties()`, `delete()`, etc.) work on them.
 
 ---
 

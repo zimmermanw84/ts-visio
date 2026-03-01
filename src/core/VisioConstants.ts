@@ -46,6 +46,7 @@ export const SECTION_NAMES = {
     Property:   'Property',
     User:       'User',
     LayerMem:   'LayerMem',
+    Layer:      'Layer',
 } as const;
 
 /**

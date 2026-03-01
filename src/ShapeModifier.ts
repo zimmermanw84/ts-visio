@@ -1066,9 +1066,9 @@ export class ShapeModifier {
         if (!Array.isArray(pageSheet.Section)) pageSheet.Section = [pageSheet.Section];
 
         // Find or Create Layer Section
-        let layerSection = pageSheet.Section.find((s: any) => s['@_N'] === 'Layer');
+        let layerSection = pageSheet.Section.find((s: any) => s['@_N'] === SECTION_NAMES.Layer);
         if (!layerSection) {
-            layerSection = { '@_N': 'Layer', Row: [] };
+            layerSection = { '@_N': SECTION_NAMES.Layer, Row: [] };
             pageSheet.Section.push(layerSection);
         }
 
@@ -1164,7 +1164,7 @@ export class ShapeModifier {
         // Find Layer Section
         if (!pageSheet.Section) return;
         const sections = Array.isArray(pageSheet.Section) ? pageSheet.Section : [pageSheet.Section];
-        const layerSection = sections.find((s: any) => s['@_N'] === 'Layer');
+        const layerSection = sections.find((s: any) => s['@_N'] === SECTION_NAMES.Layer);
         if (!layerSection || !layerSection.Row) return;
 
         const rows = Array.isArray(layerSection.Row) ? layerSection.Row : [layerSection.Row];
@@ -1182,6 +1182,73 @@ export class ShapeModifier {
             row.Cell.push(cell);
         } else {
             cell['@_V'] = value;
+        }
+
+        this.saveParsed(pageId, parsed);
+    }
+
+    /**
+     * Return all layers defined in the page's PageSheet as plain objects.
+     */
+    getPageLayers(pageId: string): Array<{ name: string; index: number; visible: boolean; locked: boolean }> {
+        const parsed = this.getParsed(pageId);
+        const pageSheet = parsed.PageContents?.PageSheet;
+        if (!pageSheet?.Section) return [];
+
+        const sections = Array.isArray(pageSheet.Section) ? pageSheet.Section : [pageSheet.Section];
+        const layerSection = sections.find((s: any) => s['@_N'] === SECTION_NAMES.Layer);
+        if (!layerSection?.Row) return [];
+
+        const rows = Array.isArray(layerSection.Row) ? layerSection.Row : [layerSection.Row];
+        return rows.map((row: any) => {
+            const cells: any[] = Array.isArray(row.Cell) ? row.Cell : (row.Cell ? [row.Cell] : []);
+            const getVal = (name: string) => cells.find((c: any) => c['@_N'] === name)?.['@_V'];
+            return {
+                name:    getVal('Name')    ?? '',
+                index:   parseInt(row['@_IX'], 10),
+                visible: getVal('Visible') !== '0',
+                locked:  getVal('Lock')    === '1',
+            };
+        });
+    }
+
+    /**
+     * Delete a layer by index and remove it from all shape LayerMember cells.
+     */
+    deleteLayer(pageId: string, layerIndex: number): void {
+        const parsed = this.getParsed(pageId);
+
+        // Remove the row from the Layer section in PageSheet
+        const pageSheet = parsed.PageContents?.PageSheet;
+        if (pageSheet?.Section) {
+            const sections = Array.isArray(pageSheet.Section) ? pageSheet.Section : [pageSheet.Section];
+            const layerSection = sections.find((s: any) => s['@_N'] === SECTION_NAMES.Layer);
+            if (layerSection?.Row) {
+                const rows = Array.isArray(layerSection.Row) ? layerSection.Row : [layerSection.Row];
+                layerSection.Row = rows.filter((r: any) => r['@_IX'] !== layerIndex.toString());
+            }
+        }
+
+        // Remove this layer index from every shape's LayerMember cell
+        const idxStr = layerIndex.toString();
+        for (const [, shape] of this.getShapeMap(parsed)) {
+            if (!shape.Section) continue;
+            const sections: any[] = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
+            const memSec = sections.find((s: any) => s['@_N'] === SECTION_NAMES.LayerMem);
+            if (!memSec?.Row) continue;
+
+            const rows = Array.isArray(memSec.Row) ? memSec.Row : [memSec.Row];
+            const row = rows[0];
+            if (!row?.Cell) continue;
+
+            const cells: any[] = Array.isArray(row.Cell) ? row.Cell : [row.Cell];
+            const memberCell = cells.find((c: any) => c['@_N'] === 'LayerMember');
+            if (!memberCell?.['@_V']) continue;
+
+            const remaining = memberCell['@_V']
+                .split(';')
+                .filter((s: string) => s.length > 0 && s !== idxStr);
+            memberCell['@_V'] = remaining.join(';');
         }
 
         this.saveParsed(pageId, parsed);
