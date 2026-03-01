@@ -125,7 +125,7 @@
 - ~~`page.getShapeById(id)`~~ — ✅ Implemented (recursive search through group tree)
 - ~~`doc.getPage(name)`~~ — ✅ Implemented (exact name match, case-sensitive)
 - `shape.getChildren()` — access sub-shapes of groups/containers
-- `Shape.setStyle` only accepts `ShapeStyle` which does not cover line style; no way to change border color post-creation via the public API
+- ~~`Shape.setStyle` only accepts `ShapeStyle` which does not cover line style~~  — ✅ Implemented (`lineColor`, `lineWeight` (pt), `linePattern` added to `ShapeStyle`; `setStyle({ lineColor: '#cc0000' })` works post-creation)
 
 ---
 

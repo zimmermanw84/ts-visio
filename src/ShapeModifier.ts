@@ -480,6 +480,20 @@ export class ShapeModifier {
             shape.Section.push(createFillSection(style.fillColor));
         }
 
+        // Update/Add Line
+        const hasLineProps = style.lineColor !== undefined
+            || style.lineWeight !== undefined
+            || style.linePattern !== undefined;
+
+        if (hasLineProps) {
+            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Line');
+            shape.Section.push(createLineSection({
+                color:   style.lineColor,
+                weight:  style.lineWeight !== undefined ? (style.lineWeight / 72).toString() : undefined,
+                pattern: style.linePattern !== undefined ? style.linePattern.toString() : undefined,
+            }));
+        }
+
         // Update/Add Character (Font/Text Style)
         const hasCharProps = style.fontColor !== undefined
             || style.bold !== undefined
@@ -1332,6 +1346,12 @@ export class ShapeModifier {
 
 export interface ShapeStyle {
     fillColor?: string;
+    /** Border/stroke colour as a CSS hex string (e.g. `'#cc0000'`). */
+    lineColor?: string;
+    /** Stroke weight in **points**. Stored internally as inches (pt / 72). */
+    lineWeight?: number;
+    /** Line pattern. 0 = none, 1 = solid (default), 2 = dash, 3 = dot, 4 = dash-dot. */
+    linePattern?: number;
     fontColor?: string;
     bold?: boolean;
     /** Italic text. */
