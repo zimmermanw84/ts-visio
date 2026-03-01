@@ -664,6 +664,34 @@ const styles = doc.getStyles();
 `StyleProps` supports: `fillColor`, `lineColor`, `lineWeight` (pt), `linePattern`, `fontColor`, `fontSize` (pt), `bold`, `italic`, `underline`, `strikethrough`, `fontFamily`, `horzAlign`, `verticalAlign`, `spaceBefore`, `spaceAfter`, `lineSpacing`, `textMarginTop/Bottom/Left/Right` (in).
 Local shape properties always override inherited stylesheet values.
 
+#### 30. Reading Connectors Back
+Enumerate connectors on a page — including those loaded from an existing `.vsdx` file — and inspect or delete them.
+
+```typescript
+import { VisioDocument } from 'ts-visio';
+
+const doc  = await VisioDocument.load(buffer);   // or VisioDocument.create()
+const page = doc.pages[0];
+
+// Read all connector shapes
+const connectors = page.getConnectors();
+
+for (const conn of connectors) {
+    console.log(`Connector ${conn.id}: ${conn.fromShapeId} → ${conn.toShapeId}`);
+    console.log('  fromPort:', conn.fromPort);     // 'center' | { name } | { index }
+    console.log('  toPort:',   conn.toPort);
+    console.log('  style:',    conn.style);        // lineColor, lineWeight, linePattern, routing
+    console.log('  arrows:',   conn.beginArrow, conn.endArrow);
+}
+
+// Delete a specific connector
+await connectors[0].delete();
+
+// After delete the connector is gone but the shapes remain
+console.log(page.getConnectors().length);  // 0
+console.log(page.getShapes().length);      // shapes still exist
+```
+
 ---
 
 ## Examples
