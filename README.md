@@ -26,6 +26,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Page Size & Orientation**: Set canvas dimensions with named sizes (`Letter`, `A4`, …) or raw inches; rotate between portrait and landscape.
 - **Document Metadata**: Read and write document properties (title, author, description, keywords, company, dates) via `doc.getMetadata()` / `doc.setMetadata()`.
 - **Named Connection Points**: Define specific ports on shapes (`Top`, `Right`, etc.) and connect to them precisely using `fromPort`/`toPort` on any connector API.
+- **StyleSheets**: Create document-level named styles with fill, line, and text properties via `doc.createStyle()` and apply them to shapes at creation time (`styleId`) or post-creation (`shape.applyStyle()`).
 
 Feature gaps are being tracked in [FEATURES.md](./FEATURES.md).
 
@@ -607,6 +608,61 @@ await page.connectShapes(nodeA, nodeB, undefined, undefined, undefined,
 `StandardConnectionPoints.cardinal` — 4 points: `Top`, `Right`, `Bottom`, `Left`.
 `StandardConnectionPoints.full` — 8 points: cardinal + `TopLeft`, `TopRight`, `BottomRight`, `BottomLeft`.
 Unknown port names fall back gracefully to edge-intersection routing without throwing.
+
+---
+
+#### 29. StyleSheets (Document-Level Styles)
+Define reusable named styles at the document level and apply them to shapes so they inherit line, fill, and text properties without repeating the same values on every shape.
+
+```typescript
+// 1. Create a document-level style
+const headerStyle = doc.createStyle('Header', {
+    fillColor:    '#4472C4',          // Blue fill
+    lineColor:    '#2F5597',          // Dark-blue border
+    lineWeight:   1.5,                // 1.5 pt stroke
+    fontColor:    '#FFFFFF',          // White text
+    fontSize:     14,                 // 14 pt
+    bold:         true,
+    fontFamily:   'Calibri',
+    horzAlign:    'center',
+    verticalAlign: 'middle',
+});
+
+const bodyStyle = doc.createStyle('Body', {
+    fillColor:  '#DEEAF1',
+    lineColor:  '#2F5597',
+    fontSize:   11,
+    horzAlign:  'left',
+});
+
+// 2. Apply at shape-creation time
+const title = await page.addShape({
+    text: 'System Architecture',
+    x: 1, y: 8, width: 8, height: 1,
+    styleId: headerStyle.id,          // sets LineStyle, FillStyle, TextStyle
+});
+
+// Fine-grained: apply only the fill from one style, line from another
+const hybrid = await page.addShape({
+    text: 'Hybrid',
+    x: 1, y: 6, width: 3, height: 1,
+    fillStyleId: headerStyle.id,
+    lineStyleId: bodyStyle.id,
+});
+
+// 3. Apply (or change) style post-creation
+const box = await page.addShape({ text: 'Server', x: 4, y: 4, width: 2, height: 1 });
+box.applyStyle(bodyStyle.id);                // all three categories
+box.applyStyle(headerStyle.id, 'fill');      // fill only — leaves line & text unchanged
+box.applyStyle(headerStyle.id, 'text');      // text only
+
+// 4. List all styles in the document
+const styles = doc.getStyles();
+// [ { id: 0, name: 'No Style' }, { id: 1, name: 'Normal' }, { id: 2, name: 'Header' }, … ]
+```
+
+`StyleProps` supports: `fillColor`, `lineColor`, `lineWeight` (pt), `linePattern`, `fontColor`, `fontSize` (pt), `bold`, `italic`, `underline`, `strikethrough`, `fontFamily`, `horzAlign`, `verticalAlign`, `spaceBefore`, `spaceAfter`, `lineSpacing`, `textMarginTop/Bottom/Left/Right` (in).
+Local shape properties always override inherited stylesheet values.
 
 ---
 

@@ -140,6 +140,77 @@ export type ShapeGeometry =
     | 'triangle'
     | 'parallelogram';
 
+/** A reference to a document-level stylesheet, returned by `doc.createStyle()`. */
+export interface StyleRecord {
+    /** Zero-based integer ID used as `LineStyle` / `FillStyle` / `TextStyle` on shapes. */
+    id: number;
+    /** Human-readable name given to the style. */
+    name: string;
+}
+
+/**
+ * Visual properties for a document-level stylesheet created via `doc.createStyle()`.
+ * All fields are optional — omitted properties are inherited from the parent style (default: Style 0 "No Style").
+ */
+export interface StyleProps {
+    /** Parent style for line property inheritance. Defaults to 0 ("No Style"). */
+    parentLineStyleId?: number;
+    /** Parent style for fill property inheritance. Defaults to 0 ("No Style"). */
+    parentFillStyleId?: number;
+    /** Parent style for text property inheritance. Defaults to 0 ("No Style"). */
+    parentTextStyleId?: number;
+
+    // ── Line ──────────────────────────────────────────────────────────────────
+    /** Stroke colour as a CSS hex string (e.g. `'#cc0000'`). */
+    lineColor?: string;
+    /** Stroke weight in **points**. Stored internally as inches (pt / 72). */
+    lineWeight?: number;
+    /** Line pattern. 0 = none, 1 = solid, 2 = dash, 3 = dot, 4 = dash-dot. */
+    linePattern?: number;
+
+    // ── Fill ──────────────────────────────────────────────────────────────────
+    /** Background fill colour as a CSS hex string. */
+    fillColor?: string;
+
+    // ── Character (text run) ──────────────────────────────────────────────────
+    /** Text colour as a CSS hex string. */
+    fontColor?: string;
+    /** Font size in **points**. */
+    fontSize?: number;
+    /** Bold text. */
+    bold?: boolean;
+    /** Italic text. */
+    italic?: boolean;
+    /** Underline text. */
+    underline?: boolean;
+    /** Strikethrough text. */
+    strikethrough?: boolean;
+    /** Font family name (e.g. `'Calibri'`). */
+    fontFamily?: string;
+
+    // ── Paragraph ─────────────────────────────────────────────────────────────
+    /** Horizontal text alignment within the paragraph. */
+    horzAlign?: 'left' | 'center' | 'right' | 'justify';
+    /** Space before each paragraph in **points**. */
+    spaceBefore?: number;
+    /** Space after each paragraph in **points**. */
+    spaceAfter?: number;
+    /** Line-height multiplier (1.0 = single, 1.5 = 1.5×, 2.0 = double). */
+    lineSpacing?: number;
+
+    // ── TextBlock ─────────────────────────────────────────────────────────────
+    /** Vertical text alignment within the shape. */
+    verticalAlign?: 'top' | 'middle' | 'bottom';
+    /** Top text margin in inches. */
+    textMarginTop?: number;
+    /** Bottom text margin in inches. */
+    textMarginBottom?: number;
+    /** Left text margin in inches. */
+    textMarginLeft?: number;
+    /** Right text margin in inches. */
+    textMarginRight?: number;
+}
+
 /** Whether a connection point accepts incoming glue, outgoing glue, or both. */
 export type ConnectionPointType = 'inward' | 'outward' | 'both';
 
@@ -251,4 +322,17 @@ export interface NewShapeProps {
      * or `StandardConnectionPoints.full` for eight points.
      */
     connectionPoints?: ConnectionPointDef[];
+
+    /**
+     * Apply a document-level stylesheet to this shape (sets `LineStyle`, `FillStyle`,
+     * and `TextStyle` all to the same ID). Create styles via `doc.createStyle()`.
+     * Takes precedence over `lineStyleId`, `fillStyleId`, and `textStyleId`.
+     */
+    styleId?: number;
+    /** Apply a stylesheet only for line properties (`LineStyle` attribute). */
+    lineStyleId?: number;
+    /** Apply a stylesheet only for fill properties (`FillStyle` attribute). */
+    fillStyleId?: number;
+    /** Apply a stylesheet only for text properties (`TextStyle` attribute). */
+    textStyleId?: number;
 }

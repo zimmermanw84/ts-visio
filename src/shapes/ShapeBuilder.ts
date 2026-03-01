@@ -32,6 +32,17 @@ export class ShapeBuilder {
             shape['@_Master'] = props.masterId;
         }
 
+        // Apply document-level stylesheet references
+        if (props.styleId !== undefined) {
+            shape['@_LineStyle'] = props.styleId.toString();
+            shape['@_FillStyle'] = props.styleId.toString();
+            shape['@_TextStyle'] = props.styleId.toString();
+        } else {
+            if (props.lineStyleId !== undefined) shape['@_LineStyle'] = props.lineStyleId.toString();
+            if (props.fillStyleId !== undefined) shape['@_FillStyle'] = props.fillStyleId.toString();
+            if (props.textStyleId !== undefined) shape['@_TextStyle'] = props.textStyleId.toString();
+        }
+
         // Add Styles
         if (props.fillColor) {
             shape.Section.push(createFillSection(props.fillColor));

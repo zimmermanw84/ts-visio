@@ -288,8 +288,30 @@ export class ShapeModifier {
         return ix;
     }
 
+    /**
+     * Apply a document-level stylesheet to an existing shape by setting its
+     * `LineStyle`, `FillStyle`, and/or `TextStyle` attributes.
+     *
+     * @param which  `'all'` (default) sets all three; `'line'`, `'fill'`, or `'text'` sets only one.
+     */
+    applyStyle(
+        pageId: string,
+        shapeId: string,
+        styleId: number,
+        which: 'all' | 'line' | 'fill' | 'text' = 'all',
+    ): void {
+        const parsed   = this.getParsed(pageId);
+        const shapeMap = this.getShapeMap(parsed);
+        const shape    = shapeMap.get(shapeId);
+        if (!shape) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
 
+        const sid = styleId.toString();
+        if (which === 'all'  || which === 'line') shape['@_LineStyle'] = sid;
+        if (which === 'all'  || which === 'fill') shape['@_FillStyle'] = sid;
+        if (which === 'all'  || which === 'text') shape['@_TextStyle'] = sid;
 
+        this.saveParsed(pageId, parsed);
+    }
 
     async addShape(pageId: string, props: NewShapeProps, parentId?: string): Promise<string> {
         const parsed = this.getParsed(pageId);

@@ -3,18 +3,21 @@ import { PageManager } from './core/PageManager';
 import { Page } from './Page';
 import { MediaManager } from './core/MediaManager';
 import { MetadataManager } from './core/MetadataManager';
-import { VisioPage, DocumentMetadata } from './types/VisioTypes';
+import { StyleSheetManager } from './core/StyleSheetManager';
+import { VisioPage, DocumentMetadata, StyleProps, StyleRecord } from './types/VisioTypes';
 
 export class VisioDocument {
     private pageManager: PageManager;
     private _pageCache: Page[] | null = null;
     private mediaManager: MediaManager;
     private metadataManager: MetadataManager;
+    private styleSheetManager: StyleSheetManager;
 
     private constructor(private pkg: VisioPackage) {
-        this.pageManager = new PageManager(pkg);
-        this.mediaManager = new MediaManager(pkg);
-        this.metadataManager = new MetadataManager(pkg);
+        this.pageManager      = new PageManager(pkg);
+        this.mediaManager     = new MediaManager(pkg);
+        this.metadataManager  = new MetadataManager(pkg);
+        this.styleSheetManager = new StyleSheetManager(pkg);
     }
 
     static async create(): Promise<VisioDocument> {
@@ -132,6 +135,25 @@ export class VisioDocument {
      */
     setMetadata(props: Partial<DocumentMetadata>): void {
         this.metadataManager.setMetadata(props);
+    }
+
+    /**
+     * Create a named document-level stylesheet and return its record.
+     * The returned `id` can be passed to `addShape({ styleId })` or `shape.applyStyle()`.
+     *
+     * @example
+     * const s = doc.createStyle('Header', { fillColor: '#4472C4', fontColor: '#ffffff', bold: true });
+     * const shape = await page.addShape({ text: 'Title', x: 1, y: 1, width: 3, height: 1, styleId: s.id });
+     */
+    createStyle(name: string, props: StyleProps = {}): StyleRecord {
+        return this.styleSheetManager.createStyle(name, props);
+    }
+
+    /**
+     * Return all stylesheets defined in the document (including built-in styles).
+     */
+    getStyles(): StyleRecord[] {
+        return this.styleSheetManager.getStyles();
     }
 
     async save(filename?: string): Promise<Buffer> {

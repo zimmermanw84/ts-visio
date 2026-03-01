@@ -27,7 +27,15 @@ export const DOCUMENT_XML = `<?xml version="1.0" encoding="UTF-8" standalone="ye
         <ColorEntry IX="1" RGB="#FFFFFF"/>
     </Colors>
     <FaceNames/>
-    <StyleSheets/>
+    <StyleSheets>
+        <StyleSheet ID="0" Name="No Style" NameU="No Style" IsCustomName="0" IsCustomNameU="0">
+            <Cell N="EnableLineProps" V="1"/>
+            <Cell N="EnableFillProps" V="1"/>
+            <Cell N="EnableTextProps" V="1"/>
+            <Cell N="HideForApply" V="0"/>
+        </StyleSheet>
+        <StyleSheet ID="1" Name="Normal" NameU="Normal" IsCustomName="0" IsCustomNameU="0" LineStyle="0" FillStyle="0" TextStyle="0"/>
+    </StyleSheets>
 </VisioDocument>`;
 
 export const DOCUMENT_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
