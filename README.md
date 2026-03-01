@@ -27,6 +27,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Document Metadata**: Read and write document properties (title, author, description, keywords, company, dates) via `doc.getMetadata()` / `doc.setMetadata()`.
 - **Named Connection Points**: Define specific ports on shapes (`Top`, `Right`, etc.) and connect to them precisely using `fromPort`/`toPort` on any connector API.
 - **StyleSheets**: Create document-level named styles with fill, line, and text properties via `doc.createStyle()` and apply them to shapes at creation time (`styleId`) or post-creation (`shape.applyStyle()`).
+- **Color Palette**: Register named colors in the document's color table via `doc.addColor()` and look them up by index or hex value with `doc.getColors()` / `doc.getColorIndex()`.
 
 Feature gaps are being tracked in [FEATURES.md](./FEATURES.md).
 
@@ -153,7 +154,7 @@ await shape1.setStyle({ fillColor: '#00FF00' })
 Use specific arrowheads (Crow's Foot, etc.)
 
 ```typescript
-import { ArrowHeads } from 'ts-visio/utils/StyleHelpers';
+import { ArrowHeads } from 'ts-visio';
 
 await page.connectShapes(shape1, shape2, ArrowHeads.One, ArrowHeads.CrowsFoot);
 // OR
@@ -449,7 +450,7 @@ Supported values: `'rectangle'` (default), `'ellipse'`, `'diamond'`, `'rounded-r
 Control line appearance and routing algorithm on any connector.
 
 ```typescript
-import { ArrowHeads } from 'ts-visio/utils/StyleHelpers';
+import { ArrowHeads } from 'ts-visio';
 
 // Styled connector with crow's foot arrow and custom line
 await shape1.connectTo(shape2, ArrowHeads.One, ArrowHeads.CrowsFoot, {
@@ -691,6 +692,39 @@ await connectors[0].delete();
 console.log(page.getConnectors().length);  // 0
 console.log(page.getShapes().length);      // shapes still exist
 ```
+
+#### 31. Color Palette
+Register colors in the document's indexed color table (`<Colors>` in `document.xml`). Colors are identified by an integer IX that you can reference anywhere a hex color is accepted.
+
+```typescript
+// Register colors — returns the integer index (IX)
+const blueIx  = doc.addColor('#4472C4');  // → 2 (first user color)
+const redIx   = doc.addColor('#FF0000');  // → 3
+const greenIx = doc.addColor('#00B050');  // → 4
+
+// De-duplication: adding the same color returns the existing index
+doc.addColor('#4472C4');  // → 2 (no duplicate created)
+
+// Shorthand, missing #, and case variations are all normalised
+doc.addColor('#FFF');        // same as #FFFFFF → returns 1 (built-in white)
+doc.addColor('4472c4');      // same as #4472C4 → returns 2
+
+// Read the full palette (sorted by index)
+const palette = doc.getColors();
+// [
+//   { index: 0, rgb: '#000000' },  // built-in black
+//   { index: 1, rgb: '#FFFFFF' },  // built-in white
+//   { index: 2, rgb: '#4472C4' },
+//   { index: 3, rgb: '#FF0000' },
+//   { index: 4, rgb: '#00B050' },
+// ]
+
+// Look up an index by hex value
+doc.getColorIndex('#4472C4');  // → 2
+doc.getColorIndex('#123456');  // → undefined (not registered)
+```
+
+Built-in colors: IX 0 = `#000000` (black), IX 1 = `#FFFFFF` (white). User colors start at IX 2 and increment sequentially.
 
 ---
 
