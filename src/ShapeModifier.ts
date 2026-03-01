@@ -2,7 +2,7 @@ import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { VisioPackage } from './VisioPackage';
 import { RelsManager } from './core/RelsManager';
 import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, createTextBlockSection, vertAlignValue, HorzAlign, VertAlign } from './utils/StyleHelpers';
-import { RELATIONSHIP_TYPES } from './core/VisioConstants';
+import { RELATIONSHIP_TYPES, SECTION_NAMES, SHAPE_TYPES, STRUCT_RELATIONSHIP_TYPES } from './core/VisioConstants';
 import { NewShapeProps, VisioPropType, ConnectorStyle, ConnectionTarget, ConnectionPointDef } from './types/VisioTypes';
 import { ConnectionPointBuilder } from './shapes/ConnectionPointBuilder';
 import { ShapeReader } from './ShapeReader';
@@ -275,9 +275,9 @@ export class ShapeModifier {
         if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
 
         // Find or create Connection section
-        let connSection = shape.Section.find((s: any) => s['@_N'] === 'Connection');
+        let connSection = shape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.Connection);
         if (!connSection) {
-            connSection = { '@_N': 'Connection', Row: [] };
+            connSection = { '@_N': SECTION_NAMES.Connection, Row: [] };
             shape.Section.push(connSection);
         }
         if (!connSection.Row) connSection.Row = [];
@@ -336,7 +336,7 @@ export class ShapeModifier {
 
         let newShape: any;
 
-        if (props.type === 'Foreign' && props.imgRelId) {
+        if (props.type === SHAPE_TYPES.Foreign && props.imgRelId) {
             newShape = ForeignShapeBuilder.createImageShapeObject(newId, props.imgRelId, props);
             // Text for foreign shapes? Usually none, but we can support it.
             if (props.text !== undefined && props.text !== null) {
@@ -373,8 +373,8 @@ export class ShapeModifier {
             }
 
             // Mark parent as Group if not already
-            if (parent['@_Type'] !== 'Group') {
-                parent['@_Type'] = 'Group';
+            if (parent['@_Type'] !== SHAPE_TYPES.Group) {
+                parent['@_Type'] = SHAPE_TYPES.Group;
             }
 
             parent.Shapes.Shape.push(newShape);
@@ -478,7 +478,7 @@ export class ShapeModifier {
         // Update/Add Fill
         if (style.fillColor) {
             // Remove existing Fill section if any (simplified: assuming IX=0)
-            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Fill');
+            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== SECTION_NAMES.Fill);
             shape.Section.push(createFillSection(style.fillColor));
         }
 
@@ -488,7 +488,7 @@ export class ShapeModifier {
             || style.linePattern !== undefined;
 
         if (hasLineProps) {
-            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Line');
+            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== SECTION_NAMES.Line);
             shape.Section.push(createLineSection({
                 color:   style.lineColor,
                 weight:  style.lineWeight !== undefined ? (style.lineWeight / 72).toString() : undefined,
@@ -506,7 +506,7 @@ export class ShapeModifier {
             || style.fontFamily !== undefined;
 
         if (hasCharProps) {
-            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Character');
+            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== SECTION_NAMES.Character);
             shape.Section.push(createCharacterSection({
                 bold: style.bold,
                 italic: style.italic,
@@ -525,7 +525,7 @@ export class ShapeModifier {
             || style.lineSpacing !== undefined;
 
         if (hasParagraphProps) {
-            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'Paragraph');
+            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== SECTION_NAMES.Paragraph);
             shape.Section.push(createParagraphSection({
                 horzAlign: style.horzAlign,
                 spaceBefore: style.spaceBefore,
@@ -541,7 +541,7 @@ export class ShapeModifier {
             || style.textMarginRight !== undefined;
 
         if (hasTextBlockProps) {
-            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== 'TextBlock');
+            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== SECTION_NAMES.TextBlock);
             shape.Section.push(createTextBlockSection({
                 topMargin:    style.textMarginTop,
                 bottomMargin: style.textMarginBottom,
@@ -656,7 +656,7 @@ export class ShapeModifier {
         if (shape.Section) {
             const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
             for (const section of sections) {
-                if (section['@_N'] !== 'Geometry' || !section.Row) continue;
+                if (section['@_N'] !== SECTION_NAMES.Geometry || !section.Row) continue;
                 const rows = Array.isArray(section.Row) ? section.Row : [section.Row];
                 for (const row of rows) {
                     if (!row.Cell) continue;
@@ -715,9 +715,9 @@ export class ShapeModifier {
         if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
 
         // Find or Create Property Section
-        let propSection = shape.Section.find((s: any) => s['@_N'] === 'Property');
+        let propSection = shape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.Property);
         if (!propSection) {
-            propSection = { '@_N': 'Property', Row: [] };
+            propSection = { '@_N': SECTION_NAMES.Property, Row: [] };
             shape.Section.push(propSection);
         }
 
@@ -768,7 +768,7 @@ export class ShapeModifier {
 
         // Ensure Section array exists
         const sections = shape.Section ? (Array.isArray(shape.Section) ? shape.Section : [shape.Section]) : [];
-        const propSection = sections.find((s: any) => s['@_N'] === 'Property');
+        const propSection = sections.find((s: any) => s['@_N'] === SECTION_NAMES.Property);
 
         if (!propSection) {
             throw new Error(`Property definition 'Prop.${name}' does not exist on shape ${shapeId}. Call addPropertyDefinition first.`);
@@ -871,7 +871,7 @@ export class ShapeModifier {
         const relsArray = Array.isArray(rels) ? rels : [rels];
 
         return relsArray
-            .filter((r: any) => r['@_Type'] === 'Container' && r['@_ShapeID'] === containerId)
+            .filter((r: any) => r['@_Type'] === STRUCT_RELATIONSHIP_TYPES.Container && r['@_ShapeID'] === containerId)
             .map((r: any) => r['@_RelatedShapeID']);
     }
 
@@ -908,7 +908,7 @@ export class ShapeModifier {
 
         const getUserVal = (name: string, def: string) => {
             if (!listShape.Section) return def;
-            const userSec = listShape.Section.find((s: any) => s['@_N'] === 'User');
+            const userSec = listShape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.User);
             if (!userSec || !userSec.Row) return def;
             const rows = Array.isArray(userSec.Row) ? userSec.Row : [userSec.Row];
             const row = rows.find((r: any) => r['@_N'] === name);
@@ -956,7 +956,7 @@ export class ShapeModifier {
         await this.updateShapePosition(pageId, itemId, newX, newY);
 
         // 4. Add Relationship
-        await this.addRelationship(pageId, listId, itemId, 'Container');
+        await this.addRelationship(pageId, listId, itemId, STRUCT_RELATIONSHIP_TYPES.Container);
 
         // 5. Resize List Container
         await this.resizeContainerToFit(pageId, listId, 0.25);
@@ -1114,9 +1114,9 @@ export class ShapeModifier {
         if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
 
         // Find or Create LayerMem Section
-        let memSection = shape.Section.find((s: any) => s['@_N'] === 'LayerMem');
+        let memSection = shape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.LayerMem);
         if (!memSection) {
-            memSection = { '@_N': 'LayerMem', Row: [] };
+            memSection = { '@_N': SECTION_NAMES.LayerMem, Row: [] };
             shape.Section.push(memSection);
         }
 
@@ -1201,7 +1201,7 @@ export class ShapeModifier {
         if (!shape.Section) return result;
 
         const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
-        const propSection = sections.find((s: any) => s['@_N'] === 'Property');
+        const propSection = sections.find((s: any) => s['@_N'] === SECTION_NAMES.Property);
         if (!propSection?.Row) return result;
 
         const rows = Array.isArray(propSection.Row) ? propSection.Row : [propSection.Row];
@@ -1326,7 +1326,7 @@ export class ShapeModifier {
 
         if (!shape.Section) return [];
         const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
-        const memSection = sections.find((s: any) => s['@_N'] === 'LayerMem');
+        const memSection = sections.find((s: any) => s['@_N'] === SECTION_NAMES.LayerMem);
         if (!memSection?.Row) return [];
 
         const rows = Array.isArray(memSection.Row) ? memSection.Row : [memSection.Row];

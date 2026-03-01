@@ -3,6 +3,7 @@ import { VisioPackage } from './VisioPackage';
 import { ShapeModifier, ShapeStyle } from './ShapeModifier';
 import { VisioPropType } from './types/VisioTypes';
 import { Layer } from './Layer';
+import { SHAPE_TYPES, STRUCT_RELATIONSHIP_TYPES } from './core/VisioConstants';
 
 export interface ShapeData {
     value: string | number | boolean | Date;
@@ -56,7 +57,7 @@ export class Shape {
      * Use `shape.getChildren()` to retrieve those children.
      */
     get isGroup(): boolean {
-        return this.internalShape.Type === 'Group';
+        return this.internalShape.Type === SHAPE_TYPES.Group;
     }
 
     get text(): string {
@@ -275,7 +276,7 @@ export class Shape {
     }
 
     async addMember(memberShape: Shape): Promise<this> {
-        await this.modifier.addRelationship(this.pageId, this.id, memberShape.id, 'Container');
+        await this.modifier.addRelationship(this.pageId, this.id, memberShape.id, STRUCT_RELATIONSHIP_TYPES.Container);
         return this;
     }
 

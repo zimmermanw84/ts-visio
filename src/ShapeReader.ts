@@ -3,6 +3,7 @@ import { VisioPackage } from './VisioPackage';
 import { VisioShape, ConnectorRouting, ConnectionTarget } from './types/VisioTypes';
 import { asArray, parseCells, parseSection } from './utils/VisioParsers';
 import { ConnectorData } from './Connector';
+import { SECTION_NAMES } from './core/VisioConstants';
 
 export class ShapeReader {
     private parser: XMLParser;
@@ -148,7 +149,7 @@ export class ShapeReader {
             let lineWeight: number | undefined;
             let linePattern: number | undefined;
             for (const sec of sections) {
-                if (sec['@_N'] === 'Line') {
+                if (sec['@_N'] === SECTION_NAMES.Line) {
                     const lineCells = parseCells(sec);
                     if (lineCells['LineColor']?.V)  lineColor   = lineCells['LineColor'].V;
                     if (lineCells['LineWeight']?.V)  lineWeight  = parseFloat(lineCells['LineWeight'].V) * 72; // in→pt

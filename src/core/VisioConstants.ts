@@ -24,6 +24,38 @@ export const RELATIONSHIP_TYPES = {
     EXTENDED_PROPERTIES: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties'
 } as const;
 
+/** Visio shape `Type` attribute values. */
+export const SHAPE_TYPES = {
+    Shape:   'Shape',
+    Group:   'Group',
+    Foreign: 'Foreign',
+} as const;
+
+/**
+ * Visio ShapeSheet section names (the `N` attribute on `<Section>` elements).
+ * Used when finding or filtering sections by name in page/master XML.
+ */
+export const SECTION_NAMES = {
+    Line:       'Line',
+    Fill:       'Fill',
+    Character:  'Character',
+    Paragraph:  'Paragraph',
+    TextBlock:  'TextBlock',
+    Geometry:   'Geometry',
+    Connection: 'Connection',
+    Property:   'Property',
+    User:       'User',
+    LayerMem:   'LayerMem',
+} as const;
+
+/**
+ * Structural relationship types stored in `<Relationship>` elements
+ * inside Visio page XML (distinct from OPC `.rels` relationship types).
+ */
+export const STRUCT_RELATIONSHIP_TYPES = {
+    Container: 'Container',
+} as const;
+
 export const CONTENT_TYPES = {
     PNG: 'image/png',
     JPEG: 'image/jpeg',
