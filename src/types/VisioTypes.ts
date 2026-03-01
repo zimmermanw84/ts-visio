@@ -140,6 +140,20 @@ export type ShapeGeometry =
     | 'triangle'
     | 'parallelogram';
 
+/**
+ * A single entry in the document-level color palette (`<Colors>` in `document.xml`).
+ * Returned by `doc.getColors()` and created via `doc.addColor()`.
+ */
+export interface ColorEntry {
+    /**
+     * Zero-based integer index (IX). Can be passed as a color reference
+     * anywhere a hex string is accepted (e.g. `fillColor`, `lineColor`).
+     */
+    index: number;
+    /** Normalized CSS hex string, always uppercase `#RRGGBB`. */
+    rgb: string;
+}
+
 /** A reference to a document-level stylesheet, returned by `doc.createStyle()`. */
 export interface StyleRecord {
     /** Zero-based integer ID used as `LineStyle` / `FillStyle` / `TextStyle` on shapes. */
