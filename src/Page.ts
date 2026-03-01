@@ -133,6 +133,7 @@ export class Page {
         // In a real scenario, we might want to re-read the shape from disk to get full defaults
         const internalStub = createVisioShapeStub({
             ID: newId,
+            Type: props.type,
             Text: props.text,
             Cells: {
                 'Width': props.width,

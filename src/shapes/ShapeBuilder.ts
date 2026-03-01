@@ -3,6 +3,7 @@ import { NewShapeProps } from '../types/VisioTypes';
 import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, createTextBlockSection, vertAlignValue } from '../utils/StyleHelpers';
 import { GeometryBuilder } from './GeometryBuilder';
 import { ConnectionPointBuilder } from './ConnectionPointBuilder';
+import { SHAPE_TYPES } from '../core/VisioConstants';
 
 export class ShapeBuilder {
     static createStandardShape(id: string, props: NewShapeProps): any {
@@ -15,7 +16,7 @@ export class ShapeBuilder {
             '@_ID': id,
             '@_NameU': `Sheet.${id}`,
             '@_Name': `Sheet.${id}`,
-            '@_Type': props.type || 'Shape',
+            '@_Type': props.type || SHAPE_TYPES.Shape,
             Cell: [
                 { '@_N': 'PinX', '@_V': props.x.toString() },
                 { '@_N': 'PinY', '@_V': props.y.toString() },
@@ -113,7 +114,7 @@ export class ShapeBuilder {
 
         // Add Geometry
         // Only if NOT a Group AND NOT a Master Instance
-        if (props.type !== 'Group' && !props.masterId) {
+        if (props.type !== SHAPE_TYPES.Group && !props.masterId) {
             shape.Section.push(GeometryBuilder.build(props));
         }
 

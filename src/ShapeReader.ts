@@ -3,6 +3,7 @@ import { VisioPackage } from './VisioPackage';
 import { VisioShape, ConnectorRouting, ConnectionTarget } from './types/VisioTypes';
 import { asArray, parseCells, parseSection } from './utils/VisioParsers';
 import { ConnectorData } from './Connector';
+import { SECTION_NAMES } from './core/VisioConstants';
 
 export class ShapeReader {
     private parser: XMLParser;
@@ -148,7 +149,7 @@ export class ShapeReader {
             let lineWeight: number | undefined;
             let linePattern: number | undefined;
             for (const sec of sections) {
-                if (sec['@_N'] === 'Line') {
+                if (sec['@_N'] === SECTION_NAMES.Line) {
                     const lineCells = parseCells(sec);
                     if (lineCells['LineColor']?.V)  lineColor   = lineCells['LineColor'].V;
                     if (lineCells['LineWeight']?.V)  lineWeight  = parseFloat(lineCells['LineWeight'].V) * 72; // in→pt
@@ -198,11 +199,38 @@ export class ShapeReader {
         }
     }
 
+    /**
+     * Return the direct child shapes of a group or container shape.
+     * Returns an empty array if the shape has no children or does not exist.
+     */
+    readChildShapes(path: string, parentId: string): VisioShape[] {
+        let content: string;
+        try {
+            content = this.pkg.getFileText(path);
+        } catch {
+            return [];
+        }
+
+        const parsed = this.parser.parse(content);
+        const shapesData = parsed.PageContents?.Shapes?.Shape;
+        if (!shapesData) return [];
+
+        const rawParent = this.findRawShape(asArray<any>(shapesData), parentId);
+        if (!rawParent?.Shapes?.Shape) return [];
+
+        return asArray<any>(rawParent.Shapes.Shape).map((s: any) => this.parseShape(s));
+    }
+
     private findShapeById(rawShapes: any[], shapeId: string): VisioShape | undefined {
+        const raw = this.findRawShape(rawShapes, shapeId);
+        return raw ? this.parseShape(raw) : undefined;
+    }
+
+    private findRawShape(rawShapes: any[], shapeId: string): any | undefined {
         for (const s of rawShapes) {
-            if (s['@_ID'] === shapeId) return this.parseShape(s);
+            if (s['@_ID'] === shapeId) return s;
             if (s.Shapes?.Shape) {
-                const found = this.findShapeById(asArray<any>(s.Shapes.Shape), shapeId);
+                const found = this.findRawShape(asArray<any>(s.Shapes.Shape), shapeId);
                 if (found) return found;
             }
         }

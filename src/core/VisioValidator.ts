@@ -1,5 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 import { VisioPackage } from '../VisioPackage';
+import { SHAPE_TYPES } from './VisioConstants';
 
 export interface ValidationResult {
     valid: boolean;
@@ -289,7 +290,7 @@ export class VisioValidator {
         const shapes = this.getAllShapes(parsed);
 
         for (const shape of shapes) {
-            if (shape['@_Type'] !== 'Foreign') continue;
+            if (shape['@_Type'] !== SHAPE_TYPES.Foreign) continue;
 
             if (!shape.ForeignData) {
                 warnings.push(`${pagePath}: Foreign shape ${shape['@_ID']} missing ForeignData`);
