@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { VisioDocument } from '../src/VisioDocument';
-import { SchemaDiagram } from '../src/SchemaDiagram';
+import { SchemaDiagram } from '../src/diagrams/SchemaDiagram';
 import fs from 'fs';
 import path from 'path';
 
