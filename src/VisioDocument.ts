@@ -1,14 +1,16 @@
 import { VisioPackage } from './VisioPackage';
 import { PageManager } from './core/PageManager';
+import { MasterManager } from './core/MasterManager';
 import { Page } from './Page';
 import { MediaManager } from './core/MediaManager';
 import { MetadataManager } from './core/MetadataManager';
 import { StyleSheetManager } from './core/StyleSheetManager';
 import { ColorManager } from './core/ColorManager';
-import { VisioPage, DocumentMetadata, StyleProps, StyleRecord, ColorEntry } from './types/VisioTypes';
+import { VisioPage, DocumentMetadata, StyleProps, StyleRecord, ColorEntry, MasterRecord, ShapeGeometry } from './types/VisioTypes';
 
 export class VisioDocument {
     private pageManager: PageManager;
+    private masterManager: MasterManager;
     private _pageCache: Page[] | null = null;
     private mediaManager: MediaManager;
     private metadataManager: MetadataManager;
@@ -17,6 +19,7 @@ export class VisioDocument {
 
     private constructor(private pkg: VisioPackage) {
         this.pageManager       = new PageManager(pkg);
+        this.masterManager     = new MasterManager(pkg);
         this.mediaManager      = new MediaManager(pkg);
         this.metadataManager   = new MetadataManager(pkg);
         this.styleSheetManager = new StyleSheetManager(pkg);
@@ -250,6 +253,58 @@ export class VisioDocument {
      */
     getColorIndex(hex: string): number | undefined {
         return this.colorManager.getColorIndex(hex);
+    }
+
+    // -------------------------------------------------------------------------
+    // Masters
+    // -------------------------------------------------------------------------
+
+    /**
+     * Return all master shapes currently defined in the document.
+     * Each record's `id` can be passed as `masterId` to `page.addShape()`.
+     *
+     * @example
+     * const masters = doc.getMasters();
+     * const box = masters.find(m => m.name === 'Box')!;
+     * await page.addShape({ text: '', x: 2, y: 3, width: 1, height: 1, masterId: box.id });
+     */
+    getMasters(): MasterRecord[] {
+        return this.masterManager.load();
+    }
+
+    /**
+     * Define a new master shape in the document and return its record.
+     * Creates all necessary OPC infrastructure (`masters.xml`, content-type
+     * overrides, and document-level relationships) on the first call.
+     *
+     * @param name     Display name shown in the stencil panel.
+     * @param geometry Visual outline; defaults to `'rectangle'`.
+     *
+     * @example
+     * const boxMaster = doc.createMaster('Box');
+     * const ellMaster = doc.createMaster('Process', 'ellipse');
+     * await page.addShape({ text: 'Start', x: 1, y: 1, width: 2, height: 1, masterId: ellMaster.id });
+     */
+    createMaster(name: string, geometry: ShapeGeometry = 'rectangle'): MasterRecord {
+        return this.masterManager.createMaster(name, geometry);
+    }
+
+    /**
+     * Import all masters from a `.vssx` stencil file into this document.
+     * Each master is assigned a fresh ID that does not conflict with any
+     * master already present. Returns the array of imported master records.
+     *
+     * @param pathOrBuffer  Filesystem path or raw buffer of the `.vssx` file.
+     *
+     * @example
+     * const masters = await doc.importMastersFromStencil('./Basic_Shapes.vssx');
+     * const arrowMaster = masters.find(m => m.name === 'Arrow');
+     * await page.addShape({ text: '', x: 3, y: 4, width: 1, height: 0.5, masterId: arrowMaster!.id });
+     */
+    importMastersFromStencil(
+        pathOrBuffer: string | Buffer | ArrayBuffer | Uint8Array
+    ): Promise<MasterRecord[]> {
+        return this.masterManager.importFromStencil(pathOrBuffer);
     }
 
     async save(filename?: string): Promise<Buffer> {

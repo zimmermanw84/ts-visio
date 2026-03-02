@@ -179,6 +179,22 @@ export type ShapeGeometry =
     | 'parallelogram';
 
 /**
+ * A master shape definition — returned by `doc.getMasters()` and `doc.createMaster()`.
+ * The `id` can be passed as `masterId` when calling `page.addShape()` to stamp an
+ * instance of the master onto a page.
+ */
+export interface MasterRecord {
+    /** String integer ID (matches `@_Master` attribute on shape instances). */
+    id: string;
+    /** Display name (locale-specific). */
+    name: string;
+    /** Universal (locale-independent) name. */
+    nameU: string;
+    /** OPC path to the individual master content file, e.g. `"visio/masters/master1.xml"`. */
+    xmlPath: string;
+}
+
+/**
  * A single entry in the document-level color palette (`<Colors>` in `document.xml`).
  * Returned by `doc.getColors()` and created via `doc.addColor()`.
  */
