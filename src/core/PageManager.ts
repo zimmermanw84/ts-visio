@@ -100,69 +100,15 @@ export class PageManager {
     }
 
     async createPage(name: string): Promise<string> {
-        this.load();
-
-        let maxId = 0;
-        for (const p of this.pages) {
-            if (p.id > maxId) maxId = p.id;
-        }
-        const newId = maxId + 1;
-        const fileName = `page${newId}.xml`;
-        const relativePath = `visio/pages/${fileName}`;
-
-        const pageContent = `<PageContents xmlns="${XML_NAMESPACES.VISIO_MAIN}" xmlns:r="${XML_NAMESPACES.RELATIONSHIPS_OFFICE}" xml:space="preserve">
-    <PageSheet LineStyle="0" FillStyle="0" TextStyle="0">
-        <Cell N="PageWidth" V="8.5"/>
-        <Cell N="PageHeight" V="11"/>
-        <Cell N="PageScale" V="1" Unit="MSG"/>
-        <Cell N="DrawingScale" V="1" Unit="MSG"/>
-        <Cell N="DrawingSizeType" V="0"/>
-        <Cell N="DrawingScaleType" V="0"/>
-        <Cell N="Inhibited" V="0"/>
-        <Cell N="UIVisibility" V="0"/>
-        <Cell N="PageDrawSizeType" V="0"/>
-    </PageSheet>
-    <Shapes/>
-    <Connects/>
-</PageContents>`;
-        this.pkg.updateFile(relativePath, pageContent);
-
-        const ctPath = '[Content_Types].xml';
-        const parsedCt = this.parser.parse(this.pkg.getFileText(ctPath));
-        if (!parsedCt.Types.Override) parsedCt.Types.Override = [];
-        if (!Array.isArray(parsedCt.Types.Override)) parsedCt.Types.Override = [parsedCt.Types.Override];
-        parsedCt.Types.Override.push({
-            '@_PartName': `/${relativePath}`,
-            '@_ContentType': CONTENT_TYPES.VISIO_PAGE
-        });
-        this.pkg.updateFile(ctPath, buildXml(this.builder, parsedCt));
-
-        const rId = await this.relsManager.ensureRelationship(
-            'visio/pages/pages.xml',
-            fileName,
-            RELATIONSHIP_TYPES.PAGE
-        );
-
-        const pagesPath = 'visio/pages/pages.xml';
-        const parsedPages = this.parser.parse(this.pkg.getFileText(pagesPath));
-        if (!parsedPages.Pages.Page) parsedPages.Pages.Page = [];
-        if (!Array.isArray(parsedPages.Pages.Page)) parsedPages.Pages.Page = [parsedPages.Pages.Page];
-        parsedPages.Pages.Page.push({
-            '@_ID': newId.toString(),
-            '@_Name': name,
-            '@_NameU': name,
-            'Rel': { '@_r:id': rId }
-        });
-        this.pkg.updateFile(pagesPath, buildXml(this.builder, parsedPages));
-
-        this.load(true);
-        return newId.toString();
+        return this.createPageInternal(name, false);
     }
 
-    /**
-     * Create a background page
-     */
+    /** Create a background page. */
     async createBackgroundPage(name: string): Promise<string> {
+        return this.createPageInternal(name, true);
+    }
+
+    private async createPageInternal(name: string, isBackground: boolean): Promise<string> {
         this.load();
 
         let maxId = 0;
@@ -210,16 +156,19 @@ export class PageManager {
         const parsedPages = this.parser.parse(this.pkg.getFileText(pagesPath));
         if (!parsedPages.Pages.Page) parsedPages.Pages.Page = [];
         if (!Array.isArray(parsedPages.Pages.Page)) parsedPages.Pages.Page = [parsedPages.Pages.Page];
-        parsedPages.Pages.Page.push({
-            '@_ID': newId.toString(),
-            '@_Name': name,
-            '@_NameU': name,
-            '@_Background': '1',
-            'Rel': { '@_r:id': rId }
-        });
-        this.pkg.updateFile(pagesPath, buildXml(this.builder, parsedPages));
-        this.load(true);
 
+        const entry: Record<string, string> = {
+            '@_ID':    newId.toString(),
+            '@_Name':  name,
+            '@_NameU': name,
+        };
+        if (isBackground) entry['@_Background'] = '1';
+        (entry as any)['Rel'] = { '@_r:id': rId };
+
+        parsedPages.Pages.Page.push(entry);
+        this.pkg.updateFile(pagesPath, buildXml(this.builder, parsedPages));
+
+        this.load(true);
         return newId.toString();
     }
 
