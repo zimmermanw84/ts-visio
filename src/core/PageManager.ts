@@ -100,9 +100,8 @@ export class PageManager {
     }
 
     async createPage(name: string): Promise<string> {
-        this.load(); // Refresh state
+        this.load();
 
-        // 1. Calculate ID
         let maxId = 0;
         for (const p of this.pages) {
             if (p.id > maxId) maxId = p.id;
@@ -111,7 +110,6 @@ export class PageManager {
         const fileName = `page${newId}.xml`;
         const relativePath = `visio/pages/${fileName}`;
 
-        // 2. Create Page File
         const pageContent = `<PageContents xmlns="${XML_NAMESPACES.VISIO_MAIN}" xmlns:r="${XML_NAMESPACES.RELATIONSHIPS_OFFICE}" xml:space="preserve">
     <PageSheet LineStyle="0" FillStyle="0" TextStyle="0">
         <Cell N="PageWidth" V="8.5"/>
@@ -129,50 +127,35 @@ export class PageManager {
 </PageContents>`;
         this.pkg.updateFile(relativePath, pageContent);
 
-        // 3. Update Content Types
         const ctPath = '[Content_Types].xml';
-        const ctContent = this.pkg.getFileText(ctPath);
-        const parsedCt = this.parser.parse(ctContent);
-
-        // Format: <Override PartName="/visio/pages/page2.xml" ContentType="application/vnd.ms-visio.page+xml"/>
-        // Ensure Types.Override array exists
+        const parsedCt = this.parser.parse(this.pkg.getFileText(ctPath));
         if (!parsedCt.Types.Override) parsedCt.Types.Override = [];
         if (!Array.isArray(parsedCt.Types.Override)) parsedCt.Types.Override = [parsedCt.Types.Override];
-
         parsedCt.Types.Override.push({
             '@_PartName': `/${relativePath}`,
             '@_ContentType': CONTENT_TYPES.VISIO_PAGE
         });
         this.pkg.updateFile(ctPath, buildXml(this.builder, parsedCt));
 
-        // 4. Update Relationships (pages.xml -> new page file)
-        // Source is "visio/pages/pages.xml", Target is "page{ID}.xml" (relative to source dir)
         const rId = await this.relsManager.ensureRelationship(
             'visio/pages/pages.xml',
             fileName,
             RELATIONSHIP_TYPES.PAGE
         );
 
-        // 5. Update Pages Index (visio/pages/pages.xml)
         const pagesPath = 'visio/pages/pages.xml';
-        const pagesContent = this.pkg.getFileText(pagesPath);
-        const parsedPages = this.parser.parse(pagesContent);
-
+        const parsedPages = this.parser.parse(this.pkg.getFileText(pagesPath));
         if (!parsedPages.Pages.Page) parsedPages.Pages.Page = [];
         if (!Array.isArray(parsedPages.Pages.Page)) parsedPages.Pages.Page = [parsedPages.Pages.Page];
-
         parsedPages.Pages.Page.push({
             '@_ID': newId.toString(),
             '@_Name': name,
             '@_NameU': name,
             'Rel': { '@_r:id': rId }
         });
-
         this.pkg.updateFile(pagesPath, buildXml(this.builder, parsedPages));
 
-        // Reload to include new page
         this.load(true);
-
         return newId.toString();
     }
 
@@ -182,7 +165,6 @@ export class PageManager {
     async createBackgroundPage(name: string): Promise<string> {
         this.load();
 
-        // 1. Calculate ID
         let maxId = 0;
         for (const p of this.pages) {
             if (p.id > maxId) maxId = p.id;
@@ -191,7 +173,6 @@ export class PageManager {
         const fileName = `page${newId}.xml`;
         const relativePath = `visio/pages/${fileName}`;
 
-        // 2. Create Page File
         const pageContent = `<PageContents xmlns="${XML_NAMESPACES.VISIO_MAIN}" xmlns:r="${XML_NAMESPACES.RELATIONSHIPS_OFFICE}" xml:space="preserve">
     <PageSheet LineStyle="0" FillStyle="0" TextStyle="0">
         <Cell N="PageWidth" V="8.5"/>
@@ -209,43 +190,33 @@ export class PageManager {
 </PageContents>`;
         this.pkg.updateFile(relativePath, pageContent);
 
-        // 3. Update Content Types
         const ctPath = '[Content_Types].xml';
-        const ctContent = this.pkg.getFileText(ctPath);
-        const parsedCt = this.parser.parse(ctContent);
-
+        const parsedCt = this.parser.parse(this.pkg.getFileText(ctPath));
         if (!parsedCt.Types.Override) parsedCt.Types.Override = [];
         if (!Array.isArray(parsedCt.Types.Override)) parsedCt.Types.Override = [parsedCt.Types.Override];
-
         parsedCt.Types.Override.push({
             '@_PartName': `/${relativePath}`,
             '@_ContentType': CONTENT_TYPES.VISIO_PAGE
         });
         this.pkg.updateFile(ctPath, buildXml(this.builder, parsedCt));
 
-        // 4. Update Relationships
         const rId = await this.relsManager.ensureRelationship(
             'visio/pages/pages.xml',
             fileName,
             RELATIONSHIP_TYPES.PAGE
         );
 
-        // 5. Update Pages Index with Background="true"
         const pagesPath = 'visio/pages/pages.xml';
-        const pagesContent = this.pkg.getFileText(pagesPath);
-        const parsedPages = this.parser.parse(pagesContent);
-
+        const parsedPages = this.parser.parse(this.pkg.getFileText(pagesPath));
         if (!parsedPages.Pages.Page) parsedPages.Pages.Page = [];
         if (!Array.isArray(parsedPages.Pages.Page)) parsedPages.Pages.Page = [parsedPages.Pages.Page];
-
         parsedPages.Pages.Page.push({
             '@_ID': newId.toString(),
             '@_Name': name,
             '@_NameU': name,
-            '@_Background': '1',  // Use '1' for boolean true attribute
+            '@_Background': '1',
             'Rel': { '@_r:id': rId }
         });
-
         this.pkg.updateFile(pagesPath, buildXml(this.builder, parsedPages));
         this.load(true);
 
@@ -264,24 +235,20 @@ export class PageManager {
         const page = this.pages.find(p => p.id.toString() === pageId);
         if (!page) throw new Error(`Page ${pageId} not found`);
 
-        const pageFileName = page.xmlPath.split('/').pop()!; // e.g. "page2.xml"
+        const pageFileName = page.xmlPath.split('/').pop()!;
 
-        // 1. Remove the page XML file
         try { this.pkg.removeFile(page.xmlPath); } catch { /* already gone */ }
 
-        // 2. Remove the page's .rels file if it exists
         const pageRelsPath = `visio/pages/_rels/${pageFileName}.rels`;
         try { this.pkg.removeFile(pageRelsPath); } catch { /* no rels file is fine */ }
 
-        // 3. Remove entry from pages.xml (and strip BackPage refs pointing to this page)
         const pagesPath = 'visio/pages/pages.xml';
-        const pagesContent = this.pkg.getFileText(pagesPath);
-        const parsedPages = this.parser.parse(pagesContent);
+        const parsedPages = this.parser.parse(this.pkg.getFileText(pagesPath));
 
         let pageNodes = parsedPages.Pages.Page;
         if (!Array.isArray(pageNodes)) pageNodes = pageNodes ? [pageNodes] : [];
 
-        // Remove deleted page and clean up BackPage refs on remaining pages
+        // Strip the deleted page and remove any BackPage references pointing to it.
         parsedPages.Pages.Page = pageNodes
             .filter((n: any) => n['@_ID'] !== pageId)
             .map((n: any) => {
@@ -295,11 +262,8 @@ export class PageManager {
 
         this.pkg.updateFile(pagesPath, buildXml(this.builder, parsedPages));
 
-        // 4. Remove relationship from pages.xml.rels
         const pagesRelsPath = 'visio/pages/_rels/pages.xml.rels';
-        const pagesRelsContent = this.pkg.getFileText(pagesRelsPath);
-        const parsedPagesRels = this.parser.parse(pagesRelsContent);
-
+        const parsedPagesRels = this.parser.parse(this.pkg.getFileText(pagesRelsPath));
         let rels = parsedPagesRels.Relationships?.Relationship;
         if (!Array.isArray(rels)) rels = rels ? [rels] : [];
         parsedPagesRels.Relationships.Relationship = rels.filter(
@@ -307,11 +271,8 @@ export class PageManager {
         );
         this.pkg.updateFile(pagesRelsPath, buildXml(this.builder, parsedPagesRels));
 
-        // 5. Remove Content Types override for the page file
         const ctPath = '[Content_Types].xml';
-        const ctContent = this.pkg.getFileText(ctPath);
-        const parsedCt = this.parser.parse(ctContent);
-
+        const parsedCt = this.parser.parse(this.pkg.getFileText(ctPath));
         let overrides = parsedCt.Types.Override;
         if (!Array.isArray(overrides)) overrides = overrides ? [overrides] : [];
         parsedCt.Types.Override = overrides.filter(
@@ -319,7 +280,6 @@ export class PageManager {
         );
         this.pkg.updateFile(ctPath, buildXml(this.builder, parsedCt));
 
-        // 6. Reload the page list to reflect the deletion
         this.load(true);
     }
 

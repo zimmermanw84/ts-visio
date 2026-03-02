@@ -35,22 +35,11 @@ export class VisioValidator {
         const errors: string[] = [];
         const warnings: string[] = [];
 
-        // 1. Check required files exist
         this.checkRequiredFiles(pkg, errors);
-
-        // 2. Validate Content Types
         this.validateContentTypes(pkg, errors, warnings);
-
-        // 3. Validate document relationships
         this.validateDocumentRels(pkg, errors);
-
-        // 4. Validate pages
         this.validatePages(pkg, errors, warnings);
-
-        // 5. Validate master references
         this.validateMasterReferences(pkg, errors, warnings);
-
-        // 6. Validate relationship file integrity
         this.validateRelationshipIntegrity(pkg, errors, warnings);
 
         return {
@@ -246,7 +235,6 @@ export class VisioValidator {
         const shapes = this.getAllShapes(parsed);
 
         for (const shape of shapes) {
-            // Check top-level cells
             if (shape.Cell) {
                 const cells = Array.isArray(shape.Cell) ? shape.Cell : [shape.Cell];
                 for (const cell of cells) {
@@ -256,7 +244,6 @@ export class VisioValidator {
                 }
             }
 
-            // Check cells in sections
             if (shape.Section) {
                 const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
                 for (const section of sections) {
