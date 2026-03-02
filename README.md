@@ -1,5 +1,7 @@
 # ts-visio
 
+[![API Docs](https://img.shields.io/badge/API%20Docs-TypeDoc-blue?style=flat-square)](https://zimmermanw84.github.io/ts-visio/)
+
 > [!WARNING]
 > **Under Construction**
 > This library is currently being developed with heavy assistance from AI and is primarily an experimental project. Use with caution.
