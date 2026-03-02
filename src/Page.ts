@@ -10,6 +10,21 @@ import { RelsManager } from './core/RelsManager';
 import { createVisioShapeStub } from './utils/StubHelpers';
 import { Layer } from './Layer';
 
+/**
+ * Represents a single page (tab) inside a Visio document.
+ *
+ * Obtain a `Page` instance from {@link VisioDocument.pages},
+ * {@link VisioDocument.addPage}, or {@link VisioDocument.getPage}.
+ *
+ * @example
+ * ```typescript
+ * const doc  = await VisioDocument.create();
+ * const page = doc.pages[0];
+ * await page.addShape({ text: 'Hello', x: 1, y: 1, width: 2, height: 1 });
+ * ```
+ *
+ * @category Pages
+ */
 export class Page {
     private media: MediaManager;
     private rels: RelsManager;
@@ -91,6 +106,10 @@ export class Page {
         return this;
     }
 
+    /**
+     * Return all top-level shapes on the page.
+     * Group children are not included; use {@link findShapes} to search the entire shape tree.
+     */
     getShapes(): Shape[] {
         const reader = new ShapeReader(this.pkg);
         try {
@@ -125,6 +144,29 @@ export class Page {
             .filter(predicate);
     }
 
+    /**
+     * Add a new shape to the page and return a {@link Shape} handle to it.
+     *
+     * @param props    Visual and text properties for the new shape.
+     *                 All geometry fields (`x`, `y`, `width`, `height`) are in inches.
+     * @param parentId Optional ID of an existing group shape to nest the new shape inside.
+     *
+     * @example
+     * ```typescript
+     * // Plain rectangle
+     * const box = await page.addShape({ text: 'Server', x: 2, y: 3, width: 2, height: 1 });
+     *
+     * // Ellipse with styling
+     * await page.addShape({
+     *     text: 'Start', x: 1, y: 1, width: 1.5, height: 1.5,
+     *     geometry: 'ellipse', fillColor: '#4472C4', fontColor: '#ffffff',
+     * });
+     *
+     * // Master instance (shape defined by a reusable master)
+     * const m = doc.createMaster('Router', 'ellipse');
+     * await page.addShape({ text: '', x: 4, y: 2, width: 1, height: 1, masterId: m.id });
+     * ```
+     */
     async addShape(props: NewShapeProps, parentId?: string): Promise<Shape> {
         const newId = await this.modifier.addShape(this.id, props, parentId);
 
@@ -163,6 +205,26 @@ export class Page {
         }
     }
 
+    /**
+     * Draw a connector (line/arrow) between two shapes on this page.
+     *
+     * @param fromShape   Source shape.
+     * @param toShape     Target shape.
+     * @param beginArrow  Arrow head at the source end (use {@link ArrowHeads} constants).
+     * @param endArrow    Arrow head at the target end (use {@link ArrowHeads} constants).
+     * @param style       Line color, weight, pattern, and routing style.
+     * @param fromPort    Named connection point on the source shape (e.g. `'Right'`).
+     * @param toPort      Named connection point on the target shape (e.g. `'Left'`).
+     *
+     * @example
+     * ```typescript
+     * import { ArrowHeads } from 'ts-visio';
+     * const a = await page.addShape({ text: 'A', x: 1, y: 1, width: 1, height: 1 });
+     * const b = await page.addShape({ text: 'B', x: 4, y: 1, width: 1, height: 1 });
+     * await page.connectShapes(a, b, ArrowHeads.None, ArrowHeads.OpenArrow,
+     *     { lineColor: '#333333', routing: 'orthogonal' });
+     * ```
+     */
     async connectShapes(
         fromShape: Shape,
         toShape: Shape,
@@ -175,6 +237,23 @@ export class Page {
         await this.modifier.addConnector(this.id, fromShape.id, toShape.id, beginArrow, endArrow, style, fromPort, toPort);
     }
 
+    /**
+     * Embed an image on the page and return the resulting Foreign shape.
+     *
+     * @param data   Raw image bytes (PNG, JPEG, GIF, BMP, or TIFF).
+     * @param name   Filename used to store the image inside the archive (e.g. `'logo.png'`).
+     * @param x      Horizontal pin position in inches.
+     * @param y      Vertical pin position in inches.
+     * @param width  Display width in inches.
+     * @param height Display height in inches.
+     *
+     * @example
+     * ```typescript
+     * import fs from 'fs';
+     * const imgBuffer = fs.readFileSync('./logo.png');
+     * await page.addImage(imgBuffer, 'logo.png', 1, 1, 2, 1);
+     * ```
+     */
     async addImage(data: Buffer, name: string, x: number, y: number, width: number, height: number): Promise<Shape> {
         const mediaPath = this.media.addMedia(name, data);
         const rId = await this.rels.addImageRelationship(this.pagePath, mediaPath);

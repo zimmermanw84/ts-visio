@@ -24,6 +24,21 @@ function fmtCoord(n: number): string {
     return parseFloat(n.toFixed(10)).toString();
 }
 
+/**
+ * A handle to a single shape on a Visio page.
+ *
+ * Obtain instances via {@link Page.addShape}, {@link Page.getShapes},
+ * {@link Page.getShapeById}, or {@link Page.findShapes}.
+ *
+ * @example
+ * ```typescript
+ * const shape = await page.addShape({ text: 'Box', x: 1, y: 1, width: 2, height: 1 });
+ * await shape.setStyle({ fillColor: '#4472C4', fontColor: '#ffffff', bold: true });
+ * console.log(shape.id, shape.x, shape.y);
+ * ```
+ *
+ * @category Shapes
+ */
 export class Shape {
     private modifier: ShapeModifier;
 
