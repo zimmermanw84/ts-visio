@@ -1,5 +1,5 @@
-import { Page } from './Page';
-import { Shape } from './Shape';
+import type { Page } from '../Page';
+import type { Shape } from '../Shape';
 
 export type RelationType = '1:1' | '1:N';
 

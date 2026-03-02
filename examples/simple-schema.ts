@@ -5,7 +5,7 @@
  * page size (Letter landscape), and document metadata.
  */
 import { VisioDocument } from '../src/VisioDocument';
-import { SchemaDiagram } from '../src/SchemaDiagram';
+import { SchemaDiagram } from '../src/diagrams/SchemaDiagram';
 import * as path from 'path';
 
 async function run() {
