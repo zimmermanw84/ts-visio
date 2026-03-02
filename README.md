@@ -14,7 +14,7 @@ Built using specific schema-level abstractions to handle the complex internal st
 - **Strict Typing**: Interact with `VisioPage`, `VisioShape`, and `VisioConnect` objects.
 - **ShapeSheet Access**: Read `Cells`, `Rows`, and `Sections` directly.
 - **Connections**: Analyze connectivity between shapes.
-- **Modular Architecture**: Use specialized components for loading, page management, shape reading, and modification.
+- **Modular Architecture**: Clean layered architecture — `VisioDocument` → `Page` → `Shape` is the full public surface; XML and OPC internals stay encapsulated.
 - **Modify Content**: Update text content of shapes.
 - **Create Shapes**: Rectangles, ellipses, diamonds, rounded rectangles, triangles, parallelograms.
 - **Connect Shapes**: Dynamic connectors with arrow styles, line styling, and routing (straight / orthogonal / curved).
@@ -682,6 +682,16 @@ const styles = doc.getStyles();
 
 `StyleProps` supports: `fillColor`, `lineColor`, `lineWeight` (pt), `linePattern`, `fontColor`, `fontSize` (pt), `bold`, `italic`, `underline`, `strikethrough`, `fontFamily`, `horzAlign`, `verticalAlign`, `spaceBefore`, `spaceAfter`, `lineSpacing`, `textMarginTop/Bottom/Left/Right` (in).
 Local shape properties always override inherited stylesheet values.
+
+The alignment and style types are exported for use in typed consumers:
+
+```typescript
+import type { HorzAlign, VertAlign, ShapeStyle } from 'ts-visio';
+
+const style: ShapeStyle = { horzAlign: 'center', verticalAlign: 'middle', bold: true };
+const align: HorzAlign  = 'justify';   // 'left' | 'center' | 'right' | 'justify'
+const valign: VertAlign = 'bottom';    // 'top' | 'middle' | 'bottom'
+```
 
 #### 30. Reading Connectors Back
 Enumerate connectors on a page — including those loaded from an existing `.vsdx` file — and inspect or delete them.
