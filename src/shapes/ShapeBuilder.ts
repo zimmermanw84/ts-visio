@@ -45,9 +45,14 @@ export class ShapeBuilder {
 
         if (props.fillColor) {
             shape.Section.push(createFillSection(props.fillColor));
+        }
+
+        const hasLineProps = props.lineColor !== undefined || props.linePattern !== undefined;
+        if (props.fillColor || hasLineProps) {
             shape.Section.push(createLineSection({
-                color: props.lineColor || '#000000',
-                weight: '0.01'
+                color:   props.lineColor,
+                pattern: props.linePattern !== undefined ? props.linePattern.toString() : undefined,
+                weight: '0.01',
             }));
         }
 

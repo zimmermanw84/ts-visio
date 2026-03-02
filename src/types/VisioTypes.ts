@@ -348,6 +348,8 @@ export interface NewShapeProps {
     masterId?: string;
     imgRelId?: string;
     lineColor?: string;
+    /** Line pattern. 0 = none, 1 = solid (default), 2 = dash, 3 = dot, 4 = dash-dot. */
+    linePattern?: number;
     /** Italic text. */
     italic?: boolean;
     /** Underline text. */
