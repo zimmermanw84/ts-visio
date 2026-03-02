@@ -2,6 +2,7 @@ import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import { VisioPackage } from '../VisioPackage';
 import { SECTION_NAMES } from './VisioConstants';
 import { createXmlParser, createXmlBuilder, buildXml } from '../utils/XmlHelper';
+import { buildShapeMap, gatherAllShapes } from '../utils/ShapeTreeUtils';
 
 /**
  * Shared XML parsing, caching, and persistence infrastructure for all page editors.
@@ -37,30 +38,13 @@ export class PageXmlCache {
 
     getShapeMap(parsed: any): Map<string, any> {
         if (!this.shapeCache.has(parsed)) {
-            const map = new Map<string, any>();
-            let topLevelShapes = parsed.PageContents.Shapes ? parsed.PageContents.Shapes.Shape : [];
-            if (!Array.isArray(topLevelShapes)) {
-                topLevelShapes = topLevelShapes ? [topLevelShapes] : [];
-            }
-
-            const gather = (shapeList: any[]): void => {
-                for (const s of shapeList) {
-                    map.set(s['@_ID'], s);
-                    if (s.Shapes?.Shape) {
-                        const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
-                        gather(children);
-                    }
-                }
-            };
-
-            gather(topLevelShapes);
-            this.shapeCache.set(parsed, map);
+            this.shapeCache.set(parsed, buildShapeMap(parsed));
         }
         return this.shapeCache.get(parsed)!;
     }
 
     getAllShapes(parsed: any): any[] {
-        return Array.from(this.getShapeMap(parsed).values());
+        return gatherAllShapes(parsed);
     }
 
     getNextId(parsed: any): string {
