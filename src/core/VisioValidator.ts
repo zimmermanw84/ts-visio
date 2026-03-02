@@ -1,6 +1,7 @@
 import { XMLParser } from 'fast-xml-parser';
 import { VisioPackage } from '../VisioPackage';
 import { SHAPE_TYPES } from './VisioConstants';
+import { gatherAllShapes } from '../utils/ShapeTreeUtils';
 
 export interface ValidationResult {
     valid: boolean;
@@ -390,23 +391,6 @@ export class VisioValidator {
     }
 
     private getAllShapes(parsed: any): any[] {
-        let topLevelShapes = parsed.PageContents.Shapes?.Shape || [];
-        if (!Array.isArray(topLevelShapes)) {
-            topLevelShapes = topLevelShapes ? [topLevelShapes] : [];
-        }
-
-        const all: any[] = [];
-        const gather = (shapeList: any[]): void => {
-            for (const s of shapeList) {
-                all.push(s);
-                if (s.Shapes?.Shape) {
-                    const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
-                    gather(children);
-                }
-            }
-        };
-
-        gather(topLevelShapes);
-        return all;
+        return gatherAllShapes(parsed);
     }
 }

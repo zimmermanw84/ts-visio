@@ -4,6 +4,7 @@ import { VisioShape, ConnectorRouting, ConnectionTarget } from './types/VisioTyp
 import { asArray, parseCells, parseSection } from './utils/VisioParsers';
 import { ConnectorData } from './Connector';
 import { SECTION_NAMES } from './core/VisioConstants';
+import { findShapeById, buildShapeMap, gatherAllShapes } from './utils/ShapeTreeUtils';
 
 export class ShapeReader {
     private parser: XMLParser;
@@ -44,12 +45,7 @@ export class ShapeReader {
         }
 
         const parsed = this.parser.parse(content);
-        const shapesData = parsed.PageContents?.Shapes?.Shape;
-        if (!shapesData) return [];
-
-        const result: VisioShape[] = [];
-        this.gatherShapes(asArray<any>(shapesData), result);
-        return result;
+        return gatherAllShapes(parsed).map((s: any) => this.parseShape(s));
     }
 
     /**
@@ -65,10 +61,8 @@ export class ShapeReader {
         }
 
         const parsed = this.parser.parse(content);
-        const shapesData = parsed.PageContents?.Shapes?.Shape;
-        if (!shapesData) return undefined;
-
-        return this.findShapeById(asArray<any>(shapesData), shapeId);
+        const raw = findShapeById(parsed, shapeId);
+        return raw ? this.parseShape(raw) : undefined;
     }
 
     /**
@@ -85,18 +79,7 @@ export class ShapeReader {
         }
 
         const parsed = this.parser.parse(content);
-        const shapesData = parsed.PageContents?.Shapes?.Shape;
-        if (!shapesData) return [];
-
-        // Build a flat map of all shapes by ID (including nested)
-        const shapeMap = new Map<string, any>();
-        const collectShapes = (list: any[]): void => {
-            for (const s of list) {
-                shapeMap.set(s['@_ID'], s);
-                if (s.Shapes?.Shape) collectShapes(asArray<any>(s.Shapes.Shape));
-            }
-        };
-        collectShapes(asArray<any>(shapesData));
+        const shapeMap = buildShapeMap(parsed);
 
         // Identify connector shapes by ObjType=2 or presence of BeginX cell
         const connectorShapes: any[] = [];
@@ -190,15 +173,6 @@ export class ShapeReader {
         return 'center';
     }
 
-    private gatherShapes(rawShapes: any[], result: VisioShape[]): void {
-        for (const s of rawShapes) {
-            result.push(this.parseShape(s));
-            if (s.Shapes?.Shape) {
-                this.gatherShapes(asArray<any>(s.Shapes.Shape), result);
-            }
-        }
-    }
-
     /**
      * Return the direct child shapes of a group or container shape.
      * Returns an empty array if the shape has no children or does not exist.
@@ -212,29 +186,10 @@ export class ShapeReader {
         }
 
         const parsed = this.parser.parse(content);
-        const shapesData = parsed.PageContents?.Shapes?.Shape;
-        if (!shapesData) return [];
-
-        const rawParent = this.findRawShape(asArray<any>(shapesData), parentId);
+        const rawParent = findShapeById(parsed, parentId);
         if (!rawParent?.Shapes?.Shape) return [];
 
         return asArray<any>(rawParent.Shapes.Shape).map((s: any) => this.parseShape(s));
-    }
-
-    private findShapeById(rawShapes: any[], shapeId: string): VisioShape | undefined {
-        const raw = this.findRawShape(rawShapes, shapeId);
-        return raw ? this.parseShape(raw) : undefined;
-    }
-
-    private findRawShape(rawShapes: any[], shapeId: string): any | undefined {
-        for (const s of rawShapes) {
-            if (s['@_ID'] === shapeId) return s;
-            if (s.Shapes?.Shape) {
-                const found = this.findRawShape(asArray<any>(s.Shapes.Shape), shapeId);
-                if (found) return found;
-            }
-        }
-        return undefined;
     }
 
     private parseShape(s: any): VisioShape {
