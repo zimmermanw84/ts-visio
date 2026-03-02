@@ -103,11 +103,9 @@
 
 ### 9. Masters / Stencils
 
-`MasterManager` exists internally but has no public API:
-
-- No public method to create or import master shapes
-- No way to load a `.vssx` stencil file and use its masters
-- The `masterId` mechanism works for referencing existing masters, but creating them from scratch is not supported
+- ~~No public method to create or import master shapes~~ — ✅ Implemented (`doc.createMaster(name, geometry?)` creates a parametric master with full OPC housekeeping; `doc.getMasters()` lists all masters with resolved `xmlPath`; `MasterRecord` exported)
+- ~~No way to load a `.vssx` stencil file and use its masters~~ — ✅ Implemented (`doc.importMastersFromStencil(pathOrBuffer)` imports all masters from a `.vssx` ZIP, assigns non-conflicting IDs)
+- ~~The `masterId` mechanism works for referencing existing masters, but creating them from scratch is not supported~~ — ✅ Resolved by the above
 
 ---
 
