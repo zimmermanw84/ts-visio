@@ -1,0 +1,26 @@
+{
+    "entryPoints": ["src/index.ts"],
+    "out": "docs",
+    "name": "ts-visio",
+    "includeVersion": true,
+    "readme": "README.md",
+    "excludePrivate": true,
+    "excludeInternal": true,
+    "excludeExternals": true,
+    "searchInComments": true,
+    "navigationLinks": {
+        "GitHub": "https://github.com/zimmermanw84/ts-visio",
+        "npm": "https://www.npmjs.com/package/ts-visio"
+    },
+    "categoryOrder": [
+        "Documents",
+        "Pages",
+        "Shapes",
+        "Connectors",
+        "Masters",
+        "Layers",
+        "Diagrams",
+        "Utilities",
+        "*"
+    ]
+}
