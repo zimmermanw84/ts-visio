@@ -16,6 +16,7 @@ export const XML_NAMESPACES = {
 export const RELATIONSHIP_TYPES = {
     IMAGE: 'http://schemas.microsoft.com/office/2006/relationships/image',
     MASTERS: 'http://schemas.microsoft.com/visio/2010/relationships/masters',
+    MASTER:  'http://schemas.microsoft.com/visio/2010/relationships/master',
     PAGES: 'http://schemas.microsoft.com/visio/2010/relationships/pages',
     PAGE: 'http://schemas.microsoft.com/visio/2010/relationships/page',
     WINDOWS: 'http://schemas.microsoft.com/visio/2010/relationships/windows',
@@ -93,6 +94,8 @@ export const CONTENT_TYPES = {
     XML_RELATIONSHIPS: 'application/vnd.openxmlformats-package.relationships+xml',
     XML: 'application/xml',
     VISIO_DRAWING: 'application/vnd.ms-visio.drawing.main+xml',
+    VISIO_MASTERS: 'application/vnd.ms-visio.masters+xml',
+    VISIO_MASTER:  'application/vnd.ms-visio.master+xml',
     VISIO_PAGES: 'application/vnd.ms-visio.pages+xml',
     VISIO_PAGE: 'application/vnd.ms-visio.page+xml',
     VISIO_WINDOWS: 'application/vnd.ms-visio.windows+xml',

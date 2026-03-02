@@ -202,26 +202,53 @@ Save the modified document back to disk.
 await doc.save('updated_diagram.vsdx');
 ```
 
-#### 10. Using Stencils (Masters)
-Load a template that already contains stencils (like "Network" or "Flowchart") and drop shapes by their Master ID.
+#### 10. Masters & Stencils
+
+**Create a master from scratch** — define a reusable shape with a built-in geometry, then stamp instances onto any page:
 
 ```typescript
-// 1. Load a template with stencils
-const doc = await VisioDocument.load('template_with_masters.vsdx');
+const doc = await VisioDocument.create();
 const page = doc.pages[0];
 
-// 2. Drop a shape using a Master ID
-// (You can find IDs in visio/masters/masters.xml of the template)
-await page.addShape({
-    text: "Router 1",
-    x: 2,
-    y: 2,
-    width: 1,
-    height: 1,
-    masterId: "5" // ID of the 'Router' master in the template
-});
+// Define masters (geometries: 'rectangle' | 'ellipse' | 'diamond' |
+//   'rounded-rectangle' | 'triangle' | 'parallelogram')
+const boxMaster     = doc.createMaster('Box');
+const processMaster = doc.createMaster('Process', 'ellipse');
+const decisionMaster = doc.createMaster('Decision', 'diamond');
 
-// The library automatically handles the relationships so the file stays valid.
+// Stamp instances — geometry + styling come from the master definition
+await page.addShape({ text: 'Start',    x: 1, y: 1, width: 2, height: 1, masterId: processMaster.id });
+await page.addShape({ text: 'Step 1',   x: 4, y: 1, width: 2, height: 1, masterId: boxMaster.id });
+await page.addShape({ text: 'Branch?',  x: 7, y: 1, width: 2, height: 1, masterId: decisionMaster.id });
+```
+
+**Import masters from a `.vssx` stencil file** — bring in an entire stencil and use any of its masters:
+
+```typescript
+const doc = await VisioDocument.create();
+
+// Path to a .vssx file, or pass a Buffer / ArrayBuffer directly
+const stencilMasters = await doc.importMastersFromStencil('./Network_Shapes.vssx');
+const router = stencilMasters.find(m => m.name === 'Router')!;
+
+await doc.pages[0].addShape({
+    text: 'Router 1', x: 2, y: 2, width: 1, height: 1,
+    masterId: router.id,
+});
+```
+
+**List masters already in the document** — useful after loading a `.vsdx` that was created in Visio:
+
+```typescript
+const doc = await VisioDocument.load('existing_diagram.vsdx');
+const masters = doc.getMasters();
+// [{ id: '1', name: 'Box', nameU: 'Box', xmlPath: 'visio/masters/master1.xml' }, ...]
+
+// Find and reuse a master by name
+const routerMaster = masters.find(m => m.name === 'Router');
+if (routerMaster) {
+    await doc.pages[0].addShape({ text: 'Router 2', x: 5, y: 5, width: 1, height: 1, masterId: routerMaster.id });
+}
 ```
 
 #### 11. Multi-Page Documents
