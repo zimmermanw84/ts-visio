@@ -42,10 +42,6 @@ export class MasterManager {
             name: node['@_Name'],
             nameU: node['@_NameU'],
             type: node['@_Type'],
-            // Implicit path convention in Visio typically follows patterns,
-            // but precise mapping usually requires checking relationships (.rels).
-            // For Phase 1, we'll assume standard naming or just store what we have.
-            // Relationships are handled in Phase 3.
             xmlPath: ''
         }));
 

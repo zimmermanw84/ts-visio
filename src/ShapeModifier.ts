@@ -15,7 +15,6 @@ import { ContainerBuilder } from './shapes/ContainerBuilder';
 import { createXmlParser, createXmlBuilder, buildXml } from './utils/XmlHelper';
 
 export class ShapeModifier {
-    // ...
     async addContainer(pageId: string, props: NewShapeProps): Promise<string> {
         const parsed = this.getParsed(pageId);
 
@@ -114,9 +113,6 @@ export class ShapeModifier {
     }
 
     private getNextId(parsed: any): string {
-        // Updates PageSheet.NextShapeID to prevent ID conflicts.
-        // Calculates the next ID from existing shapes and increments the counter.
-
         const shapeMap = this.getShapeMap(parsed);
         let maxId = 0;
         for (const s of shapeMap.values()) {
@@ -133,21 +129,17 @@ export class ShapeModifier {
 
     private ensurePageSheet(parsed: any) {
         if (!parsed.PageContents.PageSheet) {
-            // Enforce order: PageSheet, Shapes, Connects
-            // Save existing elements
+            // Enforce element order: PageSheet must precede Shapes and Connects in the XML.
             const shapes = parsed.PageContents.Shapes;
             const connects = parsed.PageContents.Connects;
             const rels = parsed.PageContents.Relationships;
 
-            // Delete to re-insert in order
             if (shapes) delete parsed.PageContents.Shapes;
             if (connects) delete parsed.PageContents.Connects;
             if (rels) delete parsed.PageContents.Relationships;
 
-            // Insert PageSheet first
             parsed.PageContents.PageSheet = { Cell: [] };
 
-            // Restore others in order
             if (shapes) parsed.PageContents.Shapes = shapes;
             if (connects) parsed.PageContents.Connects = connects;
             if (rels) parsed.PageContents.Relationships = rels;
@@ -227,7 +219,6 @@ export class ShapeModifier {
     ): Promise<string> {
         const parsed = this.getParsed(pageId);
 
-        // Ensure Shapes collection exists
         if (!parsed.PageContents.Shapes) {
             parsed.PageContents.Shapes = { Shape: [] };
         }
@@ -270,11 +261,9 @@ export class ShapeModifier {
         const shape = shapeMap.get(shapeId);
         if (!shape) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
 
-        // Ensure Section array exists
         if (!shape.Section) shape.Section = [];
         if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
 
-        // Find or create Connection section
         let connSection = shape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.Connection);
         if (!connSection) {
             connSection = { '@_N': SECTION_NAMES.Connection, Row: [] };
@@ -318,7 +307,6 @@ export class ShapeModifier {
     async addShape(pageId: string, props: NewShapeProps, parentId?: string): Promise<string> {
         const parsed = this.getParsed(pageId);
 
-        // Ensure Shapes container exists
         if (!parsed.PageContents.Shapes) {
             parsed.PageContents.Shapes = { Shape: [] };
         }
@@ -328,26 +316,19 @@ export class ShapeModifier {
             parsed.PageContents.Shapes.Shape = topLevelShapes;
         }
 
-        // Auto-generate ID if not provided
-        let newId = props.id;
-        if (!newId) {
-            newId = this.getNextId(parsed);
-        }
+        const newId = props.id || this.getNextId(parsed);
 
         let newShape: any;
 
         if (props.type === SHAPE_TYPES.Foreign && props.imgRelId) {
             newShape = ForeignShapeBuilder.createImageShapeObject(newId, props.imgRelId, props);
-            // Text for foreign shapes? Usually none, but we can support it.
             if (props.text !== undefined && props.text !== null) {
                 newShape.Text = { '#text': props.text };
             }
         } else {
-            // Standard Shape creation logic
             newShape = ShapeBuilder.createStandardShape(newId, props);
 
             if (props.masterId) {
-                // Phase 3: Ensure Relationship
                 await this.relsManager.ensureRelationship(
                     `visio/pages/page${pageId}.xml`,
                     '../masters/masters.xml',
@@ -356,15 +337,12 @@ export class ShapeModifier {
             }
         }
 
-
         if (parentId) {
-            // Add to Parent Group
             const parent = this.getShapeMap(parsed).get(parentId);
             if (!parent) {
                 throw new Error(`Parent shape ${parentId} not found`);
             }
 
-            // Ensure Parent has Shapes collection
             if (!parent.Shapes) {
                 parent.Shapes = { Shape: [] };
             }
@@ -372,14 +350,12 @@ export class ShapeModifier {
                 parent.Shapes.Shape = parent.Shapes.Shape ? [parent.Shapes.Shape] : [];
             }
 
-            // Mark parent as Group if not already
             if (parent['@_Type'] !== SHAPE_TYPES.Group) {
                 parent['@_Type'] = SHAPE_TYPES.Group;
             }
 
             parent.Shapes.Shape.push(newShape);
         } else {
-            // Add to Page
             topLevelShapes.push(newShape);
         }
         this.getShapeMap(parsed).set(newId, newShape);
@@ -392,13 +368,11 @@ export class ShapeModifier {
     async deleteShape(pageId: string, shapeId: string): Promise<void> {
         const parsed = this.getParsed(pageId);
 
-        // 1. Remove shape from the shape tree (handles top-level and nested groups)
         const removed = this.removeShapeFromTree(parsed.PageContents.Shapes, shapeId);
         if (!removed) {
             throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        // 2. Remove any Connect elements referencing this shape
         if (parsed.PageContents.Connects?.Connect) {
             let connects = parsed.PageContents.Connects.Connect;
             if (!Array.isArray(connects)) connects = [connects];
@@ -408,7 +382,6 @@ export class ShapeModifier {
             parsed.PageContents.Connects.Connect = filtered;
         }
 
-        // 3. Remove any Relationship elements referencing this shape (container membership, etc.)
         if (parsed.PageContents.Relationships?.Relationship) {
             let rels = parsed.PageContents.Relationships.Relationship;
             if (!Array.isArray(rels)) rels = [rels];
@@ -417,7 +390,7 @@ export class ShapeModifier {
             );
         }
 
-        // 4. Invalidate the shape cache so the map is rebuilt on next access
+        // Invalidate the shape cache so the map is rebuilt on next access.
         this.shapeCache.delete(parsed);
 
         this.saveParsed(pageId, parsed);
@@ -436,7 +409,6 @@ export class ShapeModifier {
             return true;
         }
 
-        // Recurse into nested group children
         for (const shape of shapes) {
             if (shape.Shapes && this.removeShapeFromTree(shape.Shapes, shapeId)) {
                 return true;
@@ -468,21 +440,17 @@ export class ShapeModifier {
             throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        // Ensure Section array exists
         if (!shape.Section) {
             shape.Section = [];
         } else if (!Array.isArray(shape.Section)) {
             shape.Section = [shape.Section];
         }
 
-        // Update/Add Fill
         if (style.fillColor) {
-            // Remove existing Fill section if any (simplified: assuming IX=0)
             shape.Section = shape.Section.filter((s: any) => s['@_N'] !== SECTION_NAMES.Fill);
             shape.Section.push(createFillSection(style.fillColor));
         }
 
-        // Update/Add Line
         const hasLineProps = style.lineColor !== undefined
             || style.lineWeight !== undefined
             || style.linePattern !== undefined;
@@ -496,7 +464,6 @@ export class ShapeModifier {
             }));
         }
 
-        // Update/Add Character (Font/Text Style)
         const hasCharProps = style.fontColor !== undefined
             || style.bold !== undefined
             || style.italic !== undefined
@@ -518,7 +485,6 @@ export class ShapeModifier {
             }));
         }
 
-        // Update/Add Paragraph
         const hasParagraphProps = style.horzAlign !== undefined
             || style.spaceBefore !== undefined
             || style.spaceAfter !== undefined
@@ -534,7 +500,6 @@ export class ShapeModifier {
             }));
         }
 
-        // Update/Add TextBlock (text margins)
         const hasTextBlockProps = style.textMarginTop !== undefined
             || style.textMarginBottom !== undefined
             || style.textMarginLeft !== undefined
@@ -550,7 +515,6 @@ export class ShapeModifier {
             }));
         }
 
-        // Update/Add VerticalAlign (top-level shape Cell)
         if (style.verticalAlign !== undefined) {
             if (!shape.Cell) shape.Cell = [];
             if (!Array.isArray(shape.Cell)) shape.Cell = [shape.Cell];
@@ -570,7 +534,6 @@ export class ShapeModifier {
 
         if (!shape) throw new Error(`Shape ${shapeId} not found`);
 
-        // Ensure Cell array
         if (!shape.Cell) shape.Cell = [];
         if (!Array.isArray(shape.Cell)) shape.Cell = [shape.Cell];
 
@@ -680,14 +643,12 @@ export class ShapeModifier {
             throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        // Ensure Cell array exists
         if (!shape.Cell) {
             shape.Cell = [];
         } else if (!Array.isArray(shape.Cell)) {
             shape.Cell = [shape.Cell];
         }
 
-        // Helper to update specific cell
         const updateCell = (name: string, value: string) => {
             const cell = shape.Cell.find((c: any) => c['@_N'] === name);
             if (cell) {
@@ -710,25 +671,20 @@ export class ShapeModifier {
             throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        // Ensure Section array exists
         if (!shape.Section) shape.Section = [];
         if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
 
-        // Find or Create Property Section
         let propSection = shape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.Property);
         if (!propSection) {
             propSection = { '@_N': SECTION_NAMES.Property, Row: [] };
             shape.Section.push(propSection);
         }
 
-        // Ensure Row array exists
         if (!propSection.Row) propSection.Row = [];
         if (!Array.isArray(propSection.Row)) propSection.Row = [propSection.Row];
 
-        // Check if property already exists
         const existingRow = propSection.Row.find((r: any) => r['@_N'] === `Prop.${name}`);
         if (existingRow) {
-            // Update existing Definition
             const updateCell = (n: string, v: string) => {
                 let c = existingRow.Cell.find((x: any) => x['@_N'] === n);
                 if (c) c['@_V'] = v;
@@ -738,14 +694,13 @@ export class ShapeModifier {
             updateCell('Type', type.toString());
             if (options.invisible !== undefined) updateCell('Invisible', options.invisible ? '1' : '0');
         } else {
-            // Create New Row
             propSection.Row.push({
                 '@_N': `Prop.${name}`,
                 Cell: [
-                    { '@_N': 'Label', '@_V': options.label || name }, // Default label to name
+                    { '@_N': 'Label', '@_V': options.label || name },
                     { '@_N': 'Type', '@_V': type.toString() },
                     { '@_N': 'Invisible', '@_V': options.invisible ? '1' : '0' },
-                    { '@_N': 'Value', '@_V': '0' } // Initialize with default
+                    { '@_N': 'Value', '@_V': '0' }
                 ]
             });
         }
@@ -766,7 +721,6 @@ export class ShapeModifier {
             throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
         }
 
-        // Ensure Section array exists
         const sections = shape.Section ? (Array.isArray(shape.Section) ? shape.Section : [shape.Section]) : [];
         const propSection = sections.find((s: any) => s['@_N'] === SECTION_NAMES.Property);
 
@@ -781,22 +735,14 @@ export class ShapeModifier {
             throw new Error(`Property definition 'Prop.${name}' does not exist on shape ${shapeId}. Call addPropertyDefinition first.`);
         }
 
-        // Determine Visio Value String
         let visioValue = '';
         if (value instanceof Date) {
             visioValue = this.dateToVisioString(value);
         } else if (typeof value === 'boolean') {
-            visioValue = value ? '1' : '0'; // Should boolean be V='TRUE' or 1? Standard practice is often 1/0 or TRUE/FALSE. Cells are formulaic.
-            // However, if the Type is 3 (Boolean), Visio often expects 0/1 or TRUE/FALSE.
-            // Let's stick to '1'/'0' for safety in formulas if generic.
+            visioValue = value ? '1' : '0';
         } else {
             visioValue = value.toString();
         }
-
-        // Update or Add Value Cell
-        // Note: If Type is String (0), V="String". If Number (2), V="123".
-        // Visio often puts string values in formulae as "String", but in XML V attribute it's raw text?
-        // Actually, for String props, V usually contains the string.
 
         let valCell = row.Cell.find((c: any) => c['@_N'] === 'Value');
         if (valCell) {
@@ -814,7 +760,6 @@ export class ShapeModifier {
         if (!shape) throw new Error(`Shape ${shapeId} not found`);
 
         const getCellVal = (name: string) => {
-            // Ensure Cell is array
             if (!shape.Cell) return 0;
             const cells = Array.isArray(shape.Cell) ? shape.Cell : [shape.Cell];
             const c = cells.find((cell: any) => cell['@_N'] === name);
@@ -832,11 +777,9 @@ export class ShapeModifier {
     async addRelationship(pageId: string, shapeId: string, relatedShapeId: string, type: string): Promise<void> {
         const parsed = this.getParsed(pageId);
 
-        // Ensure Relationships collection exists in PageContents
         if (!parsed.PageContents.Relationships) {
             parsed.PageContents.Relationships = { Relationship: [] };
         }
-        // Ensure Relationship is an array (Standard robustness pattern)
         if (!Array.isArray(parsed.PageContents.Relationships.Relationship)) {
             parsed.PageContents.Relationships.Relationship = parsed.PageContents.Relationships.Relationship
                 ? [parsed.PageContents.Relationships.Relationship]
@@ -845,8 +788,6 @@ export class ShapeModifier {
 
         const relationships = parsed.PageContents.Relationships.Relationship;
 
-        // Check definition: Type, ShapeID (Container), RelatedShapeID (Member)
-        // Avoid duplicates?
         const exists = relationships.find((r: any) =>
             r['@_Type'] === type &&
             r['@_ShapeID'] === shapeId &&
@@ -887,21 +828,19 @@ export class ShapeModifier {
         if (idx === -1) return;
 
         const shape = shapes[idx];
-        shapes.splice(idx, 1); // Remove
+        shapes.splice(idx, 1);
 
         if (position === 'back') {
-            shapes.unshift(shape); // Add to start (Back of Z-Order)
+            shapes.unshift(shape); // Back of Z-Order
         } else {
-            shapes.push(shape); // Add to end (Front of Z-Order)
+            shapes.push(shape); // Front of Z-Order
         }
 
-        // Update array in object
         shapesContainer.Shape = shapes;
         this.saveParsed(pageId, parsed);
     }
 
     async addListItem(pageId: string, listId: string, itemId: string): Promise<void> {
-        // 1. Get List Properties (Direction, Spacing)
         const parsed = this.getParsed(pageId);
         const listShape = this.getShapeMap(parsed).get(listId);
         if (!listShape) throw new Error(`List ${listId} not found`);
@@ -913,15 +852,13 @@ export class ShapeModifier {
             const rows = Array.isArray(userSec.Row) ? userSec.Row : [userSec.Row];
             const row = rows.find((r: any) => r['@_N'] === name);
             if (!row || !row.Cell) return def;
-            // Value cell
             const valCell = Array.isArray(row.Cell) ? row.Cell.find((c: any) => c['@_N'] === 'Value') : row.Cell;
             return valCell ? valCell['@_V'] : def;
         };
 
         const direction = parseInt(getUserVal('msvSDListDirection', '1')); // 1=Vert, 0=Horiz
-        const spacing = parseFloat(getUserVal('msvSDListSpacing', '0.125').replace(/[^0-9.]/g, '')); // Crude parse if unit included
+        const spacing = parseFloat(getUserVal('msvSDListSpacing', '0.125').replace(/[^0-9.]/g, ''));
 
-        // 2. Determine Position
         const memberIds = this.getContainerMembers(pageId, listId);
         const itemGeo = this.getShapeGeometry(pageId, itemId);
         const listGeo = this.getShapeGeometry(pageId, listId);
@@ -930,9 +867,6 @@ export class ShapeModifier {
         let newY = listGeo.y;
 
         if (memberIds.length === 0) {
-            // First Item: Place at Top/Left of Container (with some internal margin/padding)
-            // For simplicity, center on Container center or rely on resizeToFit to adjust container AROUND it later.
-            // Let's place it at current container PinX/PinY
             newX = listGeo.x;
             newY = listGeo.y;
         } else {
@@ -940,25 +874,18 @@ export class ShapeModifier {
             const lastGeo = this.getShapeGeometry(pageId, lastId);
 
             if (direction === 1) { // Vertical (Stack Down)
-                // Last Bottom - Spacing - ItemHalfHeight
                 const lastBottom = lastGeo.y - (lastGeo.height / 2);
                 newY = lastBottom - spacing - (itemGeo.height / 2);
                 newX = lastGeo.x; // Align Centers
             } else { // Horizontal (Stack Right)
-                // Last Right + Spacing + ItemHalfWidth
                 const lastRight = lastGeo.x + (lastGeo.width / 2);
                 newX = lastRight + spacing + (itemGeo.width / 2);
                 newY = lastGeo.y; // Align Centers
             }
         }
 
-        // 3. Update Item Position
         await this.updateShapePosition(pageId, itemId, newX, newY);
-
-        // 4. Add Relationship
         await this.addRelationship(pageId, listId, itemId, STRUCT_RELATIONSHIP_TYPES.Container);
-
-        // 5. Resize List Container
         await this.resizeContainerToFit(pageId, listId, 0.25);
     }
 
@@ -966,7 +893,6 @@ export class ShapeModifier {
         const memberIds = this.getContainerMembers(pageId, containerId);
         if (memberIds.length === 0) return;
 
-        // Calculate Bounding Box
         let minX = Infinity, minY = Infinity;
         let maxX = -Infinity, maxY = -Infinity;
 
@@ -984,7 +910,6 @@ export class ShapeModifier {
             if (top > maxY) maxY = top;
         }
 
-        // Apply Padding
         minX -= padding;
         maxX += padding;
         minY -= padding;
@@ -995,11 +920,8 @@ export class ShapeModifier {
         const newPinX = minX + (newWidth / 2);
         const newPinY = minY + (newHeight / 2);
 
-        // Update Geometry
         await this.updateShapePosition(pageId, containerId, newPinX, newPinY);
         await this.updateShapeDimensions(pageId, containerId, newWidth, newHeight);
-
-        // Update Z-Order (Send to Back)
         await this.reorderShape(pageId, containerId, 'back');
     }
 
@@ -1009,22 +931,18 @@ export class ShapeModifier {
 
         if (!shape) throw new Error(`Shape ${shapeId} not found`);
 
-        // Ensure Section array
         if (!shape.Section) shape.Section = [];
         if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
 
-        // Find or Create Hyperlink Section
         let linkSection = shape.Section.find((s: any) => s['@_N'] === 'Hyperlink');
         if (!linkSection) {
             linkSection = { '@_N': 'Hyperlink', Row: [] };
             shape.Section.push(linkSection);
         }
 
-        // Ensure Row array
         if (!linkSection.Row) linkSection.Row = [];
         if (!Array.isArray(linkSection.Row)) linkSection.Row = [linkSection.Row];
 
-        // Determine next Row ID (Hyperlink.Row_1, Hyperlink.Row_2, etc.)
         const nextIdx = linkSection.Row.length + 1;
         const rowName = `Hyperlink.Row_${nextIdx}`;
 
@@ -1034,7 +952,6 @@ export class ShapeModifier {
         };
 
         if (details.address !== undefined) {
-            // XMLBuilder handles XML escaping automatically
             newRow.Cell.push({ '@_N': 'Address', '@_V': details.address });
         }
 
@@ -1046,7 +963,6 @@ export class ShapeModifier {
             newRow.Cell.push({ '@_N': 'Description', '@_V': details.description });
         }
 
-        // Default NewWindow to 0 (false)
         newRow.Cell.push({ '@_N': 'NewWindow', '@_V': '0' });
 
         linkSection.Row.push(newRow);
@@ -1057,29 +973,21 @@ export class ShapeModifier {
     async addLayer(pageId: string, name: string, options: { visible?: boolean, lock?: boolean, print?: boolean } = {}): Promise<{ name: string, index: number }> {
         const parsed = this.getParsed(pageId);
 
-        // Ensure PageSheet
         this.ensurePageSheet(parsed);
         const pageSheet = parsed.PageContents.PageSheet;
 
-        // Ensure Section array
         if (!pageSheet.Section) pageSheet.Section = [];
         if (!Array.isArray(pageSheet.Section)) pageSheet.Section = [pageSheet.Section];
 
-        // Find or Create Layer Section
         let layerSection = pageSheet.Section.find((s: any) => s['@_N'] === SECTION_NAMES.Layer);
         if (!layerSection) {
             layerSection = { '@_N': SECTION_NAMES.Layer, Row: [] };
             pageSheet.Section.push(layerSection);
         }
 
-        // Ensure Row array
         if (!layerSection.Row) layerSection.Row = [];
         if (!Array.isArray(layerSection.Row)) layerSection.Row = [layerSection.Row];
 
-        // Verify name uniqueness (Visio allows duplicates but it's bad practice)
-        // For simplicity, we create a new layer even if name matches.
-
-        // Determine Index (IX)
         let maxIx = -1;
         for (const row of layerSection.Row) {
             const ix = parseInt(row['@_IX']);
@@ -1109,47 +1017,39 @@ export class ShapeModifier {
 
         if (!shape) throw new Error(`Shape ${shapeId} not found`);
 
-        // Ensure Section array
         if (!shape.Section) shape.Section = [];
         if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
 
-        // Find or Create LayerMem Section
         let memSection = shape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.LayerMem);
         if (!memSection) {
             memSection = { '@_N': SECTION_NAMES.LayerMem, Row: [] };
             shape.Section.push(memSection);
         }
 
-        // Ensure Row array
         if (!memSection.Row) memSection.Row = [];
         if (!Array.isArray(memSection.Row)) memSection.Row = [memSection.Row];
 
-        // Ensure Row exists (LayerMem usually has 1 row)
+        // LayerMem contains a single row with a semicolon-separated LayerMember cell.
         if (memSection.Row.length === 0) {
             memSection.Row.push({ Cell: [] });
         }
         const row = memSection.Row[0];
 
-        // Ensure Cell array
         if (!row.Cell) row.Cell = [];
         if (!Array.isArray(row.Cell)) row.Cell = [row.Cell];
 
-        // Find LayerMember Cell
         let cell = row.Cell.find((c: any) => c['@_N'] === 'LayerMember');
         if (!cell) {
             cell = { '@_N': 'LayerMember', '@_V': '' };
             row.Cell.push(cell);
         }
 
-        // Update Value
         const currentVal = cell['@_V'] || '';
         const indices = currentVal.split(';').filter((s: string) => s.length > 0);
         const idxStr = layerIndex.toString();
 
         if (!indices.includes(idxStr)) {
             indices.push(idxStr);
-            // Sort optionally? Visio doesn't strictly require sorting but it's cleaner.
-            // Let's keep insertion order or sort numeric. Visio usually semicolon separates.
             cell['@_V'] = indices.join(';');
             this.saveParsed(pageId, parsed);
         }
@@ -1161,7 +1061,6 @@ export class ShapeModifier {
         this.ensurePageSheet(parsed);
         const pageSheet = parsed.PageContents.PageSheet;
 
-        // Find Layer Section
         if (!pageSheet.Section) return;
         const sections = Array.isArray(pageSheet.Section) ? pageSheet.Section : [pageSheet.Section];
         const layerSection = sections.find((s: any) => s['@_N'] === SECTION_NAMES.Layer);
@@ -1171,11 +1070,9 @@ export class ShapeModifier {
         const row = rows.find((r: any) => r['@_IX'] == layerIndex.toString());
         if (!row) return;
 
-        // Ensure Cell array
         if (!row.Cell) row.Cell = [];
         if (!Array.isArray(row.Cell)) row.Cell = [row.Cell];
 
-        // Find or Create Cell
         let cell = row.Cell.find((c: any) => c['@_N'] === propName);
         if (!cell) {
             cell = { '@_N': propName, '@_V': value };
@@ -1218,7 +1115,6 @@ export class ShapeModifier {
     deleteLayer(pageId: string, layerIndex: number): void {
         const parsed = this.getParsed(pageId);
 
-        // Remove the row from the Layer section in PageSheet
         const pageSheet = parsed.PageContents?.PageSheet;
         if (pageSheet?.Section) {
             const sections = Array.isArray(pageSheet.Section) ? pageSheet.Section : [pageSheet.Section];

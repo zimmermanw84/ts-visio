@@ -46,29 +46,24 @@ export class RelsManager {
             parsed.Relationships.Relationship = rels;
         }
 
-        // Check for existing
         const existing = rels.find((r: any) => r['@_Target'] === target && r['@_Type'] === type);
         if (existing) {
             return existing['@_Id'];
         }
 
-        // Generate new ID (rId1, rId2...)
         let maxId = 0;
         for (const r of rels) {
-            const idStr = r['@_Id']; // "rId5"
-            const idNum = parseInt(idStr.replace('rId', ''));
+            const idNum = parseInt(r['@_Id'].replace('rId', ''));
             if (!isNaN(idNum) && idNum > maxId) maxId = idNum;
         }
         const newId = `rId${maxId + 1}`;
 
-        // Add new relationship
         rels.push({
             '@_Id': newId,
             '@_Type': type,
             '@_Target': target
         });
 
-        // Save back
         const newXml = buildXml(this.builder, parsed);
         this.pkg.updateFile(relsPath, newXml);
 

@@ -176,13 +176,8 @@ export class Page {
     }
 
     async addImage(data: Buffer, name: string, x: number, y: number, width: number, height: number): Promise<Shape> {
-        // 1. Upload Media
         const mediaPath = this.media.addMedia(name, data);
-
-        // 2. Link Page to Media (use resolved path so loaded files work correctly)
         const rId = await this.rels.addImageRelationship(this.pagePath, mediaPath);
-
-        // 3. Create Shape
         const newId = await this.modifier.addShape(this.id, {
             text: '',
             x, y, width, height,
@@ -243,7 +238,6 @@ export class Page {
      * @param props Visual properties
      */
     async addSwimlanePool(props: NewShapeProps): Promise<Shape> {
-        // A Pool is just a vertical list
         return this.addList(props, 'vertical');
     }
 
@@ -252,65 +246,43 @@ export class Page {
      * @param props Visual properties
      */
     async addSwimlaneLane(props: NewShapeProps): Promise<Shape> {
-        // A Lane is just a container
         return this.addContainer(props);
     }
 
     async addTable(x: number, y: number, title: string, columns: string[]): Promise<Shape> {
-        // ... (previous implementation)
-        // Dimensions
         const width = 3;
         const headerHeight = 0.5;
         const lineItemHeight = 0.25;
-        const bodyHeight = Math.max(0.5, columns.length * lineItemHeight + 0.1); // Min height
+        const bodyHeight = Math.max(0.5, columns.length * lineItemHeight + 0.1);
         const totalHeight = headerHeight + bodyHeight;
 
-        // 1. Create Main Group Shape (Transparent container)
-        // Group Logic:
-        // Positioned at (x, y) on the Page.
-        // Size encapsulates both header and body.
+        // Group contains a header row and a body row; child coords are relative to the group origin.
         const groupShape = await this.addShape({
-            text: '', // No text on container
-            x: x,
-            y: y,
-            width: width,
-            height: totalHeight,
+            text: '',
+            x, y, width, height: totalHeight,
             type: 'Group'
         });
 
-        // 2. Header Shape (Inside Group)
-        // Coords relative to Group (Bottom-Left is 0,0)
-        // Header is at top. Center X is Width/2.
-        // Center Y = BodyHeight + (HeaderHeight/2)
         const headerCenterY = bodyHeight + (headerHeight / 2);
-
         await this.addShape({
             text: title,
-            x: width / 2, // Relative PinX
-            y: headerCenterY, // Relative PinY
-            width: width,
-            height: headerHeight,
+            x: width / 2,
+            y: headerCenterY,
+            width, height: headerHeight,
             fillColor: '#DDDDDD',
             bold: true
         }, groupShape.id);
 
-        // 3. Body Shape (Inside Group)
-        // Bottom part. Center X is Width/2.
-        // Center Y = BodyHeight/2
         const bodyCenterY = bodyHeight / 2;
-        const bodyText = columns.join('\n');
-
         await this.addShape({
-            text: bodyText,
-            x: width / 2, // Relative PinX
-            y: bodyCenterY, // Relative PinY
-            width: width,
-            height: bodyHeight,
+            text: columns.join('\n'),
+            x: width / 2,
+            y: bodyCenterY,
+            width, height: bodyHeight,
             fillColor: '#FFFFFF',
             fontColor: '#000000'
         }, groupShape.id);
 
-        // Return the Group Shape
         return groupShape;
     }
 

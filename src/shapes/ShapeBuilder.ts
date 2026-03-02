@@ -26,7 +26,6 @@ export class ShapeBuilder {
                 { '@_N': 'LocPinY', '@_V': (props.height / 2).toString(), '@_F': 'Height*0.5' }
             ],
             Section: []
-            // Text added at end by caller or we can do it here if props.text is final
         };
 
         if (props.masterId) {
@@ -44,11 +43,8 @@ export class ShapeBuilder {
             if (props.textStyleId !== undefined) shape['@_TextStyle'] = props.textStyleId.toString();
         }
 
-        // Add Styles
         if (props.fillColor) {
             shape.Section.push(createFillSection(props.fillColor));
-
-            // Standard Line for fillable shapes
             shape.Section.push(createLineSection({
                 color: props.lineColor || '#000000',
                 weight: '0.01'
@@ -107,13 +103,11 @@ export class ShapeBuilder {
             (shape.Cell as any[]).push({ '@_N': 'VerticalAlign', '@_V': vertAlignValue(props.verticalAlign) });
         }
 
-        // Connection points
         if (props.connectionPoints && props.connectionPoints.length > 0) {
             shape.Section.push(ConnectionPointBuilder.buildConnectionSection(props.connectionPoints));
         }
 
-        // Add Geometry
-        // Only if NOT a Group AND NOT a Master Instance
+        // Groups and master instances inherit geometry from their children / master definition.
         if (props.type !== SHAPE_TYPES.Group && !props.masterId) {
             shape.Section.push(GeometryBuilder.build(props));
         }

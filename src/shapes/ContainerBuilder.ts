@@ -4,42 +4,24 @@ import { createLineSection } from '../utils/StyleHelpers';
 
 export class ContainerBuilder {
     static createContainerShape(id: string, props: NewShapeProps): any {
-        // Reuse basic shape creation (transform, text, etc)
         const shape = ShapeBuilder.createStandardShape(id, props);
-
-        // Styling Override for "Classic Container":
-        // Usually containers have a Header implementation or specific Geometry.
-        // For Phase 1, we will stick to a basic Rectangle with the Metadata.
-        // If the user wants "classic" look, we might need 2 geometries (Header + Body).
-
-        // 1. Inject Container Metadata (User Cells)
         this.makeContainer(shape);
-
-        // 2. Adjust styling if necessary
-        // Containers often have 'NoFill' for the body so you can see behind,
-        // or they have a Group structure.
-        // For a simple single-shape container, we rely on the Geometry.
-
         return shape;
     }
 
     static makeContainer(shape: any) {
-        // Ensure Section array
         if (!shape.Section) shape.Section = [];
         if (!Array.isArray(shape.Section)) shape.Section = [shape.Section];
 
-        // 1. User Section (Metadata)
         let userSection = shape.Section.find((s: any) => s['@_N'] === 'User');
         if (!userSection) {
             userSection = { '@_N': 'User', Row: [] };
             shape.Section.push(userSection);
         }
 
-        // Ensure Row is array (Critical for XML parser edge cases)
         if (!userSection.Row) userSection.Row = [];
         if (!Array.isArray(userSection.Row)) userSection.Row = [userSection.Row];
 
-        // Helper to add/update user row
         const addUserRow = (name: string, value: string) => {
             const rowIdx = userSection.Row.findIndex((r: any) => r['@_N'] === name);
             const newRow = {
@@ -54,23 +36,18 @@ export class ContainerBuilder {
             }
         };
 
-        // Critical Metadata
         addUserRow('msvStructureType', '"Container"');
         addUserRow('msvSDContainerMargin', '10 mm');
 
-        // 2. Adjust Text Position (Simulate Header)
-        // Find or create TextXform
         let textXform = shape.Section.find((s: any) => s['@_N'] === 'TextXform');
         if (!textXform) {
             textXform = { '@_N': 'TextXform', Cell: [] };
             shape.Section.push(textXform);
         }
 
-        // Ensure Cell is array
         if (!textXform.Cell) textXform.Cell = [];
         if (!Array.isArray(textXform.Cell)) textXform.Cell = [textXform.Cell];
 
-        // Extract the shape's current height for use as the static @_V on TxtPinY.
         const heightVal = (shape.Cell as any[])?.find((c: any) => c['@_N'] === 'Height')?.['@_V'] ?? '1';
 
         const upsertCell = (name: string, formula: string, unit: string, val: string) => {
@@ -87,13 +64,10 @@ export class ContainerBuilder {
     }
 
     static makeList(shape: any, direction: 'vertical' | 'horizontal' = 'vertical') {
-        // 1. Convert basic container to List
         this.makeContainer(shape);
 
-        // 2. User Section Override
         let userSection = shape.Section.find((s: any) => s['@_N'] === 'User');
 
-        // Helper to add/update user row
         const upsertUserRow = (name: string, value: string) => {
             const rowIdx = userSection.Row.findIndex((r: any) => r['@_N'] === name);
             const newRow = {
