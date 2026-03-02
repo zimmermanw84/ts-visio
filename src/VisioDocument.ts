@@ -8,6 +8,24 @@ import { StyleSheetManager } from './core/StyleSheetManager';
 import { ColorManager } from './core/ColorManager';
 import { VisioPage, DocumentMetadata, StyleProps, StyleRecord, ColorEntry, MasterRecord, ShapeGeometry } from './types/VisioTypes';
 
+/**
+ * The root object for reading and writing Visio (`.vsdx`) files.
+ *
+ * Create a blank document with {@link VisioDocument.create} or load an existing
+ * file with {@link VisioDocument.load}.  Call {@link VisioDocument.save} when done.
+ *
+ * @example
+ * ```typescript
+ * import { VisioDocument } from 'ts-visio';
+ *
+ * const doc  = await VisioDocument.create();
+ * const page = doc.pages[0];
+ * await page.addShape({ text: 'Hello, Visio!', x: 1, y: 1, width: 3, height: 1 });
+ * await doc.save('output.vsdx');
+ * ```
+ *
+ * @category Documents
+ */
 export class VisioDocument {
     private pageManager: PageManager;
     private masterManager: MasterManager;

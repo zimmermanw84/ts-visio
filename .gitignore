@@ -103,6 +103,9 @@ dist
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
+# Generated docs (built by TypeDoc and deployed via GitHub Actions)
+docs/
+
 # Mac
 .DS_Store
 

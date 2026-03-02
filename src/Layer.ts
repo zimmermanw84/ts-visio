@@ -1,6 +1,20 @@
 import { VisioPackage } from './VisioPackage';
 import { ShapeModifier } from './ShapeModifier';
 
+/**
+ * A named display layer on a Visio page.
+ *
+ * Layers control the visibility and printability of groups of shapes.
+ * Obtain instances via `page.getLayers()` or `page.addLayer()`.
+ *
+ * @example
+ * ```typescript
+ * const annotations = await page.addLayer('Annotations');
+ * ann.setVisible(false);  // hide all shapes on this layer
+ * ```
+ *
+ * @category Layers
+ */
 export class Layer {
     private modifier: ShapeModifier | null;
 
