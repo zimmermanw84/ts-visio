@@ -14,4 +14,3 @@ export { SchemaDiagram } from './SchemaDiagram';
 export { VisioValidator } from './core/VisioValidator';
 export * from './types/VisioTypes';
 export { ArrowHeads, hexToRgb } from './utils/StyleHelpers';
-export type { ShapeStyle } from './ShapeModifier';

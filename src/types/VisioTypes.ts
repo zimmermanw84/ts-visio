@@ -163,6 +163,12 @@ export interface ConnectorStyle {
     routing?: ConnectorRouting;
 }
 
+/** Horizontal text alignment within a paragraph. */
+export type HorzAlign = 'left' | 'center' | 'right' | 'justify';
+
+/** Vertical text alignment within a shape's text block. */
+export type VertAlign = 'top' | 'middle' | 'bottom';
+
 /** Non-rectangular geometry variants supported by ShapeBuilder. */
 export type ShapeGeometry =
     | 'rectangle'
@@ -236,7 +242,7 @@ export interface StyleProps {
 
     // ── Paragraph ─────────────────────────────────────────────────────────────
     /** Horizontal text alignment within the paragraph. */
-    horzAlign?: 'left' | 'center' | 'right' | 'justify';
+    horzAlign?: HorzAlign;
     /** Space before each paragraph in **points**. */
     spaceBefore?: number;
     /** Space after each paragraph in **points**. */
@@ -246,7 +252,7 @@ export interface StyleProps {
 
     // ── TextBlock ─────────────────────────────────────────────────────────────
     /** Vertical text alignment within the shape. */
-    verticalAlign?: 'top' | 'middle' | 'bottom';
+    verticalAlign?: VertAlign;
     /** Top text margin in inches. */
     textMarginTop?: number;
     /** Bottom text margin in inches. */
@@ -331,9 +337,9 @@ export interface NewShapeProps {
     /** Font family name (e.g. "Arial", "Times New Roman"). */
     fontFamily?: string;
     /** Horizontal text alignment within the shape. */
-    horzAlign?: 'left' | 'center' | 'right' | 'justify';
+    horzAlign?: HorzAlign;
     /** Vertical text alignment within the shape. */
-    verticalAlign?: 'top' | 'middle' | 'bottom';
+    verticalAlign?: VertAlign;
     /** Shape geometry. Defaults to 'rectangle'. */
     geometry?: ShapeGeometry;
     /** Corner radius in inches for 'rounded-rectangle'. Defaults to 10% of the smaller dimension. */
@@ -381,4 +387,48 @@ export interface NewShapeProps {
     fillStyleId?: number;
     /** Apply a stylesheet only for text properties (`TextStyle` attribute). */
     textStyleId?: number;
+}
+
+/**
+ * Visual style properties applied to an existing shape via `shape.setStyle()`.
+ * All fields are optional; omitted properties are left unchanged.
+ */
+export interface ShapeStyle {
+    fillColor?: string;
+    /** Border/stroke colour as a CSS hex string (e.g. `'#cc0000'`). */
+    lineColor?: string;
+    /** Stroke weight in **points**. Stored internally as inches (pt / 72). */
+    lineWeight?: number;
+    /** Line pattern. 0 = none, 1 = solid (default), 2 = dash, 3 = dot, 4 = dash-dot. */
+    linePattern?: number;
+    fontColor?: string;
+    bold?: boolean;
+    /** Italic text. */
+    italic?: boolean;
+    /** Underline text. */
+    underline?: boolean;
+    /** Strikethrough text. */
+    strikethrough?: boolean;
+    /** Font size in points (e.g. 14 for 14pt). */
+    fontSize?: number;
+    /** Font family name (e.g. "Arial"). */
+    fontFamily?: string;
+    /** Horizontal text alignment. */
+    horzAlign?: HorzAlign;
+    /** Vertical text alignment. */
+    verticalAlign?: VertAlign;
+    /** Space before each paragraph in **points**. */
+    spaceBefore?: number;
+    /** Space after each paragraph in **points**. */
+    spaceAfter?: number;
+    /** Line-height multiplier (1.0 = single, 1.5 = 1.5×, 2.0 = double). */
+    lineSpacing?: number;
+    /** Top text margin in inches. */
+    textMarginTop?: number;
+    /** Bottom text margin in inches. */
+    textMarginBottom?: number;
+    /** Left text margin in inches. */
+    textMarginLeft?: number;
+    /** Right text margin in inches. */
+    textMarginRight?: number;
 }

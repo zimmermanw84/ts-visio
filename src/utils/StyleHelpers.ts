@@ -1,3 +1,6 @@
+import type { HorzAlign, VertAlign } from '../types/VisioTypes';
+export type { HorzAlign, VertAlign };
+
 export interface VisioSection {
     '@_N': string;
     '@_IX'?: string;
@@ -40,21 +43,18 @@ export const ArrowHeads = {
     // There are many variants, but 29 is the standard "Fork"
 };
 
-const HORZ_ALIGN_VALUES = {
+const HORZ_ALIGN_VALUES: Record<HorzAlign, string> = {
     left: '0',
     center: '1',
     right: '2',
     justify: '3',
-} as const;
+};
 
-const VERT_ALIGN_VALUES = {
+const VERT_ALIGN_VALUES: Record<VertAlign, string> = {
     top: '0',
     middle: '1',
     bottom: '2',
-} as const;
-
-export type HorzAlign = keyof typeof HORZ_ALIGN_VALUES;
-export type VertAlign = keyof typeof VERT_ALIGN_VALUES;
+};
 
 export function horzAlignValue(align: HorzAlign): string {
     return HORZ_ALIGN_VALUES[align];

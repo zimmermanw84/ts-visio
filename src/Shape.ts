@@ -1,6 +1,6 @@
-import { VisioShape, ConnectorStyle, ConnectionTarget, ConnectionPointDef } from './types/VisioTypes';
+import { VisioShape, ConnectorStyle, ConnectionTarget, ConnectionPointDef, ShapeStyle } from './types/VisioTypes';
 import { VisioPackage } from './VisioPackage';
-import { ShapeModifier, ShapeStyle } from './ShapeModifier';
+import { ShapeModifier } from './ShapeModifier';
 import { VisioPropType } from './types/VisioTypes';
 import { Layer } from './Layer';
 import { SHAPE_TYPES, STRUCT_RELATIONSHIP_TYPES } from './core/VisioConstants';
