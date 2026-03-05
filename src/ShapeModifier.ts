@@ -592,6 +592,7 @@ export class ShapeModifier {
         upsert('LocPinY', (height / 2).toString());
 
         // Keep cached @_V consistent for renderers that don't evaluate formulas.
+        // Evaluate any formula that references Width or Height (e.g. 'Width*0.5').
         if (shape.Section) {
             const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
             for (const section of sections) {
@@ -601,8 +602,19 @@ export class ShapeModifier {
                     if (!row.Cell) continue;
                     const cells = Array.isArray(row.Cell) ? row.Cell : [row.Cell];
                     for (const cell of cells) {
-                        if (cell['@_F'] === 'Width')  cell['@_V'] = width.toString();
-                        if (cell['@_F'] === 'Height') cell['@_V'] = height.toString();
+                        const formula: unknown = cell['@_F'];
+                        if (typeof formula !== 'string') continue;
+                        if (!formula.includes('Width') && !formula.includes('Height')) continue;
+                        const expr = formula
+                            .replace(/\bWidth\b/g, width.toString())
+                            .replace(/\bHeight\b/g, height.toString());
+                        // Validate expression contains only safe arithmetic characters
+                        if (!/^[\d\s.+\-*/()]+$/.test(expr)) continue;
+                        try {
+                            // eslint-disable-next-line no-new-func
+                            const result = Function(`"use strict"; return (${expr})`)() as number;
+                            cell['@_V'] = result.toString();
+                        } catch { /* ignore malformed formulas */ }
                     }
                 }
             }

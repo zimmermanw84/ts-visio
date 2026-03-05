@@ -70,13 +70,13 @@ All generated connection point entries have `V="0"`, which disables the point in
 
 ---
 
-### Bug 5: `resizeShape` only matches cells with exact formula strings `'Width'`/`'Height'`
+### ~~Bug 5: `resizeShape` only matches cells with exact formula strings `'Width'`/`'Height'`~~ ✅ Fixed in v1.16.7
 
 **File:** `src/core/ShapeModifier.ts`
 
 Real Visio shape cells often use references like `Width*0.5` or a raw numeric value. The current exact-match approach misses these, leaving geometry cells stale after a resize.
 
-**Fix direction:** Match by cell `N` attribute (name) rather than by formula value when updating geometry references.
+**Fix:** Replaced the exact `===` checks with a formula-evaluation approach: any geometry cell formula containing `Width` or `Height` has those identifiers substituted with the new numeric values, then the resulting arithmetic expression is safely evaluated (validated against `/^[\d\s.+\-*/()]+$/` before `Function()` invocation) and written to `@_V`. Three regression tests added to `RotationResize.test.ts`.
 
 ---
 
