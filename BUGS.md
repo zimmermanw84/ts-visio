@@ -102,13 +102,13 @@ When a group is deleted, only the top-level shape's connectors are cleaned up. C
 
 ## LOW
 
-### Bug 2: Page ID string/number type inconsistencies
+### ~~Bug 2: Page ID string/number type inconsistencies~~ ✅ Fixed in v1.16.10
 
 **File:** `src/core/PageManager.ts`, `src/core/ShapeModifier.ts`
 
 Page IDs are sometimes compared as strings and sometimes as numbers (`==` vs `===`, `parseInt` coercions). While currently benign, this is fragile.
 
-**Fix direction:** Standardize page IDs as strings throughout and use strict equality everywhere.
+**Fix:** Changed `PageEntry.id` from `number` to `string`. Replaced `parseInt(node['@_ID'])` with `String(node['@_ID'])`. Numeric comparisons in `createPageInternal` and `duplicatePage` now use `Number(p.id)` locally. All `p.id.toString() === pageId` comparisons replaced with direct strict `p.id === pageId`. Updated `VisioDocument` to drop the redundant `.toString()` call. Two regression tests added to `PageManager.test.ts`.
 
 ---
 

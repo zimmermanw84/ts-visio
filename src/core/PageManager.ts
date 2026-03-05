@@ -5,7 +5,7 @@ import { RelsManager } from './RelsManager';
 import { createXmlParser, createXmlBuilder, buildXml } from '../utils/XmlHelper';
 
 export interface PageEntry {
-    id: number;
+    id: string;
     name: string;
     relId: string;
     xmlPath: string;
@@ -86,7 +86,7 @@ export class PageManager {
             const backPageId = backPageAttr ? backPageAttr.toString() : undefined;
 
             return {
-                id: parseInt(node['@_ID']),
+                id: String(node['@_ID']),
                 name: node['@_Name'],
                 relId: rId,
                 xmlPath: fullPath,
@@ -113,7 +113,8 @@ export class PageManager {
 
         let maxId = 0;
         for (const p of this.pages) {
-            if (p.id > maxId) maxId = p.id;
+            const numId = Number(p.id);
+            if (numId > maxId) maxId = numId;
         }
         const newId = maxId + 1;
         const fileName = `page${newId}.xml`;
@@ -181,7 +182,7 @@ export class PageManager {
     async deletePage(pageId: string): Promise<void> {
         this.load();
 
-        const page = this.pages.find(p => p.id.toString() === pageId);
+        const page = this.pages.find(p => p.id === pageId);
         if (!page) throw new Error(`Page ${pageId} not found`);
 
         const pageFileName = page.xmlPath.split('/').pop()!;
@@ -287,11 +288,11 @@ export class PageManager {
     async duplicatePage(pageId: string, newName: string): Promise<string> {
         this.load();
 
-        const source = this.pages.find(p => p.id.toString() === pageId);
+        const source = this.pages.find(p => p.id === pageId);
         if (!source) throw new Error(`Page ${pageId} not found`);
 
         // 1. Calculate new ID and paths
-        const maxId = Math.max(...this.pages.map(p => p.id));
+        const maxId = Math.max(...this.pages.map(p => Number(p.id)));
         const newId = maxId + 1;
         const newFileName = `page${newId}.xml`;
         const newPath = `visio/pages/${newFileName}`;
