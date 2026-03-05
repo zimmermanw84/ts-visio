@@ -58,7 +58,19 @@ export const PAGES_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="
 
 export const PAGE1_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <PageContents xmlns="${XML_NAMESPACES.VISIO_MAIN}" xmlns:r="${XML_NAMESPACES.RELATIONSHIPS_OFFICE}" xml:space="preserve">
+    <PageSheet LineStyle="0" FillStyle="0" TextStyle="0">
+        <Cell N="PageWidth" V="8.5"/>
+        <Cell N="PageHeight" V="11"/>
+        <Cell N="PageScale" V="1" Unit="MSG"/>
+        <Cell N="DrawingScale" V="1" Unit="MSG"/>
+        <Cell N="DrawingSizeType" V="0"/>
+        <Cell N="DrawingScaleType" V="0"/>
+        <Cell N="Inhibited" V="0"/>
+        <Cell N="UIVisibility" V="0"/>
+        <Cell N="PageDrawSizeType" V="0"/>
+    </PageSheet>
     <Shapes/>
+    <Connects/>
 </PageContents>`;
 
 export const WINDOWS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>

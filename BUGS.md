@@ -142,7 +142,7 @@ Generated connector shapes are missing `LineStyle`, `FillStyle`, and `TextStyle`
 
 ---
 
-### Bug 14: Initial `page1.xml` template has no `<PageSheet>` element
+### ~~Bug 14: Initial `page1.xml` template has no `<PageSheet>` element~~ ✅ Fixed in v1.16.14
 
 **File:** `src/templates/MinimalVsdx.ts`
 
