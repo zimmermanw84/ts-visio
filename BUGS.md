@@ -112,13 +112,13 @@ Page IDs are sometimes compared as strings and sometimes as numbers (`==` vs `==
 
 ---
 
-### Bug 6: `PageXmlCache` stale `content` field
+### ~~Bug 6: `PageXmlCache` stale `content` field~~ ✅ Fixed in v1.16.11
 
 **File:** `src/core/PageXmlCache.ts`
 
 The `content` field can become stale after mutations but the cache re-parses from the raw buffer on each access, so it works by accident. This is a latent correctness issue if the access pattern changes.
 
-**Fix direction:** Invalidate or regenerate `content` explicitly after every write.
+**Fix:** Added a dirty-page guard to `getParsed`: when a page is in `dirtyPages` (has unflushed mutations), the cached `parsed` object is returned immediately without comparing against `pkg.getFileText()`. This prevents external writes to `pkg` between mutations from causing a cache miss that would re-parse stale content and discard in-flight mutations. Regression test added to `ShapeModifier_AutoSave.test.ts`.
 
 ---
 

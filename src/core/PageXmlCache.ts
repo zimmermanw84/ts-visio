@@ -98,6 +98,15 @@ export class PageXmlCache {
 
     getParsed(pageId: string): any {
         const pagePath = this.getPagePath(pageId);
+
+        // If there are pending (unflushed) mutations, the in-memory cache is the
+        // authoritative source of truth. Skip the pkg-content comparison to avoid
+        // re-parsing stale pkg content and discarding in-flight mutations (Bug 6).
+        if (this.dirtyPages.has(pagePath)) {
+            const dirty = this.pageCache.get(pagePath);
+            if (dirty) return dirty.parsed;
+        }
+
         let content: string;
         try {
             content = this.pkg.getFileText(pagePath);

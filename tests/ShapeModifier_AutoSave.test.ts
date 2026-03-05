@@ -130,4 +130,28 @@ describe('ShapeModifier AutoSave', () => {
         expect(content).toContain('MyShape');
         expect(content).toContain('MyContainer');
     });
+
+    // --- Bug 6 regression: dirty-cache must survive external pkg modifications ---
+
+    it('retains all dirty mutations when pkg is externally overwritten between operations (Bug 6)', async () => {
+        modifier.autoSave = false;
+
+        // First mutation
+        await modifier.addShape('1', { text: 'ShapeA', x: 0, y: 0, width: 1, height: 1 });
+
+        // Simulate an external subsystem writing to the same pkg path — this changes
+        // the string reference, causing a content mismatch in the cache comparison.
+        const current = pkg.getFileText('visio/pages/page1.xml');
+        pkg.updateFile('visio/pages/page1.xml', current.replace(/\s+/g, ' '));
+
+        // Second mutation — without the fix, getParsed would re-parse from pkg and
+        // lose ShapeA before this shape is even written.
+        await modifier.addShape('1', { text: 'ShapeB', x: 2, y: 2, width: 1, height: 1 });
+
+        modifier.flush();
+
+        const flushed = pkg.getFileText('visio/pages/page1.xml');
+        expect(flushed).toContain('ShapeA');
+        expect(flushed).toContain('ShapeB');
+    });
 });
