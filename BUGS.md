@@ -162,13 +162,13 @@ The `PAGE1_XML` template contains only `<Shapes/>` with no `<PageSheet>`. Pages 
 
 ---
 
-### Bug 16: `deleteLayer` leaves index gaps in remaining layers
+### ~~Bug 16: `deleteLayer` leaves index gaps in remaining layers~~ ✅ Fixed in v1.16.16
 
 **File:** `src/core/LayerEditor.ts`
 
 When a layer is deleted, remaining layers keep their original IX values. Subsequent `addLayer` calls find the highest existing index and continue from there, leaving a permanent gap. While Visio handles gaps, it is unintuitive.
 
-**Fix direction:** Either re-index remaining layers after deletion (and update all `LayerMember` cell values on shapes), or document that layer indices are stable non-contiguous identifiers.
+**Fix:** After filtering out the deleted row, remaining rows are sorted by old IX and re-assigned sequential indices (0, 1, 2, ...). An `oldIx → newIx` map is built and applied to every shape's `LayerMember` cell value (deleted index is dropped, survivors are remapped). Two regression tests added to `Layers.test.ts`; existing `GetLayers.test.ts` assertion updated to expect new re-indexed values.
 
 ---
 

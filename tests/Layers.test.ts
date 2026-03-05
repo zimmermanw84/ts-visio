@@ -103,6 +103,45 @@ describe('Layers', () => {
         expect(cell['@_V']).toContain(';'); // "0;1"
     });
 
+    it('should re-index remaining layers after deleteLayer', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        await page.addLayer('Alpha');   // IX=0
+        const beta = await page.addLayer('Beta');    // IX=1
+        await page.addLayer('Gamma');   // IX=2
+
+        await beta.delete(); // delete "Beta" (IX=1)
+
+        const layers = page.getLayers();
+        expect(layers).toHaveLength(2);
+        // After re-indexing: Alpha=0, Gamma=1 (no gaps)
+        expect(layers[0].index).toBe(0);
+        expect(layers[0].name).toBe('Alpha');
+        expect(layers[1].index).toBe(1);
+        expect(layers[1].name).toBe('Gamma');
+    });
+
+    it('should update LayerMember cells when re-indexing after deleteLayer', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        const l0 = await page.addLayer('Alpha');   // IX=0
+        const lBeta = await page.addLayer('Beta'); // IX=1 — will be deleted
+        const l2 = await page.addLayer('Gamma');   // IX=2 → becomes IX=1
+
+        const shape = await page.addShape({ text: 'S', x: 1, y: 1, width: 1, height: 1 });
+        await shape.assignLayer(l0);    // LayerMember = "0"
+        await shape.assignLayer(l2);    // LayerMember = "0;2"
+
+        await lBeta.delete(); // delete "Beta"; Gamma shifts from 2 → 1
+
+        const indices = shape.getLayerIndices();
+        expect(indices).toContain(0); // Alpha stays at 0
+        expect(indices).toContain(1); // Gamma moved from 2 → 1
+        expect(indices).not.toContain(2); // old index gone
+    });
+
     it('should toggle layer visibility', async () => {
         const doc = await VisioDocument.create();
         const page = doc.pages[0];

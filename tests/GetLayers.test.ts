@@ -172,13 +172,13 @@ describe('layer.delete()', () => {
         expect(shape.getLayerIndices()).toContain(0);
         expect(shape.getLayerIndices()).toContain(1);
 
-        // Delete layer A (index 0)
+        // Delete layer A (index 0). Re-indexing shifts B from 1 → 0.
         await layerA.delete();
 
-        // Index 0 should be gone; 1 should remain
+        // After re-indexing: B is now at index 0; old index 1 is gone
         const indices = shape.getLayerIndices();
-        expect(indices).not.toContain(0);
-        expect(indices).toContain(1);
+        expect(indices).toContain(0);    // B shifted from 1 → 0
+        expect(indices).not.toContain(1); // old index 1 no longer exists
     });
 
     it('deletion survives save/reload', async () => {
