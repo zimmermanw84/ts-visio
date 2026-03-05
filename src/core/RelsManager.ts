@@ -70,11 +70,6 @@ export class RelsManager {
         return newId;
     }
 
-    async addPageImageRel(pageId: string, mediaPath: string): Promise<string> {
-        const pagePath = `visio/pages/page${pageId}.xml`;
-        return this.addImageRelationship(pagePath, mediaPath);
-    }
-
     async addImageRelationship(sourcePath: string, target: string): Promise<string> {
         return this.ensureRelationship(sourcePath, target, RELATIONSHIP_TYPES.IMAGE);
     }

@@ -133,6 +133,8 @@ export class VisioValidator {
 
             pageNodes = Array.isArray(pageNodes) ? pageNodes : [pageNodes];
 
+            const pagePathsByRelId = this.resolvePagePaths(pkg);
+
             for (const pageNode of pageNodes) {
                 const pageId = pageNode['@_ID'];
                 const pageName = pageNode['@_Name'] || `Page-${pageId}`;
@@ -147,15 +149,16 @@ export class VisioValidator {
                     errors.push(`Page "${pageName}" (ID=${pageId}): Missing Rel element with r:id`);
                 }
 
-                this.validatePageContent(pkg, pageId, pageName, errors, warnings);
+                const pagePath = (relId && pagePathsByRelId.get(relId))
+                    ?? `visio/pages/page${pageId}.xml`;
+                this.validatePageContent(pkg, pagePath, pageName, errors, warnings);
             }
         } catch (e: any) {
             errors.push(`pages.xml: ${e.message}`);
         }
     }
 
-    private validatePageContent(pkg: VisioPackage, pageId: string, pageName: string, errors: string[], warnings: string[]): void {
-        const pagePath = `visio/pages/page${pageId}.xml`;
+    private validatePageContent(pkg: VisioPackage, pagePath: string, pageName: string, errors: string[], warnings: string[]): void {
 
         try {
             const content = pkg.getFileText(pagePath);
@@ -170,7 +173,7 @@ export class VisioValidator {
             this.validateConnects(parsed, pagePath, errors);
             this.validateSectionNames(parsed, pagePath, warnings);
             this.validateCellNames(parsed, pagePath, warnings);
-            this.validateImageShapes(pkg, pageId, parsed, pagePath, errors, warnings);
+            this.validateImageShapes(pkg, pagePath, parsed, errors, warnings);
 
         } catch (e: any) {
             errors.push(`${pagePath}: ${e.message}`);
@@ -274,7 +277,7 @@ export class VisioValidator {
         }
     }
 
-    private validateImageShapes(pkg: VisioPackage, pageId: string, parsed: any, pagePath: string, errors: string[], warnings: string[]): void {
+    private validateImageShapes(pkg: VisioPackage, pagePath: string, parsed: any, errors: string[], warnings: string[]): void {
         const shapes = this.getAllShapes(parsed);
 
         for (const shape of shapes) {
@@ -288,7 +291,8 @@ export class VisioValidator {
             const relId = shape.ForeignData.Rel?.['@_r:id'];
             if (relId) {
                 try {
-                    const relsPath = `visio/pages/_rels/page${pageId}.xml.rels`;
+                    const filename = pagePath.split('/').pop()!;
+                    const relsPath = `visio/pages/_rels/${filename}.rels`;
                     const relsContent = pkg.getFileText(relsPath);
                     const parsedRels = this.parser.parse(relsContent);
 
@@ -332,9 +336,13 @@ export class VisioValidator {
             let pageNodes = parsedPages.Pages?.Page || [];
             pageNodes = Array.isArray(pageNodes) ? pageNodes : [pageNodes];
 
+            const pagePathsByRelId = this.resolvePagePaths(pkg);
+
             for (const pageNode of pageNodes) {
                 const pageId = pageNode['@_ID'];
-                const pagePath = `visio/pages/page${pageId}.xml`;
+                const relId = pageNode.Rel?.['@_r:id'] || pageNode['@_r:id'];
+                const pagePath = (relId && pagePathsByRelId.get(relId))
+                    ?? `visio/pages/page${pageId}.xml`;
 
                 try {
                     const pageContent = pkg.getFileText(pagePath);
@@ -354,6 +362,35 @@ export class VisioValidator {
         } catch {
             // Pages issues handled elsewhere
         }
+    }
+
+    /**
+     * Build a map from relationship ID (r:id) → resolved OPC page path
+     * by parsing visio/pages/_rels/pages.xml.rels.
+     * Falls back to the ID-derived path if the rels file is absent or malformed.
+     */
+    private resolvePagePaths(pkg: VisioPackage): Map<string, string> {
+        const map = new Map<string, string>();
+        try {
+            const relsContent = pkg.getFileText('visio/pages/_rels/pages.xml.rels');
+            const parsed = this.parser.parse(relsContent);
+            let rels = parsed.Relationships?.Relationship || [];
+            rels = Array.isArray(rels) ? rels : [rels];
+            for (const rel of rels) {
+                const id: string = rel['@_Id'];
+                const target: string = rel['@_Target'];
+                if (id && target) {
+                    // Target is relative to visio/pages/, e.g. "page1.xml"
+                    const resolvedPath = target.startsWith('visio/')
+                        ? target
+                        : `visio/pages/${target}`;
+                    map.set(id, resolvedPath);
+                }
+            }
+        } catch {
+            // rels file absent or unreadable — callers fall back to ID-derived path
+        }
+        return map;
     }
 
     private validateRelationshipIntegrity(pkg: VisioPackage, errors: string[], warnings: string[]): void {

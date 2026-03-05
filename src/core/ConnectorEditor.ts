@@ -60,7 +60,7 @@ export class ConnectorEditor {
         );
 
         await this.relsManager.ensureRelationship(
-            `visio/pages/page${pageId}.xml`,
+            this.cache.getPagePath(pageId),
             '../masters/masters.xml',
             RELATIONSHIP_TYPES.MASTERS,
         );
