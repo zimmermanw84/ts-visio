@@ -6,6 +6,7 @@ import { MediaManager } from './core/MediaManager';
 import { MetadataManager } from './core/MetadataManager';
 import { StyleSheetManager } from './core/StyleSheetManager';
 import { ColorManager } from './core/ColorManager';
+import { ShapeModifier } from './ShapeModifier';
 import { VisioPage, DocumentMetadata, StyleProps, StyleRecord, ColorEntry, MasterRecord, ShapeGeometry } from './types/VisioTypes';
 
 /**
@@ -34,8 +35,10 @@ export class VisioDocument {
     private metadataManager: MetadataManager;
     private styleSheetManager: StyleSheetManager;
     private colorManager: ColorManager;
+    private modifier: ShapeModifier;
 
     private constructor(private pkg: VisioPackage) {
+        this.modifier          = new ShapeModifier(pkg);
         this.pageManager       = new PageManager(pkg);
         this.masterManager     = new MasterManager(pkg);
         this.mediaManager      = new MediaManager(pkg);
@@ -74,7 +77,7 @@ export class VisioDocument {
             Shapes: [],
             Connects: []
         };
-        return new Page(pageStub, this.pkg, this.mediaManager);
+        return new Page(pageStub, this.pkg, this.mediaManager, undefined, this.modifier);
     }
 
     get pages(): Page[] {
@@ -92,7 +95,7 @@ export class VisioDocument {
                     isBackground: p.isBackground,
                     backPageId: p.backPageId
                 };
-                return new Page(pageStub, this.pkg, this.mediaManager);
+                return new Page(pageStub, this.pkg, this.mediaManager, undefined, this.modifier);
             });
         }
 
@@ -114,7 +117,7 @@ export class VisioDocument {
             Connects: [],
             isBackground: true
         };
-        return new Page(pageStub, this.pkg, this.mediaManager);
+        return new Page(pageStub, this.pkg, this.mediaManager, undefined, this.modifier);
     }
 
     /**
@@ -185,7 +188,7 @@ export class VisioDocument {
             Shapes: [],
             Connects: []
         };
-        return new Page(pageStub, this.pkg, this.mediaManager);
+        return new Page(pageStub, this.pkg, this.mediaManager, undefined, this.modifier);
     }
 
     /**
