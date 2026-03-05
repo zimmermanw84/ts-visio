@@ -19,7 +19,7 @@ describe('Image Shape Structure (Phase 2)', () => {
 
         // 2. Add Relationship
         // Target should be relative to page folder "visio/pages/" -> "../media/test.png" matches what we got
-        const rId = await rels.addPageImageRel('1', mediaPath);
+        const rId = await rels.addImageRelationship('visio/pages/page1.xml', mediaPath);
 
         // 3. Add Shape
         const shapeId = await shapes.addShape('1', { // Page 1
