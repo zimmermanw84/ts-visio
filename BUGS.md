@@ -90,13 +90,13 @@ Image shapes are created without `ImgWidth`/`ImgHeight` cells, which can cause d
 
 ---
 
-### Bug 12: `deleteShape` on groups leaves orphaned `Connect` entries for child shapes
+### ~~Bug 12: `deleteShape` on groups leaves orphaned `Connect` entries for child shapes~~ ✅ Fixed in v1.16.9
 
 **File:** `src/core/ShapeModifier.ts` (deleteShape logic)
 
 When a group is deleted, only the top-level shape's connectors are cleaned up. Connectors attached to child shapes inside the group leave dangling `<Connect>` entries referencing non-existent shape IDs.
 
-**Fix direction:** When deleting a shape, recursively collect all descendant shape IDs (via `getChildren`) and remove all `<Connect>` elements that reference any of them.
+**Fix:** Added `findShapeInTree` and `collectShapeIds` private helpers to `ShapeModifier`. `deleteShape` now collects all descendant IDs before removal and filters both `Connect` and `Relationship` entries using that full set. Regression test added to `DeleteShape.test.ts`.
 
 ---
 

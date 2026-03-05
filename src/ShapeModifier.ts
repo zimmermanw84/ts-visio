@@ -299,14 +299,19 @@ export class ShapeModifier {
     async deleteShape(pageId: string, shapeId: string): Promise<void> {
         const parsed = this.cache.getParsed(pageId);
 
-        const removed = this.removeShapeFromTree(parsed.PageContents.Shapes, shapeId);
-        if (!removed) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        // Collect the deleted shape's ID and all descendant IDs before removal
+        // so Connect/Relationship entries for child shapes are also cleaned up.
+        const shapeNode = this.findShapeInTree(parsed.PageContents.Shapes, shapeId);
+        if (!shapeNode) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        const removedIds = this.collectShapeIds(shapeNode);
+
+        this.removeShapeFromTree(parsed.PageContents.Shapes, shapeId);
 
         if (parsed.PageContents.Connects?.Connect) {
             let connects = parsed.PageContents.Connects.Connect;
             if (!Array.isArray(connects)) connects = [connects];
             parsed.PageContents.Connects.Connect = connects.filter(
-                (c: any) => c['@_FromSheet'] !== shapeId && c['@_ToSheet'] !== shapeId,
+                (c: any) => !removedIds.has(c['@_FromSheet']) && !removedIds.has(c['@_ToSheet']),
             );
         }
 
@@ -314,7 +319,7 @@ export class ShapeModifier {
             let rels = parsed.PageContents.Relationships.Relationship;
             if (!Array.isArray(rels)) rels = [rels];
             parsed.PageContents.Relationships.Relationship = rels.filter(
-                (r: any) => r['@_ShapeID'] !== shapeId && r['@_RelatedShapeID'] !== shapeId,
+                (r: any) => !removedIds.has(r['@_ShapeID']) && !removedIds.has(r['@_RelatedShapeID']),
             );
         }
 
@@ -343,6 +348,32 @@ export class ShapeModifier {
         }
 
         return false;
+    }
+
+    private findShapeInTree(shapesContainer: any, shapeId: string): any | null {
+        if (!shapesContainer?.Shape) return null;
+        const shapes = Array.isArray(shapesContainer.Shape) ? shapesContainer.Shape : [shapesContainer.Shape];
+        for (const s of shapes) {
+            if (s['@_ID'] === shapeId) return s;
+            if (s.Shapes) {
+                const found = this.findShapeInTree(s.Shapes, shapeId);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    private collectShapeIds(shape: any): Set<string> {
+        const ids = new Set<string>();
+        const gather = (s: any) => {
+            ids.add(s['@_ID']);
+            if (s.Shapes?.Shape) {
+                const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
+                for (const child of children) gather(child);
+            }
+        };
+        gather(shape);
+        return ids;
     }
 
     async updateShapeText(pageId: string, shapeId: string, newText: string): Promise<void> {

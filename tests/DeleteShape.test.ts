@@ -138,6 +138,26 @@ describe('deleteShape', () => {
         expect(ids).not.toContain(s2.id);
     });
 
+    it('removes Connect entries for child shapes when a group is deleted', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+        const outside = await page.addShape({ text: 'Outside', x: 8, y: 1, width: 1, height: 1 });
+        const group   = await page.addShape({ text: 'Group',   x: 2, y: 2, width: 4, height: 4, type: 'Group' });
+        const child   = await page.addShape({ text: 'Child',   x: 2, y: 2, width: 1, height: 1 }, group.id);
+
+        // Connect an outside shape to a child inside the group
+        await page.connectShapes(outside, child);
+
+        // Delete the entire group (which includes the child)
+        await group.delete();
+
+        const parsed = await getPageXml(doc);
+        const sheetIds = getConnectSheetIds(parsed);
+        // Both the group and the child IDs must be purged from Connects
+        expect(sheetIds).not.toContain(group.id);
+        expect(sheetIds).not.toContain(child.id);
+    });
+
     it('can delete all shapes from a page', async () => {
         const doc = await VisioDocument.create();
         const page = doc.pages[0];
