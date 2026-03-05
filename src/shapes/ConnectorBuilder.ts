@@ -185,6 +185,9 @@ export class ConnectorBuilder {
             '@_NameU': 'Dynamic connector',
             '@_Name': 'Dynamic connector',
             '@_Type': 'Shape',
+            '@_LineStyle': '0',
+            '@_FillStyle': '0',
+            '@_TextStyle': '0',
             Cell: [
                 { '@_N': 'BeginX', '@_V': beginX.toString() },
                 { '@_N': 'BeginY', '@_V': beginY.toString() },

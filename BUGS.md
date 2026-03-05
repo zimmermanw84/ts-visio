@@ -132,13 +132,13 @@ The Visio spec requires a `NoShow` cell in every `Geometry` section. Omitting it
 
 ---
 
-### Bug 10: Connectors missing style attribute references
+### ~~Bug 10: Connectors missing style attribute references~~ ✅ Fixed in v1.16.13
 
-**File:** `src/core/ConnectorEditor.ts`
+**File:** `src/shapes/ConnectorBuilder.ts`
 
 Generated connector shapes are missing `LineStyle`, `FillStyle`, and `TextStyle` attribute references that Visio Desktop expects.
 
-**Fix direction:** Add default style references (`LineStyle="0"`, `FillStyle="0"`, `TextStyle="0"`) to connector shape elements.
+**Fix:** Added `'@_LineStyle': '0'`, `'@_FillStyle': '0'`, and `'@_TextStyle': '0'` to the shape object returned by `ConnectorBuilder.createConnectorShapeObject`. Regression test added to `ConnectorStyling.test.ts`.
 
 ---
 
