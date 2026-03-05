@@ -152,13 +152,13 @@ The `PAGE1_XML` template contains only `<Shapes/>` with no `<PageSheet>`. Pages 
 
 ---
 
-### Bug 15: Loose `==` vs `===` for shape ID comparisons
+### ~~Bug 15: Loose `==` vs `===` for shape ID comparisons~~ ✅ Fixed in v1.16.15
 
 **File:** `src/core/ContainerEditor.ts` line ~105
 
 `shapes.findIndex((s: any) => s['@_ID'] == shapeId)` uses `==` while all other ID comparisons use `===`.
 
-**Fix direction:** Use strict equality `===` consistently.
+**Fix:** Changed `==` to `===` in `reorderShape` for consistent strict equality. Regression test added to `ContainerLayout.test.ts`.
 
 ---
 

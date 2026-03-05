@@ -102,7 +102,7 @@ export class ContainerEditor {
         let shapes = shapesContainer.Shape;
         if (!Array.isArray(shapes)) shapes = [shapes];
 
-        const idx = shapes.findIndex((s: any) => s['@_ID'] == shapeId);
+        const idx = shapes.findIndex((s: any) => s['@_ID'] === shapeId);
         if (idx === -1) return;
 
         const shape = shapes[idx];
