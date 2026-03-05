@@ -201,8 +201,10 @@ export class PageXmlCache {
             else shape.Cell.push({ '@_N': name, '@_V': val });
         };
 
-        upsert('Width', w.toString());
-        upsert('Height', h.toString());
+        upsert('Width',   w.toString());
+        upsert('Height',  h.toString());
+        upsert('LocPinX', (w / 2).toString());
+        upsert('LocPinY', (h / 2).toString());
 
         this.saveParsed(pageId, parsed);
     }
