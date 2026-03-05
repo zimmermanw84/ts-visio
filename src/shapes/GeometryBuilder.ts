@@ -53,7 +53,10 @@ function section(rows: any[], noFill: string): any {
     return {
         '@_N': 'Geometry',
         '@_IX': '0',
-        Cell: [{ '@_N': 'NoFill', '@_V': noFill }],
+        Cell: [
+            { '@_N': 'NoShow', '@_V': '0' },
+            { '@_N': 'NoFill', '@_V': noFill },
+        ],
         Row: rows,
     };
 }

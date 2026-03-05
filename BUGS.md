@@ -122,13 +122,13 @@ The `content` field can become stale after mutations but the cache re-parses fro
 
 ---
 
-### Bug 9: Generated `Geometry` sections missing `NoShow` cell
+### ~~Bug 9: Generated `Geometry` sections missing `NoShow` cell~~ ✅ Fixed in v1.16.12
 
-**File:** `src/utils/GeometryBuilder.ts`
+**File:** `src/shapes/GeometryBuilder.ts`
 
 The Visio spec requires a `NoShow` cell in every `Geometry` section. Omitting it may cause rendering issues in strict Visio implementations.
 
-**Fix direction:** Add `<Cell N="NoShow" V="0"/>` to each generated `Geometry` section.
+**Fix:** Added `{ '@_N': 'NoShow', '@_V': '0' }` to the `Cell` array in the `section()` helper, so all geometry types (rectangle, ellipse, diamond, rounded-rectangle, triangle, parallelogram) now include the required `NoShow` cell. Regression tests added to `NonRectangularGeometry.test.ts`.
 
 ---
 
