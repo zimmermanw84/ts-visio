@@ -80,13 +80,13 @@ Real Visio shape cells often use references like `Width*0.5` or a raw numeric va
 
 ---
 
-### Bug 8: Foreign shapes missing image dimension cells
+### ~~Bug 8: Foreign shapes missing image dimension cells~~ ✅ Fixed in v1.16.8
 
-**File:** `src/core/ShapeModifier.ts` (foreign/image shape creation)
+**File:** `src/shapes/ForeignShapeBuilder.ts`
 
 Image shapes are created without `ImgWidth`/`ImgHeight` cells, which can cause display issues in Visio Desktop.
 
-**Fix direction:** Emit `ImgWidth` and `ImgHeight` cells (matching `Width`/`Height`) when creating Foreign shapes.
+**Fix:** Added `ImgWidth` and `ImgHeight` cells to `ForeignShapeBuilder.createImageShapeObject`, with `@_V` matching `Width`/`Height` and `@_F` set to `'Width'`/`'Height'`. Regression test added to `ImageShapeStructure.test.ts`.
 
 ---
 

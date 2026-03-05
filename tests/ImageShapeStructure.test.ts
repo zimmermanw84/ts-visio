@@ -69,4 +69,39 @@ describe('Image Shape Structure (Phase 2)', () => {
         const noFill = geomCells.find((c: any) => c['@_N'] === 'NoFill');
         expect(noFill['@_V']).toBe('1'); // No Fill
     });
+
+    it('should include ImgWidth and ImgHeight cells matching Width/Height (Bug 8)', async () => {
+        const pkg = await VisioPackage.create();
+        const media = new MediaManager(pkg);
+        const rels = new RelsManager(pkg);
+        const shapes = new ShapeModifier(pkg);
+
+        const dummyBuffer = Buffer.from([0x89, 0x50, 0x4E, 0x47]);
+        const mediaPath = media.addMedia('test2.png', dummyBuffer);
+        const rId = await rels.addImageRelationship('visio/pages/page1.xml', mediaPath);
+
+        await shapes.addShape('1', {
+            x: 1, y: 2, width: 3, height: 4,
+            type: 'Foreign',
+            imgRelId: rId
+        });
+
+        const pageXml = pkg.getFileText('visio/pages/page1.xml');
+        const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
+        const parsed = parser.parse(pageXml);
+
+        const allShapes = parsed.PageContents.Shapes.Shape;
+        const shp = Array.isArray(allShapes) ? allShapes[allShapes.length - 1] : allShapes;
+        const cells: any[] = Array.isArray(shp.Cell) ? shp.Cell : [shp.Cell];
+
+        const imgWidth = cells.find((c: any) => c['@_N'] === 'ImgWidth');
+        const imgHeight = cells.find((c: any) => c['@_N'] === 'ImgHeight');
+
+        expect(imgWidth).toBeDefined();
+        expect(imgWidth['@_V']).toBe('3');
+        expect(imgWidth['@_F']).toBe('Width');
+        expect(imgHeight).toBeDefined();
+        expect(imgHeight['@_V']).toBe('4');
+        expect(imgHeight['@_F']).toBe('Height');
+    });
 });
