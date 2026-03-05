@@ -26,13 +26,13 @@ When resizing a shape, the local pin (rotation center) is not updated proportion
 
 ---
 
-### Bug 18/19: Multiple independent `ShapeModifier`/`PageXmlCache` instances per document
+### ~~Bug 18/19: Multiple independent `ShapeModifier`/`PageXmlCache` instances per document~~ ✅ Fixed in v1.16.1
 
 **File:** `src/VisioDocument.ts` lines 66–100, `src/Page.ts` line 49
 
 `VisioDocument.pages` creates a fresh `Page` (and thus a fresh `ShapeModifier` + `PageXmlCache`) every time `_pageCache` is invalidated (after `addPage`, `deletePage`, `movePage`, etc.). Two `Page` references to the same page each maintain their own XML cache — whoever writes last silently wins and the other's mutations are lost.
 
-**Fix direction:** Construct a single `ShapeModifier` on `VisioDocument` and pass it to every `Page` instance. The `Page` constructor already accepts an optional `modifier` parameter but `VisioDocument` never passes one.
+**Fix:** `VisioDocument` now owns a single `ShapeModifier` instance (initialized in the constructor) and passes it to every `new Page(...)` call via the existing optional `modifier` parameter.
 
 ---
 
