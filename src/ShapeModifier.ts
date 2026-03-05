@@ -206,7 +206,10 @@ export class ShapeModifier {
         if (!Array.isArray(connSection.Row)) connSection.Row = [connSection.Row];
 
         const ix = connSection.Row.length;
-        connSection.Row.push(ConnectionPointBuilder.buildRow(point, ix));
+        const shapeCells: any[] = Array.isArray(shape.Cell) ? shape.Cell : shape.Cell ? [shape.Cell] : [];
+        const shapeWidth  = parseFloat(shapeCells.find((c: any) => c['@_N'] === 'Width' )?.['@_V'] ?? '1');
+        const shapeHeight = parseFloat(shapeCells.find((c: any) => c['@_N'] === 'Height')?.['@_V'] ?? '1');
+        connSection.Row.push(ConnectionPointBuilder.buildRow(point, ix, shapeWidth, shapeHeight));
 
         this.cache.saveParsed(pageId, parsed);
         return ix;

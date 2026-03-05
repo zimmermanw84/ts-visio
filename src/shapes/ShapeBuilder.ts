@@ -109,7 +109,7 @@ export class ShapeBuilder {
         }
 
         if (props.connectionPoints && props.connectionPoints.length > 0) {
-            shape.Section.push(ConnectionPointBuilder.buildConnectionSection(props.connectionPoints));
+            shape.Section.push(ConnectionPointBuilder.buildConnectionSection(props.connectionPoints, props.width, props.height));
         }
 
         // Groups and master instances inherit geometry from their children / master definition.

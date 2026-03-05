@@ -60,13 +60,13 @@ Setting only `fillColor` on a shape writes both a `Fill` and a `Line` section, c
 
 ---
 
-### Bug 4: Connection point `@_V` always `'0'`
+### ~~Bug 4: Connection point `@_V` always `'0'`~~ ✅ Fixed in v1.16.6
 
-**File:** `src/core/ConnectorEditor.ts` (or connection point builder)
+**File:** `src/shapes/ConnectionPointBuilder.ts`
 
 All generated connection point entries have `V="0"`, which disables the point in non-formula-aware renderers. The value should be the actual coordinate.
 
-**Fix direction:** Populate `V` with the evaluated coordinate value alongside the formula in `F`.
+**Fix:** `buildRow` and `buildConnectionSection` now accept optional `width`/`height` parameters and compute `@_V` as `width * xFraction` / `height * yFraction`. `ShapeBuilder` passes `props.width`/`props.height`; `ShapeModifier.addConnectionPoint` reads the shape's `Width`/`Height` cells. Three regression tests added to `ConnectionPoints.test.ts`.
 
 ---
 

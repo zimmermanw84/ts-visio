@@ -128,6 +128,27 @@ describe('ConnectionPointBuilder', () => {
             expect(promptCell).toBeDefined();
             expect(promptCell['@_V']).toBe('Connect here');
         });
+
+        // Bug 4 regression: @_V must reflect actual coordinates, not always '0'
+        it('Bug 4: X @_V equals width * xFraction when dimensions supplied', () => {
+            const section = ConnectionPointBuilder.buildConnectionSection(
+                [{ xFraction: 0.5, yFraction: 1.0 }],
+                4, 2,
+            );
+            const cells: any[] = section.Row[0].Cell;
+            const xCell = cells.find((c: any) => c['@_N'] === 'X');
+            expect(xCell['@_V']).toBe('2'); // 4 * 0.5
+        });
+
+        it('Bug 4: Y @_V equals height * yFraction when dimensions supplied', () => {
+            const section = ConnectionPointBuilder.buildConnectionSection(
+                [{ xFraction: 0.5, yFraction: 1.0 }],
+                4, 2,
+            );
+            const cells: any[] = section.Row[0].Cell;
+            const yCell = cells.find((c: any) => c['@_N'] === 'Y');
+            expect(yCell['@_V']).toBe('2'); // 2 * 1.0
+        });
     });
 
     describe('resolveTarget', () => {
@@ -358,6 +379,18 @@ describe('Shape with connectionPoints integration', () => {
         const ix1 = shape.addConnectionPoint({ name: 'Right', xFraction: 1.0, yFraction: 0.5 });
         expect(ix0).toBe(0);
         expect(ix1).toBe(1);
+    });
+
+    // Bug 4 regression: @_V must not be '0' after addConnectionPoint on a 4×2 shape
+    it('Bug 4: buildRow V values match shape dimensions', () => {
+        const row = ConnectionPointBuilder.buildRow({ name: 'Top', xFraction: 0.5, yFraction: 1.0 }, 0, 4, 2);
+        const cells: any[] = row.Cell;
+        const xCell = cells.find((c: any) => c['@_N'] === 'X');
+        const yCell = cells.find((c: any) => c['@_N'] === 'Y');
+        expect(xCell['@_V']).toBe('2');   // 4 * 0.5
+        expect(yCell['@_V']).toBe('2');   // 2 * 1.0
+        expect(xCell['@_F']).toBe('Width*0.5');
+        expect(yCell['@_F']).toBe('Height*1');
     });
 });
 
