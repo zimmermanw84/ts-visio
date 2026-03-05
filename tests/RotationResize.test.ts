@@ -132,6 +132,48 @@ describe('Shape.resize()', () => {
         expect(shape.width).toBeCloseTo(5, 5);
         expect(shape.height).toBeCloseTo(1, 5);
     });
+
+    it('updateShapeDimensions updates LocPinX and LocPinY', async () => {
+        const doc  = await VisioDocument.create();
+        const page = doc.pages[0];
+        const shape = await page.addShape({ text: 'M2', x: 2, y: 2, width: 2, height: 1 });
+
+        // Call the lower-level modifier path directly (used by ContainerEditor)
+        await (page as any).modifier.updateShapeDimensions(page.id, shape.id, 6, 4);
+
+        const parsed = await (page as any).modifier.cache.getParsed(page.id);
+        const shapeMap = (page as any).modifier.cache.getShapeMap(parsed);
+        const cells: any[] = shapeMap.get(shape.id).Cell;
+
+        const locPinX = cells.find((c: any) => c['@_N'] === 'LocPinX');
+        const locPinY = cells.find((c: any) => c['@_N'] === 'LocPinY');
+
+        expect(parseFloat(locPinX['@_V'])).toBeCloseTo(3, 5); // 6 / 2
+        expect(parseFloat(locPinY['@_V'])).toBeCloseTo(2, 5); // 4 / 2
+    });
+
+    it('resizeContainerToFit updates container LocPinX and LocPinY', async () => {
+        const doc  = await VisioDocument.create();
+        const page = doc.pages[0];
+        const container = await page.addContainer({ text: 'C', x: 3, y: 3, width: 4, height: 3 });
+        const member    = await page.addShape({ text: 'M', x: 3, y: 3, width: 1, height: 1 });
+        await container.addMember(member);
+
+        await container.resizeToFit();
+
+        // After resize, LocPinX must equal Width/2 and LocPinY must equal Height/2
+        const parsed   = await (page as any).modifier.cache.getParsed(page.id);
+        const shapeMap = (page as any).modifier.cache.getShapeMap(parsed);
+        const cells: any[] = shapeMap.get(container.id).Cell;
+
+        const width    = parseFloat(cells.find((c: any) => c['@_N'] === 'Width')['@_V']);
+        const height   = parseFloat(cells.find((c: any) => c['@_N'] === 'Height')['@_V']);
+        const locPinX  = parseFloat(cells.find((c: any) => c['@_N'] === 'LocPinX')['@_V']);
+        const locPinY  = parseFloat(cells.find((c: any) => c['@_N'] === 'LocPinY')['@_V']);
+
+        expect(locPinX).toBeCloseTo(width  / 2, 5);
+        expect(locPinY).toBeCloseTo(height / 2, 5);
+    });
 });
 
 // ---------------------------------------------------------------------------
