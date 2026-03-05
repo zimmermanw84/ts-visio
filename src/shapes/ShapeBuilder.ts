@@ -48,7 +48,7 @@ export class ShapeBuilder {
         }
 
         const hasLineProps = props.lineColor !== undefined || props.linePattern !== undefined;
-        if (props.fillColor || hasLineProps) {
+        if (hasLineProps) {
             shape.Section.push(createLineSection({
                 color:   props.lineColor,
                 pattern: props.linePattern !== undefined ? props.linePattern.toString() : undefined,
