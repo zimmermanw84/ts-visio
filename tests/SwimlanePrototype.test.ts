@@ -17,9 +17,9 @@ describe('Swimlane Prototype', () => {
             fillColor: '#ffffff'
         });
 
-        // 2. Create Lanes (Containers)
+        // 2. Create Lanes (Containers) and attach to pool automatically
         // Lane 1
-        const lane1 = await page.addSwimlaneLane({
+        const lane1 = await page.addSwimlaneLane(pool, {
             text: 'Lane 1: User',
             x: 0, y: 0, // Pos inside list is auto-handled by addListItem
             width: 8, height: 2,
@@ -27,17 +27,12 @@ describe('Swimlane Prototype', () => {
         });
 
         // Lane 2
-        const lane2 = await page.addSwimlaneLane({
+        const lane2 = await page.addSwimlaneLane(pool, {
             text: 'Lane 2: System',
             x: 0, y: 0,
             width: 8, height: 2,
             fillColor: '#e2f0d9'
         });
-
-        // 3. Add Lanes to Pool (As List Items)
-        // Use public Shape API
-        await pool.addListItem(lane1);
-        await pool.addListItem(lane2);
 
 
         // 4. Add Shapes into Lanes

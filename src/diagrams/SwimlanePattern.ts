@@ -14,7 +14,9 @@ export class SwimlanePattern {
         return page.addList(props, 'vertical');
     }
 
-    static async addLane(page: Page, props: NewShapeProps): Promise<Shape> {
-        return page.addContainer(props);
+    static async addLane(page: Page, pool: Shape, props: NewShapeProps): Promise<Shape> {
+        const lane = await page.addContainer(props);
+        await pool.addListItem(lane);
+        return lane;
     }
 }
