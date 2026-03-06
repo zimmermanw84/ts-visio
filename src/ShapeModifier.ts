@@ -114,7 +114,7 @@ export class ShapeModifier {
         return this.layers.updateLayerProperty(pageId, layerIndex, propName, value);
     }
 
-    getPageLayers(pageId: string): Array<{ name: string; index: number; visible: boolean; locked: boolean }> {
+    getPageLayers(pageId: string): Array<{ name: string; index: number; visible: boolean; locked: boolean; print: boolean }> {
         return this.layers.getPageLayers(pageId);
     }
 
