@@ -71,4 +71,33 @@ describe('RelsManager', () => {
         const rels = parsed.Relationships.Relationship;
         expect(rels).toHaveLength(2);
     });
+
+    // regression bug-29: fragile rId prefix assumption
+    it('should handle non-rId prefixed relationship IDs without collision', async () => {
+        const mockRels = `
+            <Relationships>
+                <Relationship Id="R3" Type="http://other" Target="other.xml"/>
+            </Relationships>
+        `;
+        vi.mocked(mockPkg.getFileText).mockReturnValue(mockRels);
+
+        const rId = await manager.ensureRelationship('visio/pages/page1.xml', 'new.xml', 'http://some/type');
+
+        // Should extract numeric suffix 3 from "R3" and generate rId4, not rId1
+        expect(rId).toBe('rId4');
+    });
+
+    it('should handle IDs with no numeric suffix by treating them as 0', async () => {
+        const mockRels = `
+            <Relationships>
+                <Relationship Id="rid" Type="http://other" Target="other.xml"/>
+            </Relationships>
+        `;
+        vi.mocked(mockPkg.getFileText).mockReturnValue(mockRels);
+
+        const rId = await manager.ensureRelationship('visio/pages/page1.xml', 'new.xml', 'http://some/type');
+
+        // No numeric suffix → maxId stays 0 → new ID is rId1
+        expect(rId).toBe('rId1');
+    });
 });

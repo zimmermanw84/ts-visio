@@ -53,8 +53,9 @@ export class RelsManager {
 
         let maxId = 0;
         for (const r of rels) {
-            const idNum = parseInt(r['@_Id'].replace('rId', ''));
-            if (!isNaN(idNum) && idNum > maxId) maxId = idNum;
+            const match = /(\d+)$/.exec(r['@_Id'] ?? '');
+            const idNum = match ? parseInt(match[1], 10) : 0;
+            if (idNum > maxId) maxId = idNum;
         }
         const newId = `rId${maxId + 1}`;
 

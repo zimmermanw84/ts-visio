@@ -94,14 +94,14 @@ All read methods create `new ShapeReader(this.pkg)` and call `pkg.getFileText(pa
 
 ---
 
-### Bug 29: `RelsManager.ensureRelationship` fragile relationship ID parsing
+### ~~Bug 29: `RelsManager.ensureRelationship` fragile relationship ID parsing~~
 
-**File:** `src/core/RelsManager.ts` line 56
+~~**File:** `src/core/RelsManager.ts` line 56~~
 
-```ts
-const idNum = parseInt(r['@_Id'].replace('rId', ''));
-```
+~~```ts~~
+~~const idNum = parseInt(r['@_Id'].replace('rId', ''));~~
+~~```~~
 
-Assumes all relationship IDs use the `rId` prefix. IDs with other formats (e.g. `R1`, `rid1`, a bare integer, or `undefined`) cause `parseInt` to return `NaN`, leaving `maxId = 0`, so the new ID becomes `rId1` — which may duplicate an existing relationship.
+~~Assumes all relationship IDs use the `rId` prefix. IDs with other formats (e.g. `R1`, `rid1`, a bare integer, or `undefined`) cause `parseInt` to return `NaN`, leaving `maxId = 0`, so the new ID becomes `rId1` — which may duplicate an existing relationship.~~
 
-**Fix direction:** Use a regex to extract the numeric suffix regardless of prefix, or fall back gracefully when no numeric suffix is found.
+~~**Fix direction:** Use a regex to extract the numeric suffix regardless of prefix, or fall back gracefully when no numeric suffix is found.~~
