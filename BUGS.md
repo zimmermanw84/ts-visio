@@ -60,13 +60,13 @@ All read methods create `new ShapeReader(this.pkg)` and call `pkg.getFileText(pa
 
 ---
 
-### Bug 26: `getPageLayers` return type omits the `print` property
+### ~~Bug 26: `getPageLayers` return type omits the `print` property~~
 
-**File:** `src/core/LayerEditor.ts` line 126
+~~**File:** `src/core/LayerEditor.ts` line 126~~
 
-`addLayer` accepts and persists `options.print` as `<Cell N="Print" V="0|1"/>`, but `getPageLayers` only reads `Name`, `Visible`, and `Lock`. The `print` field is silently dropped on read-back, so round-tripping a layer's properties through the API discards the print setting.
+~~`addLayer` accepts and persists `options.print` as `<Cell N="Print" V="0|1"/>`, but `getPageLayers` only reads `Name`, `Visible`, and `Lock`. The `print` field is silently dropped on read-back, so round-tripping a layer's properties through the API discards the print setting.~~
 
-**Fix direction:** Add `print: getVal('Print') !== '0'` to the returned object and extend the return type.
+~~**Fix direction:** Add `print: getVal('Print') !== '0'` to the returned object and extend the return type.~~
 
 ---
 

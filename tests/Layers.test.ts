@@ -177,6 +177,19 @@ describe('Layers', () => {
         expect(getCell(rows[2], 'Visible')).toBe('0');
     });
 
+    it('regression bug-26: getPageLayers includes print property', async () => {
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        await page.addLayer('Printable');              // print defaults to true
+        await page.addLayer('NoPrint', { print: false });
+
+        const layers = page.getLayers();
+        expect(layers).toHaveLength(2);
+        expect(layers[0].print).toBe(true);
+        expect(layers[1].print).toBe(false);
+    });
+
     it('should toggle layer visibility', async () => {
         const doc = await VisioDocument.create();
         const page = doc.pages[0];
