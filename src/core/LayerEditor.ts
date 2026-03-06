@@ -103,7 +103,7 @@ export class LayerEditor {
         if (!layerSection?.Row) return;
 
         const rows = Array.isArray(layerSection.Row) ? layerSection.Row : [layerSection.Row];
-        const row = rows.find((r: any) => r['@_IX'] == layerIndex.toString());
+        const row = rows.find((r: any) => r['@_IX'] === layerIndex.toString());
         if (!row) return;
 
         if (!row.Cell) row.Cell = [];
