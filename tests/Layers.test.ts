@@ -142,6 +142,41 @@ describe('Layers', () => {
         expect(indices).not.toContain(2); // old index gone
     });
 
+    it('regression bug-27: updateLayerProperty uses strict === for IX comparison', async () => {
+        // Previously used loose == which is fragile; verify strict comparison works correctly
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        await page.addLayer('Alpha');   // IX=0
+        await page.addLayer('Beta');    // IX=1
+        const gamma = await page.addLayer('Gamma'); // IX=2
+
+        // Hide only Gamma (IX=2) — requires the IX lookup to resolve correctly
+        await gamma.hide();
+
+        const ShapeModifierStr = (await import('../src/ShapeModifier')).ShapeModifier;
+        const testMod = new ShapeModifierStr((doc as any).pkg);
+        const parsed = (testMod as any).getParsed(page.id);
+        const sections = parsed.PageContents.PageSheet.Section
+            ? (Array.isArray(parsed.PageContents.PageSheet.Section)
+                ? parsed.PageContents.PageSheet.Section
+                : [parsed.PageContents.PageSheet.Section])
+            : [];
+        const layerSec = sections.find((s: any) => s['@_N'] === 'Layer');
+        const rows = Array.isArray(layerSec.Row) ? layerSec.Row : [layerSec.Row];
+        const getCell = (r: any, n: string) => {
+            const cells = Array.isArray(r.Cell) ? r.Cell : [r.Cell];
+            const cell = cells.find((c: any) => c['@_N'] === n);
+            return cell?.['@_V'];
+        };
+
+        // IX=0 and IX=1 should remain visible
+        expect(getCell(rows[0], 'Visible')).toBe('1');
+        expect(getCell(rows[1], 'Visible')).toBe('1');
+        // IX=2 should be hidden
+        expect(getCell(rows[2], 'Visible')).toBe('0');
+    });
+
     it('should toggle layer visibility', async () => {
         const doc = await VisioDocument.create();
         const page = doc.pages[0];
