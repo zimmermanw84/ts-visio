@@ -55,4 +55,32 @@ describe('ShapeReader', () => {
         const shapes = reader.readShapes('visio/pages/nonexistent.xml');
         expect(shapes).toEqual([]);
     });
+
+    it('should keep numeric-looking attribute values as strings (parseAttributeValue: false)', async () => {
+        // Regression test for Bug 25: ShapeReader must use createXmlParser() so that
+        // parseAttributeValue: false is in effect — attribute values like IDs and V=
+        // must never be coerced to numbers.
+        const zip = new JSZip();
+        zip.file('visio/pages/page2.xml', `
+            <PageContents>
+                <Shapes>
+                    <Shape ID="42" Name="Box" Type="Shape">
+                        <Cell N="Width" V="3" />
+                    </Shape>
+                </Shapes>
+            </PageContents>
+        `);
+        const buffer = await zip.generateAsync({ type: 'nodebuffer' });
+        const pkg2 = new VisioPackage();
+        await pkg2.load(buffer);
+        const reader2 = new ShapeReader(pkg2);
+
+        const shapes = reader2.readShapes('visio/pages/page2.xml');
+        expect(shapes).toHaveLength(1);
+        // ID and cell values must be strings, not numbers
+        expect(typeof shapes[0].ID).toBe('string');
+        expect(shapes[0].ID).toBe('42');
+        expect(typeof shapes[0].Cells['Width'].V).toBe('string');
+        expect(shapes[0].Cells['Width'].V).toBe('3');
+    });
 });

@@ -5,15 +5,13 @@ import { asArray, parseCells, parseSection } from './utils/VisioParsers';
 import { ConnectorData } from './Connector';
 import { SECTION_NAMES } from './core/VisioConstants';
 import { findShapeById, buildShapeMap, gatherAllShapes } from './utils/ShapeTreeUtils';
+import { createXmlParser } from './utils/XmlHelper';
 
 export class ShapeReader {
     private parser: XMLParser;
 
     constructor(private pkg: VisioPackage) {
-        this.parser = new XMLParser({
-            ignoreAttributes: false,
-            attributeNamePrefix: "@_"
-        });
+        this.parser = createXmlParser();
     }
 
     readShapes(path: string): VisioShape[] {
