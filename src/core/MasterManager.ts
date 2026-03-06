@@ -147,12 +147,15 @@ export class MasterManager {
 
         this.ensureInfrastructure();
 
+        // Compute the initial max ID once before the loop (Bug 23: avoid O(n²) load() calls)
+        const initialTaken = this.load().map(m => parseInt(m.id)).filter(n => !isNaN(n));
+        let nextId = initialTaken.length > 0 ? Math.max(...initialTaken) + 1 : 1;
+
         const imported: MasterRecord[] = [];
 
         for (const node of masterNodes) {
             // Assign a fresh ID that doesn't collide with any existing master
-            const taken = this.load().map(m => parseInt(m.id)).filter(n => !isNaN(n));
-            const newId = taken.length > 0 ? Math.max(...taken) + 1 : 1;
+            const newId = nextId++;
             const newFileName = `master${newId}.xml`;
             const newFilePath = `visio/masters/${newFileName}`;
 
