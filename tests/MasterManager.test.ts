@@ -76,6 +76,58 @@ describe('MasterManager.load()', () => {
     });
 });
 
+// regression bug-23
+describe('MasterManager.importFromStencil (regression bug-23)', () => {
+    it('should call load() only once before the loop, not once per master', async () => {
+        // Build a minimal stencil ZIP with two master entries
+        const JSZip = (await import('jszip')).default;
+        const stencilZip = new JSZip();
+        stencilZip.file('visio/masters/masters.xml', `<?xml version="1.0" encoding="UTF-8"?>
+<Masters xmlns="http://schemas.microsoft.com/office/visio/2012/main">
+    <Master ID="1" Name="Alpha" NameU="Alpha"><Rel r:id="rId1"/></Master>
+    <Master ID="2" Name="Beta"  NameU="Beta" ><Rel r:id="rId2"/></Master>
+</Masters>`);
+        stencilZip.file('visio/masters/_rels/masters.xml.rels', `<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+    <Relationship Id="rId1" Type="master" Target="master1.xml"/>
+    <Relationship Id="rId2" Type="master" Target="master2.xml"/>
+</Relationships>`);
+        stencilZip.file('visio/masters/master1.xml', `<?xml version="1.0" encoding="UTF-8"?><MasterContents/>`);
+        stencilZip.file('visio/masters/master2.xml', `<?xml version="1.0" encoding="UTF-8"?><MasterContents/>`);
+        const stencilBuf = await stencilZip.generateAsync({ type: 'nodebuffer' });
+
+        const files: Record<string, string> = {
+            '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/></Types>`,
+            'visio/_rels/document.xml.rels': `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`,
+            'visio/masters/masters.xml': `<?xml version="1.0" encoding="UTF-8"?><Masters xmlns="http://schemas.microsoft.com/office/visio/2012/main"></Masters>`,
+            'visio/masters/_rels/masters.xml.rels': `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`,
+        };
+
+        const getFileText = vi.fn((path: string): string => {
+            if (path in files) return files[path];
+            throw new Error(`File not found: ${path}`);
+        });
+        const mockPkg = {
+            getFileText,
+            updateFile: vi.fn((path: string, content: string) => { files[path] = content; }),
+        } as unknown as VisioPackage;
+
+        const manager = new MasterManager(mockPkg);
+        const loadSpy = vi.spyOn(manager, 'load');
+
+        const imported = await manager.importFromStencil(stencilBuf);
+
+        // Two masters imported with sequential IDs
+        expect(imported).toHaveLength(2);
+        expect(imported[0].id).toBe('1');
+        expect(imported[1].id).toBe('2');
+
+        // With the O(n²) bug: load() called once per master (2 times for 2 masters)
+        // With the fix: load() called exactly once before the loop
+        expect(loadSpy).toHaveBeenCalledTimes(1);
+    });
+});
+
 // regression bug-22
 describe('MasterManager.addMasterEntry (regression bug-22)', () => {
     it('should not write inline <Shapes> into masters.xml Master entry', () => {
