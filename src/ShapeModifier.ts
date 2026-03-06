@@ -49,6 +49,12 @@ export class ShapeModifier {
     /** @internal Exposed for test introspection. */
     getAllShapes(parsed: any): any[] { return this.cache.getAllShapes(parsed); }
 
+    /**
+     * Return the current serialized XML for a page, using the dirty in-memory
+     * cache when autoSave=false so callers see post-mutation state (Bug 24).
+     */
+    getPageXml(pageId: string): string { return this.cache.getPageXml(pageId); }
+
     // ── Connector ─────────────────────────────────────────────────────────────
 
     async addConnector(
@@ -871,7 +877,7 @@ export class ShapeModifier {
     getShapeChildren(pageId: string, shapeId: string): VisioShape[] {
         const pagePath = this.cache.getPagePath(pageId);
         const reader   = new ShapeReader(this.pkg);
-        return reader.readChildShapes(pagePath, shapeId);
+        return reader.readChildShapes(pagePath, shapeId, this.cache.getPageXml(pageId));
     }
 }
 

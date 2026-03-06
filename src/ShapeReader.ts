@@ -14,10 +14,10 @@ export class ShapeReader {
         this.parser = createXmlParser();
     }
 
-    readShapes(path: string): VisioShape[] {
+    readShapes(path: string, contentOverride?: string): VisioShape[] {
         let content: string;
         try {
-            content = this.pkg.getFileText(path);
+            content = contentOverride ?? this.pkg.getFileText(path);
         } catch {
             return [];
         }
@@ -34,10 +34,10 @@ export class ShapeReader {
      * Returns every shape on the page flattened into a single array,
      * including shapes nested inside groups at any depth.
      */
-    readAllShapes(path: string): VisioShape[] {
+    readAllShapes(path: string, contentOverride?: string): VisioShape[] {
         let content: string;
         try {
-            content = this.pkg.getFileText(path);
+            content = contentOverride ?? this.pkg.getFileText(path);
         } catch {
             return [];
         }
@@ -50,10 +50,10 @@ export class ShapeReader {
      * Find a single shape by ID anywhere in the page tree (including nested groups).
      * Returns undefined if not found.
      */
-    readShapeById(path: string, shapeId: string): VisioShape | undefined {
+    readShapeById(path: string, shapeId: string, contentOverride?: string): VisioShape | undefined {
         let content: string;
         try {
-            content = this.pkg.getFileText(path);
+            content = contentOverride ?? this.pkg.getFileText(path);
         } catch {
             return undefined;
         }
@@ -68,10 +68,10 @@ export class ShapeReader {
      * A shape is considered a connector if it has `ObjType=2` or a `BeginX` cell,
      * and is referenced in the page's `<Connects>` section.
      */
-    readConnectors(path: string): ConnectorData[] {
+    readConnectors(path: string, contentOverride?: string): ConnectorData[] {
         let content: string;
         try {
-            content = this.pkg.getFileText(path);
+            content = contentOverride ?? this.pkg.getFileText(path);
         } catch {
             return [];
         }
@@ -176,10 +176,10 @@ export class ShapeReader {
      * Return the direct child shapes of a group or container shape.
      * Returns an empty array if the shape has no children or does not exist.
      */
-    readChildShapes(path: string, parentId: string): VisioShape[] {
+    readChildShapes(path: string, parentId: string, contentOverride?: string): VisioShape[] {
         let content: string;
         try {
-            content = this.pkg.getFileText(path);
+            content = contentOverride ?? this.pkg.getFileText(path);
         } catch {
             return [];
         }
