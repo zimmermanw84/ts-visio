@@ -319,9 +319,9 @@ export class Page {
         return SwimlanePattern.addPool(this, props);
     }
 
-    /** Creates a Swimlane Lane (a Container inside a pool). */
-    async addSwimlaneLane(props: NewShapeProps): Promise<Shape> {
-        return SwimlanePattern.addLane(this, props);
+    /** Creates a Swimlane Lane (a Container inside a pool) and attaches it to the pool. */
+    async addSwimlaneLane(pool: Shape, props: NewShapeProps): Promise<Shape> {
+        return SwimlanePattern.addLane(this, pool, props);
     }
 
     async addTable(x: number, y: number, title: string, columns: string[]): Promise<Shape> {
