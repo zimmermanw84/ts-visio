@@ -172,10 +172,10 @@ When a layer is deleted, remaining layers keep their original IX values. Subsequ
 
 ---
 
-### Bug 17: `getConnectors()` silently drops partially-connected connectors
+### ~~Bug 17: `getConnectors()` silently drops partially-connected connectors~~ ✅ Fixed in v1.16.17
 
 **File:** `src/ShapeReader.ts` line ~120
 
 `if (!entry?.beginConnect || !entry?.endConnect) continue;` skips connectors with only one endpoint connected. The user receives no indication that connectors were omitted.
 
-**Fix direction:** Either return partial connectors with `undefined` for the missing endpoint, or emit a warning when connectors are skipped.
+**Fix:** Removed the guard so partial connectors are always returned. `ConnectorData.fromShapeId` and `toShapeId` are now `string | undefined`; when a `BeginX` or `EndX` `<Connect>` entry is absent the corresponding field is `undefined`. Three regression tests added to `GetConnectors.test.ts`.

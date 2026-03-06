@@ -1,6 +1,6 @@
 {
   "name": "ts-visio",
-  "version": "1.16.16",
+  "version": "1.16.17",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

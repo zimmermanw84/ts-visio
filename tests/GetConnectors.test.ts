@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import JSZip from 'jszip';
 import { VisioDocument } from '../src/VisioDocument';
 import { Connector } from '../src/Connector';
 import { ArrowHeads } from '../src/utils/StyleHelpers';
@@ -185,6 +186,68 @@ describe('Connector.delete()', () => {
         const ids = shapes.map(s => s.id);
         expect(ids).toContain(a.id);
         expect(ids).toContain(b.id);
+    });
+});
+
+// ── partial connectors (Bug 17) ────────────────────────────────────────────────
+
+describe('page.getConnectors() – partial connectors (Bug 17)', () => {
+    it('includes a connector whose EndX endpoint is not connected (toShapeId is undefined)', async () => {
+        const { doc, page, a, b } = await twoShapePage();
+        await page.connectShapes(a, b);
+
+        // Save, then strip the EndX <Connect> entry from the page XML
+        const buf = await doc.save();
+        const zip = await JSZip.loadAsync(buf);
+        const pageFile = zip.file('visio/pages/page1.xml');
+        let xml = await pageFile!.async('string');
+        xml = xml.replace(/<Connect[^>]*FromCell="EndX"[^>]*>(\s*<\/Connect>)?/g, '');
+        zip.file('visio/pages/page1.xml', xml);
+        const buf2 = await zip.generateAsync({ type: 'nodebuffer' });
+
+        const doc2 = await VisioDocument.load(buf2);
+        const connectors = doc2.pages[0].getConnectors();
+        expect(connectors).toHaveLength(1);
+        expect(connectors[0].fromShapeId).toBe(a.id);
+        expect(connectors[0].toShapeId).toBeUndefined();
+    });
+
+    it('includes a connector whose BeginX endpoint is not connected (fromShapeId is undefined)', async () => {
+        const { doc, page, a, b } = await twoShapePage();
+        await page.connectShapes(a, b);
+
+        // Save, then strip the BeginX <Connect> entry from the page XML
+        const buf = await doc.save();
+        const zip = await JSZip.loadAsync(buf);
+        const pageFile = zip.file('visio/pages/page1.xml');
+        let xml = await pageFile!.async('string');
+        xml = xml.replace(/<Connect[^>]*FromCell="BeginX"[^>]*>(\s*<\/Connect>)?/g, '');
+        zip.file('visio/pages/page1.xml', xml);
+        const buf2 = await zip.generateAsync({ type: 'nodebuffer' });
+
+        const doc2 = await VisioDocument.load(buf2);
+        const connectors = doc2.pages[0].getConnectors();
+        expect(connectors).toHaveLength(1);
+        expect(connectors[0].fromShapeId).toBeUndefined();
+        expect(connectors[0].toShapeId).toBe(b.id);
+    });
+
+    it('returns a Connector instance for partial connectors', async () => {
+        const { doc, page, a, b } = await twoShapePage();
+        await page.connectShapes(a, b);
+
+        const buf = await doc.save();
+        const zip = await JSZip.loadAsync(buf);
+        const pageFile = zip.file('visio/pages/page1.xml');
+        let xml = await pageFile!.async('string');
+        xml = xml.replace(/<Connect[^>]*FromCell="EndX"[^>]*>(\s*<\/Connect>)?/g, '');
+        zip.file('visio/pages/page1.xml', xml);
+        const buf2 = await zip.generateAsync({ type: 'nodebuffer' });
+
+        const doc2 = await VisioDocument.load(buf2);
+        const [conn] = doc2.pages[0].getConnectors();
+        expect(conn).toBeInstanceOf(Connector);
+        expect(conn.id).toBeTruthy();
     });
 });
 
