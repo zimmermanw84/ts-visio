@@ -34,30 +34,26 @@ async function run() {
     });
 
     // ── Lanes ──────────────────────────────────────────────────────────────────
-    const clientLane = await page.addSwimlaneLane({
+    const clientLane = await page.addSwimlaneLane(pool, {
         text:     'Client (Browser)',
         x: 0, y: 0,
         width: 10, height: 2.2,
         fillColor: '#DDEBF7',   // light blue
     });
 
-    const serverLane = await page.addSwimlaneLane({
+    const serverLane = await page.addSwimlaneLane(pool, {
         text:     'Server (API)',
         x: 0, y: 0,
         width: 10, height: 2.2,
         fillColor: '#E2F0D9',   // light green
     });
 
-    const dbLane = await page.addSwimlaneLane({
+    const dbLane = await page.addSwimlaneLane(pool, {
         text:     'Database',
         x: 0, y: 0,
         width: 10, height: 2.2,
         fillColor: '#FFF2CC',   // light amber
     });
-
-    await pool.addListItem(clientLane);
-    await pool.addListItem(serverLane);
-    await pool.addListItem(dbLane);
 
     // ── Process nodes ──────────────────────────────────────────────────────────
     // Client lane: Start (ellipse), Submit Form (rectangle)
