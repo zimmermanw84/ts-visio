@@ -115,7 +115,7 @@ export class Page {
     getShapes(): Shape[] {
         const reader = new ShapeReader(this.pkg);
         try {
-            const internalShapes = reader.readShapes(this.pagePath);
+            const internalShapes = reader.readShapes(this.pagePath, this.modifier.getPageXml(this.id));
             return internalShapes.map(s => new Shape(s, this.id, this.pkg, this.modifier));
         } catch (e) {
             console.warn(`Could not read shapes for page ${this.id}:`, e);
@@ -129,7 +129,7 @@ export class Page {
      */
     getShapeById(id: string): Shape | undefined {
         const reader = new ShapeReader(this.pkg);
-        const internal = reader.readShapeById(this.pagePath, id);
+        const internal = reader.readShapeById(this.pagePath, id, this.modifier.getPageXml(this.id));
         if (!internal) return undefined;
         return new Shape(internal, this.id, this.pkg, this.modifier);
     }
@@ -140,7 +140,7 @@ export class Page {
      */
     findShapes(predicate: (shape: Shape) => boolean): Shape[] {
         const reader = new ShapeReader(this.pkg);
-        const all = reader.readAllShapes(this.pagePath);
+        const all = reader.readAllShapes(this.pagePath, this.modifier.getPageXml(this.id));
         return all
             .map(s => new Shape(s, this.id, this.pkg, this.modifier))
             .filter(predicate);
@@ -199,7 +199,7 @@ export class Page {
     getConnectors(): Connector[] {
         const reader = new ShapeReader(this.pkg);
         try {
-            const data = reader.readConnectors(this.pagePath);
+            const data = reader.readConnectors(this.pagePath, this.modifier.getPageXml(this.id));
             return data.map(d => new Connector(d, this.id, this.modifier));
         } catch (e) {
             console.warn(`Could not read connectors for page ${this.id}:`, e);

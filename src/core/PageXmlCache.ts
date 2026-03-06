@@ -151,6 +151,22 @@ export class PageXmlCache {
         this.dirtyPages.clear();
     }
 
+    /**
+     * Return the current serialized XML for a page, consulting the in-memory
+     * dirty cache when autoSave=false so that reads after writes return
+     * up-to-date content rather than stale pkg data (Bug 24).
+     */
+    getPageXml(pageId: string): string {
+        const pagePath = this.getPagePath(pageId);
+        if (this.dirtyPages.has(pagePath)) {
+            const cached = this.pageCache.get(pagePath);
+            if (cached?.parsed) {
+                return buildXml(this.builder, cached.parsed);
+            }
+        }
+        return this.pkg.getFileText(pagePath);
+    }
+
     // ── Shape geometry helpers (used by multiple editors) ────────────────────
 
     getShapeGeometry(pageId: string, shapeId: string): { x: number; y: number; width: number; height: number } {
