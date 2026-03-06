@@ -59,11 +59,14 @@ export class ConnectorEditor {
             parsed, newId, fromShapeId, toShapeId, shapeHierarchy, fromPort, toPort,
         );
 
-        await this.relsManager.ensureRelationship(
-            this.cache.getPagePath(pageId),
-            '../masters/masters.xml',
-            RELATIONSHIP_TYPES.MASTERS,
-        );
+        // Only add the MASTERS relationship when the connector explicitly references a master shape
+        if (connectorShape['@_Master'] !== undefined) {
+            await this.relsManager.ensureRelationship(
+                this.cache.getPagePath(pageId),
+                '../masters/masters.xml',
+                RELATIONSHIP_TYPES.MASTERS,
+            );
+        }
 
         this.cache.saveParsed(pageId, parsed);
         return newId;
