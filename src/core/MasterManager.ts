@@ -92,7 +92,7 @@ export class MasterManager {
         const rId = this.addMastersRel(fileName);
 
         // Append entry to masters.xml
-        this.addMasterEntry(newId, name, name, masterShape, rId);
+        this.addMasterEntry(newId, name, name, rId);
 
         return { id: String(newId), name, nameU: name, xmlPath: filePath };
     }
@@ -314,7 +314,7 @@ export class MasterManager {
      * created via `createMaster()` (includes an inline Shapes element).
      */
     private addMasterEntry(
-        id: number, name: string, nameU: string, masterShape: any, rId: string
+        id: number, name: string, nameU: string, rId: string
     ): void {
         const mastersPath = 'visio/masters/masters.xml';
         const parsed = this.parser.parse(this.pkg.getFileText(mastersPath));
@@ -337,7 +337,6 @@ export class MasterManager {
                     { '@_N': 'PageHeight', '@_V': '0.5' },
                 ],
             },
-            Shapes: { Shape: masterShape },
             Rel: { '@_r:id': rId },
         });
 
