@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
 import { MasterManager } from '../src/core/MasterManager';
 import { VisioPackage } from '../src/VisioPackage';
+import { XMLParser } from 'fast-xml-parser';
 
 describe('MasterManager.load()', () => {
     let mockPkg: VisioPackage;
@@ -72,5 +73,48 @@ describe('MasterManager.load()', () => {
 
         const masters = manager.load();
         expect(masters[0].xmlPath).toBe('visio/masters/master1.xml');
+    });
+});
+
+// regression bug-22
+describe('MasterManager.addMasterEntry (regression bug-22)', () => {
+    it('should not write inline <Shapes> into masters.xml Master entry', () => {
+        const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+
+        // Track what was written to masters.xml
+        let writtenMastersXml = '';
+        const files: Record<string, string> = {
+            '[Content_Types].xml': `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/></Types>`,
+            'visio/_rels/document.xml.rels': `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`,
+            'visio/masters/masters.xml': `<?xml version="1.0" encoding="UTF-8"?><Masters xmlns="http://schemas.microsoft.com/office/visio/2012/main"></Masters>`,
+        };
+
+        const mockPkg = {
+            getFileText: vi.fn((path: string): string => {
+                if (path in files) return files[path];
+                throw new Error(`File not found: ${path}`);
+            }),
+            updateFile: vi.fn((path: string, content: string) => {
+                files[path] = content;
+                if (path === 'visio/masters/masters.xml') {
+                    writtenMastersXml = content;
+                }
+            }),
+        } as unknown as VisioPackage;
+
+        const manager = new MasterManager(mockPkg);
+        // Directly invoke private method via cast
+        (manager as any).addMasterEntry(1, 'TestShape', 'TestShape', 'rId1');
+
+        expect(writtenMastersXml).toBeTruthy();
+        const parsed = parser.parse(writtenMastersXml);
+        const masterEntry = parsed.Masters?.Master;
+        const entry = Array.isArray(masterEntry) ? masterEntry[0] : masterEntry;
+        expect(entry).toBeDefined();
+        // Must NOT contain a Shapes element
+        expect(entry.Shapes).toBeUndefined();
+        // Must still contain PageSheet and Rel
+        expect(entry.PageSheet).toBeDefined();
+        expect(entry.Rel).toBeDefined();
     });
 });
