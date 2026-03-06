@@ -50,13 +50,13 @@ All read methods create `new ShapeReader(this.pkg)` and call `pkg.getFileText(pa
 
 ## LOW
 
-### Bug 25: `ShapeReader` uses an inconsistent `XMLParser` configuration
+### ~~Bug 25: `ShapeReader` uses an inconsistent `XMLParser` configuration~~
 
-**File:** `src/ShapeReader.ts` line 13
+~~**File:** `src/ShapeReader.ts` line 13~~
 
-Every other parser in the codebase uses `createXmlParser()` from `XmlHelper`, which explicitly sets `ignoreDeclaration: false` (to preserve the `<?xml?>` declaration) and `parseAttributeValue: false` (to keep IDs as strings). `ShapeReader` constructs its own `XMLParser` inline without these options, relying on fast-xml-parser's current defaults. If defaults change, `ShapeReader` will diverge in behavior from all other XML handling code.
+~~Every other parser in the codebase uses `createXmlParser()` from `XmlHelper`, which explicitly sets `ignoreDeclaration: false` (to preserve the `<?xml?>` declaration) and `parseAttributeValue: false` (to keep IDs as strings). `ShapeReader` constructs its own `XMLParser` inline without these options, relying on fast-xml-parser's current defaults. If defaults change, `ShapeReader` will diverge in behavior from all other XML handling code.~~
 
-**Fix direction:** Replace the inline `new XMLParser({...})` constructor with `createXmlParser()`.
+~~**Fix direction:** Replace the inline `new XMLParser({...})` constructor with `createXmlParser()`.~~
 
 ---
 
