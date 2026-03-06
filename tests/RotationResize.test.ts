@@ -174,6 +174,89 @@ describe('Shape.resize()', () => {
         expect(locPinX).toBeCloseTo(width  / 2, 5);
         expect(locPinY).toBeCloseTo(height / 2, 5);
     });
+
+    // --- Bug 5 regression tests ---
+
+    it('resize() updates geometry @_V for exact Width/Height formula references', async () => {
+        // rectangle geometry uses 'Width' and 'Height' formulas exactly
+        const doc  = await VisioDocument.create();
+        const page = doc.pages[0];
+        const shape = await page.addShape({ text: 'B5a', x: 1, y: 1, width: 2, height: 1, geometry: 'rectangle' });
+
+        await shape.resize(6, 4);
+
+        const parsed   = (page as any).modifier.cache.getParsed(page.id);
+        const shapeMap = (page as any).modifier.cache.getShapeMap(parsed);
+        const raw      = shapeMap.get(shape.id);
+        const sections: any[] = Array.isArray(raw.Section) ? raw.Section : [raw.Section];
+        const geoSection = sections.find((s: any) => s['@_N'] === 'Geometry');
+        const rows: any[] = Array.isArray(geoSection.Row) ? geoSection.Row : [geoSection.Row];
+
+        // Row 2 X cell has @_F='Width', should be updated to 6
+        const row2cells: any[] = Array.isArray(rows[1].Cell) ? rows[1].Cell : [rows[1].Cell];
+        const xCell = row2cells.find((c: any) => c['@_N'] === 'X' && c['@_F'] === 'Width');
+        expect(parseFloat(xCell['@_V'])).toBeCloseTo(6, 5);
+
+        // Row 4 Y cell has @_F='Height', should be updated to 4
+        const row4cells: any[] = Array.isArray(rows[3].Cell) ? rows[3].Cell : [rows[3].Cell];
+        const yCell = row4cells.find((c: any) => c['@_N'] === 'Y' && c['@_F'] === 'Height');
+        expect(parseFloat(yCell['@_V'])).toBeCloseTo(4, 5);
+    });
+
+    it('resize() updates geometry @_V for compound formulas like Width*0.5 and Height*0.5', async () => {
+        // ellipse geometry uses 'Width*0.5', 'Height*0.5', 'Width', 'Height' formulas
+        const doc  = await VisioDocument.create();
+        const page = doc.pages[0];
+        const shape = await page.addShape({ text: 'B5b', x: 1, y: 1, width: 2, height: 2, geometry: 'ellipse' });
+
+        await shape.resize(8, 4);
+
+        const parsed   = (page as any).modifier.cache.getParsed(page.id);
+        const shapeMap = (page as any).modifier.cache.getShapeMap(parsed);
+        const raw      = shapeMap.get(shape.id);
+        const sections: any[] = Array.isArray(raw.Section) ? raw.Section : [raw.Section];
+        const geoSection = sections.find((s: any) => s['@_N'] === 'Geometry');
+        const rows: any[] = Array.isArray(geoSection.Row) ? geoSection.Row : [geoSection.Row];
+        const ellipseRow = rows[0];
+        const cells: any[] = Array.isArray(ellipseRow.Cell) ? ellipseRow.Cell : [ellipseRow.Cell];
+
+        // X cell @_F='Width*0.5' → 8*0.5 = 4
+        const xCell = cells.find((c: any) => c['@_N'] === 'X');
+        expect(parseFloat(xCell['@_V'])).toBeCloseTo(4, 5);
+
+        // A cell @_F='Width' → 8
+        const aCell = cells.find((c: any) => c['@_N'] === 'A');
+        expect(parseFloat(aCell['@_V'])).toBeCloseTo(8, 5);
+
+        // D cell @_F='Height' → 4
+        const dCell = cells.find((c: any) => c['@_N'] === 'D');
+        expect(parseFloat(dCell['@_V'])).toBeCloseTo(4, 5);
+    });
+
+    it('resize() updates geometry @_V for diamond shape with Width*0.5 and Height*0.5 formulas', async () => {
+        const doc  = await VisioDocument.create();
+        const page = doc.pages[0];
+        const shape = await page.addShape({ text: 'B5c', x: 2, y: 2, width: 4, height: 2, geometry: 'diamond' });
+
+        await shape.resize(10, 6);
+
+        const parsed   = (page as any).modifier.cache.getParsed(page.id);
+        const shapeMap = (page as any).modifier.cache.getShapeMap(parsed);
+        const raw      = shapeMap.get(shape.id);
+        const sections: any[] = Array.isArray(raw.Section) ? raw.Section : [raw.Section];
+        const geoSection = sections.find((s: any) => s['@_N'] === 'Geometry');
+        const rows: any[] = Array.isArray(geoSection.Row) ? geoSection.Row : [geoSection.Row];
+
+        // Row 1 (MoveTo, top vertex): X=Width*0.5 → 5, Y=Height → 6
+        const row1cells: any[] = Array.isArray(rows[0].Cell) ? rows[0].Cell : [rows[0].Cell];
+        const topX = row1cells.find((c: any) => c['@_N'] === 'X' && c['@_F'] === 'Width*0.5');
+        expect(parseFloat(topX['@_V'])).toBeCloseTo(5, 5);
+
+        // Row 2 (right vertex): X=Width → 10, Y=Height*0.5 → 3
+        const row2cells: any[] = Array.isArray(rows[1].Cell) ? rows[1].Cell : [rows[1].Cell];
+        const rightY = row2cells.find((c: any) => c['@_N'] === 'Y' && c['@_F'] === 'Height*0.5');
+        expect(parseFloat(rightY['@_V'])).toBeCloseTo(3, 5);
+    });
 });
 
 // ---------------------------------------------------------------------------

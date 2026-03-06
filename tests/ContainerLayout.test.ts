@@ -53,4 +53,28 @@ describe('Visio Container Layout', () => {
         const shapes = parsed.PageContents.Shapes.Shape;
         expect(shapes[0]['@_ID']).toBe(container.id);
     });
+
+    it('Bug 15: reorderShape uses strict === for ID matching (no type coercion)', async () => {
+        // Regression: reorderShape previously used == which could silently type-coerce IDs
+        const doc = await VisioDocument.create();
+        const page = doc.pages[0];
+
+        const container = await page.addContainer({ text: 'C', x: 2, y: 2, width: 3, height: 3 });
+        const box = await page.addShape({ text: 'B', x: 2, y: 2, width: 1, height: 1 });
+
+        // Move box to front (push), then container to back (unshift) — both use reorderShape internally
+        await container.addMember(box); // calls resizeContainerToFit -> reorderShape(containerId, 'back')
+
+        const pkg = (doc as any).pkg;
+        const pageXml = pkg.getFileText('visio/pages/page1.xml');
+        const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+        const parsed = parser.parse(pageXml);
+
+        const shapes = parsed.PageContents.Shapes.Shape;
+        // Container should be at index 0 (back of Z-order) — confirms reorderShape found it correctly
+        expect(shapes[0]['@_ID']).toBe(container.id);
+        // Box should still be present
+        const boxShape = shapes.find((s: any) => s['@_ID'] === box.id);
+        expect(boxShape).toBeDefined();
+    });
 });

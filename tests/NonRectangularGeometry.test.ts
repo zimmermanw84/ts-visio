@@ -10,8 +10,15 @@ describe('GeometryBuilder.rectangle()', () => {
     it('produces a Geometry section with NoFill=1 when no fill', () => {
         const geo = GeometryBuilder.rectangle(4, 2, '1');
         expect(geo['@_N']).toBe('Geometry');
-        expect(geo.Cell[0]['@_N']).toBe('NoFill');
-        expect(geo.Cell[0]['@_V']).toBe('1');
+        const noFill = geo.Cell.find((c: any) => c['@_N'] === 'NoFill');
+        expect(noFill['@_V']).toBe('1');
+    });
+
+    it('includes a NoShow cell with value 0', () => {
+        const geo = GeometryBuilder.rectangle(4, 2, '0');
+        const noShow = geo.Cell.find((c: any) => c['@_N'] === 'NoShow');
+        expect(noShow).toBeDefined();
+        expect(noShow['@_V']).toBe('0');
     });
 
     it('produces 5 rows: MoveTo + 4 LineTo', () => {
@@ -220,12 +227,24 @@ describe('GeometryBuilder.build()', () => {
 
     it('sets NoFill=0 when fillColor is provided', () => {
         const geo = GeometryBuilder.build({ width: 2, height: 1, fillColor: '#ff0000' });
-        expect(geo.Cell[0]['@_V']).toBe('0');
+        const noFill = geo.Cell.find((c: any) => c['@_N'] === 'NoFill');
+        expect(noFill['@_V']).toBe('0');
     });
 
     it('sets NoFill=1 when no fillColor', () => {
         const geo = GeometryBuilder.build({ width: 2, height: 1 });
-        expect(geo.Cell[0]['@_V']).toBe('1');
+        const noFill = geo.Cell.find((c: any) => c['@_N'] === 'NoFill');
+        expect(noFill['@_V']).toBe('1');
+    });
+
+    it('all geometry types include NoShow=0 cell', () => {
+        const geometries = ['rectangle', 'ellipse', 'diamond', 'rounded-rectangle', 'triangle', 'parallelogram'] as const;
+        for (const g of geometries) {
+            const geo = GeometryBuilder.build({ width: 4, height: 2, geometry: g });
+            const noShow = geo.Cell.find((c: any) => c['@_N'] === 'NoShow');
+            expect(noShow, `${g} missing NoShow cell`).toBeDefined();
+            expect(noShow['@_V'], `${g} NoShow should be '0'`).toBe('0');
+        }
     });
 });
 

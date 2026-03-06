@@ -146,23 +146,41 @@ export class LayerEditor {
     }
 
     /**
-     * Delete a layer by index and remove it from all shape LayerMember cells.
+     * Delete a layer by index, re-index remaining layers to close gaps, and
+     * update all shape LayerMember cells to use the new indices.
      */
     deleteLayer(pageId: string, layerIndex: number): void {
         const parsed = this.cache.getParsed(pageId);
+
+        // Build old-index → new-index mapping while removing the deleted layer.
+        const indexRemap = new Map<string, string>();
 
         const pageSheet = parsed.PageContents?.PageSheet;
         if (pageSheet?.Section) {
             const sections = Array.isArray(pageSheet.Section) ? pageSheet.Section : [pageSheet.Section];
             const layerSection = sections.find((s: any) => s['@_N'] === SECTION_NAMES.Layer);
             if (layerSection?.Row) {
-                const rows = Array.isArray(layerSection.Row) ? layerSection.Row : [layerSection.Row];
-                layerSection.Row = rows.filter((r: any) => r['@_IX'] !== layerIndex.toString());
+                const rows: any[] = Array.isArray(layerSection.Row) ? layerSection.Row : [layerSection.Row];
+
+                // Sort by numeric IX so re-indexing is deterministic.
+                const remaining = rows
+                    .filter((r: any) => r['@_IX'] !== layerIndex.toString())
+                    .sort((a: any, b: any) => parseInt(a['@_IX'], 10) - parseInt(b['@_IX'], 10));
+
+                remaining.forEach((row: any, newIx: number) => {
+                    const oldIx = row['@_IX'];
+                    if (oldIx !== newIx.toString()) {
+                        indexRemap.set(oldIx, newIx.toString());
+                        row['@_IX'] = newIx.toString();
+                    }
+                });
+
+                layerSection.Row = remaining;
             }
         }
 
-        // Remove this layer index from every shape's LayerMember cell.
-        const idxStr = layerIndex.toString();
+        // Update every shape's LayerMember cell: remove deleted index, remap survivors.
+        const deletedStr = layerIndex.toString();
         for (const [, shape] of this.cache.getShapeMap(parsed)) {
             if (!shape.Section) continue;
             const sections: any[] = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
@@ -177,10 +195,11 @@ export class LayerEditor {
             const memberCell = cells.find((c: any) => c['@_N'] === 'LayerMember');
             if (!memberCell?.['@_V']) continue;
 
-            const remaining = memberCell['@_V']
+            const updated = memberCell['@_V']
                 .split(';')
-                .filter((s: string) => s.length > 0 && s !== idxStr);
-            memberCell['@_V'] = remaining.join(';');
+                .filter((s: string) => s.length > 0 && s !== deletedStr)
+                .map((s: string) => indexRemap.get(s) ?? s);
+            memberCell['@_V'] = updated.join(';');
         }
 
         this.cache.saveParsed(pageId, parsed);

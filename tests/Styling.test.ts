@@ -261,3 +261,61 @@ describe('shape.setStyle() line — round-trip save/reload', () => {
         expect(parseFloat(cells.find((c: any) => c['@_N'] === 'LineWeight')?.['@_V'])).toBeCloseTo(4 / 72, 6);
     });
 });
+
+// ── Bug 3 regression ───────────────────────────────────────────────────────────
+
+describe('Bug 3 regression — no unwanted Line section when only fillColor is set', () => {
+    it('addShape({ fillColor }) does NOT create a Line section', async () => {
+        const doc   = await VisioDocument.create();
+        const page  = doc.pages[0];
+        await page.addShape({ text: 'FillOnly', x: 1, y: 1, width: 2, height: 1, fillColor: '#ff0000' });
+
+        const parsed = await getPageXml(doc);
+        const shapes = normArray(parsed.PageContents?.Shapes?.Shape);
+        const s = shapes[0];
+        const sections = normArray(s?.Section);
+        const lineSec  = sections.find((sec: any) => sec['@_N'] === 'Line');
+        expect(lineSec).toBeUndefined();
+    });
+
+    it('addShape({ fillColor }) creates exactly one Fill section', async () => {
+        const doc   = await VisioDocument.create();
+        const page  = doc.pages[0];
+        await page.addShape({ text: 'FillOnly', x: 1, y: 1, width: 2, height: 1, fillColor: '#00ff00' });
+
+        const parsed = await getPageXml(doc);
+        const shapes = normArray(parsed.PageContents?.Shapes?.Shape);
+        const s = shapes[0];
+        const sections = normArray(s?.Section);
+        const fillSections = sections.filter((sec: any) => sec['@_N'] === 'Fill');
+        expect(fillSections).toHaveLength(1);
+        const fillCells = normArray(fillSections[0].Cell);
+        expect(fillCells.find((c: any) => c['@_N'] === 'FillForegnd')?.['@_V']).toBe('#00ff00');
+    });
+
+    it('addShape({ lineColor }) creates a Line section', async () => {
+        const doc   = await VisioDocument.create();
+        const page  = doc.pages[0];
+        await page.addShape({ text: 'LineOnly', x: 1, y: 1, width: 2, height: 1, lineColor: '#0000ff' });
+
+        const parsed = await getPageXml(doc);
+        const shapes = normArray(parsed.PageContents?.Shapes?.Shape);
+        const s = shapes[0];
+        const sections = normArray(s?.Section);
+        const lineSec  = sections.find((sec: any) => sec['@_N'] === 'Line');
+        expect(lineSec).toBeDefined();
+    });
+
+    it('addShape({ fillColor, lineColor }) creates both Fill and Line sections', async () => {
+        const doc   = await VisioDocument.create();
+        const page  = doc.pages[0];
+        await page.addShape({ text: 'Both', x: 1, y: 1, width: 2, height: 1, fillColor: '#ff0000', lineColor: '#0000ff' });
+
+        const parsed = await getPageXml(doc);
+        const shapes = normArray(parsed.PageContents?.Shapes?.Shape);
+        const s = shapes[0];
+        const sections = normArray(s?.Section);
+        expect(sections.find((sec: any) => sec['@_N'] === 'Fill')).toBeDefined();
+        expect(sections.find((sec: any) => sec['@_N'] === 'Line')).toBeDefined();
+    });
+});

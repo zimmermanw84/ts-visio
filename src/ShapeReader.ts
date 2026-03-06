@@ -117,14 +117,15 @@ export class ShapeReader {
         for (const connShape of connectorShapes) {
             const connId = connShape['@_ID'];
             const entry  = connectsByConnector.get(connId);
-            if (!entry?.beginConnect || !entry?.endConnect) continue;
 
-            const { beginConnect, endConnect } = entry;
-            const fromShapeId = beginConnect['@_ToSheet'];
-            const toShapeId   = endConnect['@_ToSheet'];
+            const beginConnect = entry?.beginConnect;
+            const endConnect   = entry?.endConnect;
 
-            const fromPort = this.decodeToPart(beginConnect['@_ToPart']);
-            const toPort   = this.decodeToPart(endConnect['@_ToPart']);
+            const fromShapeId = beginConnect?.['@_ToSheet'] as string | undefined;
+            const toShapeId   = endConnect?.['@_ToSheet']   as string | undefined;
+
+            const fromPort = this.decodeToPart(beginConnect?.['@_ToPart']);
+            const toPort   = this.decodeToPart(endConnect?.['@_ToPart']);
 
             // Extract line style from the connector's Line section
             const sections = asArray<any>(connShape.Section);

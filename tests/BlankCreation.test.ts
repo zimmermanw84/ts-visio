@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { VisioPackage } from '../src/VisioPackage';
 import { PageManager } from '../src/core/PageManager';
 import { ShapeReader } from '../src/ShapeReader';
+import { createXmlParser } from '../src/utils/XmlHelper';
 
 describe('VisioPackage Creation', () => {
     it('should create a valid blank package', async () => {
@@ -21,6 +22,25 @@ describe('VisioPackage Creation', () => {
         const reader = new ShapeReader(pkg);
         const shapes = reader.readShapes('visio/pages/page1.xml');
         expect(shapes).toHaveLength(0);
+    });
+
+    it('initial page1.xml should have a PageSheet with US Letter dimensions', async () => {
+        const pkg = await VisioPackage.create();
+        const page1Xml = pkg.getFileText('visio/pages/page1.xml');
+        const parser = createXmlParser();
+        const parsed = parser.parse(page1Xml);
+
+        const ps = parsed.PageContents?.PageSheet;
+        expect(ps).toBeDefined();
+        expect(ps['@_LineStyle']).toBe('0');
+        expect(ps['@_FillStyle']).toBe('0');
+        expect(ps['@_TextStyle']).toBe('0');
+
+        const cells: any[] = Array.isArray(ps.Cell) ? ps.Cell : [ps.Cell];
+        const pageWidth = cells.find((c: any) => c['@_N'] === 'PageWidth');
+        const pageHeight = cells.find((c: any) => c['@_N'] === 'PageHeight');
+        expect(pageWidth?.['@_V']).toBe('8.5');
+        expect(pageHeight?.['@_V']).toBe('11');
     });
 
     it('should be saveable', async () => {

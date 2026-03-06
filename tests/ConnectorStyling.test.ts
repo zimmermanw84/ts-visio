@@ -86,6 +86,14 @@ describe('ConnectorBuilder.createConnectorShapeObject()', () => {
         expect(getSectionCellVal(shape, 'Line', 'LinePattern')).toBe('3');
         expect(getCellVal(shape, 'ShapeRouteStyle')).toBe('16');
     });
+
+    // Bug 10 regression: connector shape must carry style attribute references
+    it('includes LineStyle, FillStyle, and TextStyle attributes set to "0"', () => {
+        const shape = ConnectorBuilder.createConnectorShapeObject('1', layout);
+        expect((shape as any)['@_LineStyle']).toBe('0');
+        expect((shape as any)['@_FillStyle']).toBe('0');
+        expect((shape as any)['@_TextStyle']).toBe('0');
+    });
 });
 
 // ---------------------------------------------------------------------------

@@ -21,20 +21,20 @@ const TYPE_VALUES: Record<ConnectionPointType, string> = {
 export class ConnectionPointBuilder {
 
     /** Build the raw XML object for a Connection section from a list of point definitions. */
-    static buildConnectionSection(points: ConnectionPointDef[]): any {
+    static buildConnectionSection(points: ConnectionPointDef[], width = 1, height = 1): any {
         return {
             '@_N': 'Connection',
-            Row: points.map((pt, ix) => this.buildRow(pt, ix)),
+            Row: points.map((pt, ix) => this.buildRow(pt, ix, width, height)),
         };
     }
 
     /** Build a single Connection row XML object. */
-    static buildRow(point: ConnectionPointDef, ix: number): any {
+    static buildRow(point: ConnectionPointDef, ix: number, width = 1, height = 1): any {
         const row: any = {
             '@_IX': ix.toString(),
             Cell: [
-                { '@_N': 'X',       '@_V': '0', '@_F': `Width*${point.xFraction}`  },
-                { '@_N': 'Y',       '@_V': '0', '@_F': `Height*${point.yFraction}` },
+                { '@_N': 'X',       '@_V': (width  * point.xFraction).toString(), '@_F': `Width*${point.xFraction}`  },
+                { '@_N': 'Y',       '@_V': (height * point.yFraction).toString(), '@_F': `Height*${point.yFraction}` },
                 { '@_N': 'DirX',    '@_V': point.direction ? point.direction.x.toString() : '0' },
                 { '@_N': 'DirY',    '@_V': point.direction ? point.direction.y.toString() : '0' },
                 { '@_N': 'Type',    '@_V': point.type ? TYPE_VALUES[point.type] : '0' },

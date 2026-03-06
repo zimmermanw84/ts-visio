@@ -8,10 +8,10 @@ import { ShapeModifier } from './ShapeModifier';
 export interface ConnectorData {
     /** Visio shape ID of the connector (1D shape). */
     id: string;
-    /** ID of the shape at the connector's begin-point (BeginX). */
-    fromShapeId: string;
-    /** ID of the shape at the connector's end-point (EndX). */
-    toShapeId: string;
+    /** ID of the shape at the connector's begin-point (BeginX). `undefined` if the begin endpoint is not connected to any shape. */
+    fromShapeId: string | undefined;
+    /** ID of the shape at the connector's end-point (EndX). `undefined` if the end endpoint is not connected to any shape. */
+    toShapeId: string | undefined;
     /** Connection point used on the from-shape. */
     fromPort: ConnectionTarget;
     /** Connection point used on the to-shape. */
@@ -31,10 +31,10 @@ export interface ConnectorData {
 export class Connector {
     /** Visio shape ID of this connector. */
     readonly id: string;
-    /** ID of the shape this connector starts from. */
-    readonly fromShapeId: string;
-    /** ID of the shape this connector ends at. */
-    readonly toShapeId: string;
+    /** ID of the shape this connector starts from. `undefined` if the begin endpoint is not connected. */
+    readonly fromShapeId: string | undefined;
+    /** ID of the shape this connector ends at. `undefined` if the end endpoint is not connected. */
+    readonly toShapeId: string | undefined;
     /** Connection point used on the from-shape ('center', `{ name }`, or `{ index }`). */
     readonly fromPort: ConnectionTarget;
     /** Connection point used on the to-shape ('center', `{ name }`, or `{ index }`). */

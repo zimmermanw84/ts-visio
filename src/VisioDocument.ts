@@ -85,7 +85,7 @@ export class VisioDocument {
             const internalPages = this.pageManager.load();
             this._pageCache = internalPages.map(p => {
                 const pageStub: VisioPage = {
-                    ID: p.id.toString(),
+                    ID: p.id,
                     Name: p.name,
                     // Thread the relationship-resolved path so that loaded files
                     // with non-sequential page filenames are handled correctly.

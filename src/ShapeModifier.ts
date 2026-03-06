@@ -5,7 +5,7 @@ import { PageSheetEditor } from './core/PageSheetEditor';
 import { LayerEditor } from './core/LayerEditor';
 import { ContainerEditor } from './core/ContainerEditor';
 import { ConnectorEditor } from './core/ConnectorEditor';
-import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, createTextBlockSection, vertAlignValue } from './utils/StyleHelpers';
+import { createFillSection, createCharacterSection, createLineSection, createParagraphSection, createTextBlockSection, vertAlignValue, horzAlignValue, hexToRgb } from './utils/StyleHelpers';
 import { RELATIONSHIP_TYPES, SECTION_NAMES, SHAPE_TYPES } from './core/VisioConstants';
 import { NewShapeProps, VisioPropType, ConnectorStyle, ConnectionTarget, ConnectionPointDef, DrawingScaleInfo, LengthUnit, ShapeStyle } from './types/VisioTypes';
 import { ConnectionPointBuilder } from './shapes/ConnectionPointBuilder';
@@ -206,7 +206,10 @@ export class ShapeModifier {
         if (!Array.isArray(connSection.Row)) connSection.Row = [connSection.Row];
 
         const ix = connSection.Row.length;
-        connSection.Row.push(ConnectionPointBuilder.buildRow(point, ix));
+        const shapeCells: any[] = Array.isArray(shape.Cell) ? shape.Cell : shape.Cell ? [shape.Cell] : [];
+        const shapeWidth  = parseFloat(shapeCells.find((c: any) => c['@_N'] === 'Width' )?.['@_V'] ?? '1');
+        const shapeHeight = parseFloat(shapeCells.find((c: any) => c['@_N'] === 'Height')?.['@_V'] ?? '1');
+        connSection.Row.push(ConnectionPointBuilder.buildRow(point, ix, shapeWidth, shapeHeight));
 
         this.cache.saveParsed(pageId, parsed);
         return ix;
@@ -296,14 +299,19 @@ export class ShapeModifier {
     async deleteShape(pageId: string, shapeId: string): Promise<void> {
         const parsed = this.cache.getParsed(pageId);
 
-        const removed = this.removeShapeFromTree(parsed.PageContents.Shapes, shapeId);
-        if (!removed) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        // Collect the deleted shape's ID and all descendant IDs before removal
+        // so Connect/Relationship entries for child shapes are also cleaned up.
+        const shapeNode = this.findShapeInTree(parsed.PageContents.Shapes, shapeId);
+        if (!shapeNode) throw new Error(`Shape ${shapeId} not found on page ${pageId}`);
+        const removedIds = this.collectShapeIds(shapeNode);
+
+        this.removeShapeFromTree(parsed.PageContents.Shapes, shapeId);
 
         if (parsed.PageContents.Connects?.Connect) {
             let connects = parsed.PageContents.Connects.Connect;
             if (!Array.isArray(connects)) connects = [connects];
             parsed.PageContents.Connects.Connect = connects.filter(
-                (c: any) => c['@_FromSheet'] !== shapeId && c['@_ToSheet'] !== shapeId,
+                (c: any) => !removedIds.has(c['@_FromSheet']) && !removedIds.has(c['@_ToSheet']),
             );
         }
 
@@ -311,7 +319,7 @@ export class ShapeModifier {
             let rels = parsed.PageContents.Relationships.Relationship;
             if (!Array.isArray(rels)) rels = [rels];
             parsed.PageContents.Relationships.Relationship = rels.filter(
-                (r: any) => r['@_ShapeID'] !== shapeId && r['@_RelatedShapeID'] !== shapeId,
+                (r: any) => !removedIds.has(r['@_ShapeID']) && !removedIds.has(r['@_RelatedShapeID']),
             );
         }
 
@@ -342,6 +350,32 @@ export class ShapeModifier {
         return false;
     }
 
+    private findShapeInTree(shapesContainer: any, shapeId: string): any | null {
+        if (!shapesContainer?.Shape) return null;
+        const shapes = Array.isArray(shapesContainer.Shape) ? shapesContainer.Shape : [shapesContainer.Shape];
+        for (const s of shapes) {
+            if (s['@_ID'] === shapeId) return s;
+            if (s.Shapes) {
+                const found = this.findShapeInTree(s.Shapes, shapeId);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    private collectShapeIds(shape: any): Set<string> {
+        const ids = new Set<string>();
+        const gather = (s: any) => {
+            ids.add(s['@_ID']);
+            if (s.Shapes?.Shape) {
+                const children = Array.isArray(s.Shapes.Shape) ? s.Shapes.Shape : [s.Shapes.Shape];
+                for (const child of children) gather(child);
+            }
+        };
+        gather(shape);
+        return ids;
+    }
+
     async updateShapeText(pageId: string, shapeId: string, newText: string): Promise<void> {
         const parsed = this.cache.getParsed(pageId);
         const shape  = this.cache.getShapeMap(parsed).get(shapeId);
@@ -362,9 +396,45 @@ export class ShapeModifier {
             shape.Section = [shape.Section];
         }
 
+        // Upsert a single cell by name inside a flat Cell[].
+        const upsertCell = (cells: any[], name: string, val: string, extra?: Record<string, string>) => {
+            const existing = cells.find((c: any) => c['@_N'] === name);
+            if (existing) {
+                existing['@_V'] = val;
+                if (extra) Object.assign(existing, extra);
+            } else {
+                cells.push({ '@_N': name, '@_V': val, ...extra });
+            }
+        };
+
+        // Normalise and return the Cell[] of a flat-cell section.
+        const ensureCells = (section: any): any[] => {
+            if (!section.Cell) section.Cell = [];
+            else if (!Array.isArray(section.Cell)) section.Cell = [section.Cell];
+            return section.Cell as any[];
+        };
+
+        // Return (creating if absent) the Cell[] of Row[0] in a row-based section.
+        const getOrCreateRow0Cells = (section: any, rowType: string): any[] => {
+            if (!section.Row) section.Row = [];
+            else if (!Array.isArray(section.Row)) section.Row = [section.Row];
+            let row0 = section.Row.find((r: any) => r['@_IX'] === '0' || r['@_IX'] === 0);
+            if (!row0) {
+                row0 = { '@_T': rowType, '@_IX': '0', Cell: [] };
+                section.Row.push(row0);
+            }
+            if (!row0.Cell) row0.Cell = [];
+            else if (!Array.isArray(row0.Cell)) row0.Cell = [row0.Cell];
+            return row0.Cell as any[];
+        };
+
         if (style.fillColor) {
-            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== SECTION_NAMES.Fill);
-            shape.Section.push(createFillSection(style.fillColor));
+            const existing = shape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.Fill);
+            if (existing) {
+                upsertCell(ensureCells(existing), 'FillForegnd', style.fillColor, { '@_F': hexToRgb(style.fillColor) });
+            } else {
+                shape.Section.push(createFillSection(style.fillColor));
+            }
         }
 
         const hasLineProps = style.lineColor !== undefined
@@ -372,12 +442,19 @@ export class ShapeModifier {
             || style.linePattern !== undefined;
 
         if (hasLineProps) {
-            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== SECTION_NAMES.Line);
-            shape.Section.push(createLineSection({
-                color:   style.lineColor,
-                weight:  style.lineWeight !== undefined ? (style.lineWeight / 72).toString() : undefined,
-                pattern: style.linePattern !== undefined ? style.linePattern.toString() : undefined,
-            }));
+            const existing = shape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.Line);
+            if (existing) {
+                const cells = ensureCells(existing);
+                if (style.lineColor   !== undefined) upsertCell(cells, 'LineColor',   style.lineColor,                           { '@_F': hexToRgb(style.lineColor) });
+                if (style.lineWeight  !== undefined) upsertCell(cells, 'LineWeight',  (style.lineWeight / 72).toString(),        { '@_U': 'IN' });
+                if (style.linePattern !== undefined) upsertCell(cells, 'LinePattern', style.linePattern.toString());
+            } else {
+                shape.Section.push(createLineSection({
+                    color:   style.lineColor,
+                    weight:  style.lineWeight  !== undefined ? (style.lineWeight / 72).toString() : undefined,
+                    pattern: style.linePattern !== undefined ? style.linePattern.toString()       : undefined,
+                }));
+            }
         }
 
         const hasCharProps = style.fontColor !== undefined
@@ -389,16 +466,34 @@ export class ShapeModifier {
             || style.fontFamily !== undefined;
 
         if (hasCharProps) {
-            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== SECTION_NAMES.Character);
-            shape.Section.push(createCharacterSection({
-                bold:          style.bold,
-                italic:        style.italic,
-                underline:     style.underline,
-                strikethrough: style.strikethrough,
-                color:         style.fontColor,
-                fontSize:      style.fontSize,
-                fontFamily:    style.fontFamily,
-            }));
+            const existing = shape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.Character);
+            if (existing) {
+                const cells = getOrCreateRow0Cells(existing, 'Character');
+                const hasStyleBits = style.bold !== undefined || style.italic !== undefined
+                    || style.underline !== undefined || style.strikethrough !== undefined;
+                if (hasStyleBits) {
+                    const styleCell = cells.find((c: any) => c['@_N'] === 'Style');
+                    let styleVal = styleCell ? (parseInt(styleCell['@_V'] || '0') || 0) : 0;
+                    if (style.bold          !== undefined) { if (style.bold)          styleVal |= 1; else styleVal &= ~1; }
+                    if (style.italic        !== undefined) { if (style.italic)        styleVal |= 2; else styleVal &= ~2; }
+                    if (style.underline     !== undefined) { if (style.underline)     styleVal |= 4; else styleVal &= ~4; }
+                    if (style.strikethrough !== undefined) { if (style.strikethrough) styleVal |= 8; else styleVal &= ~8; }
+                    upsertCell(cells, 'Style', styleVal.toString());
+                }
+                if (style.fontColor  !== undefined) upsertCell(cells, 'Color', style.fontColor,                    { '@_F': hexToRgb(style.fontColor) });
+                if (style.fontSize   !== undefined) upsertCell(cells, 'Size',  (style.fontSize / 72).toString(),   { '@_U': 'PT' });
+                if (style.fontFamily !== undefined) upsertCell(cells, 'Font',  '0',                                { '@_F': `FONT("${style.fontFamily}")` });
+            } else {
+                shape.Section.push(createCharacterSection({
+                    bold:          style.bold,
+                    italic:        style.italic,
+                    underline:     style.underline,
+                    strikethrough: style.strikethrough,
+                    color:         style.fontColor,
+                    fontSize:      style.fontSize,
+                    fontFamily:    style.fontFamily,
+                }));
+            }
         }
 
         const hasParagraphProps = style.horzAlign !== undefined
@@ -407,13 +502,21 @@ export class ShapeModifier {
             || style.lineSpacing !== undefined;
 
         if (hasParagraphProps) {
-            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== SECTION_NAMES.Paragraph);
-            shape.Section.push(createParagraphSection({
-                horzAlign:   style.horzAlign,
-                spaceBefore: style.spaceBefore,
-                spaceAfter:  style.spaceAfter,
-                lineSpacing: style.lineSpacing,
-            }));
+            const existing = shape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.Paragraph);
+            if (existing) {
+                const cells = getOrCreateRow0Cells(existing, 'Paragraph');
+                if (style.horzAlign   !== undefined) upsertCell(cells, 'HorzAlign', horzAlignValue(style.horzAlign));
+                if (style.spaceBefore !== undefined) upsertCell(cells, 'SpBefore',  (style.spaceBefore / 72).toString(), { '@_U': 'PT' });
+                if (style.spaceAfter  !== undefined) upsertCell(cells, 'SpAfter',   (style.spaceAfter  / 72).toString(), { '@_U': 'PT' });
+                if (style.lineSpacing !== undefined) upsertCell(cells, 'SpLine',    (-style.lineSpacing).toString());
+            } else {
+                shape.Section.push(createParagraphSection({
+                    horzAlign:   style.horzAlign,
+                    spaceBefore: style.spaceBefore,
+                    spaceAfter:  style.spaceAfter,
+                    lineSpacing: style.lineSpacing,
+                }));
+            }
         }
 
         const hasTextBlockProps = style.textMarginTop !== undefined
@@ -422,13 +525,21 @@ export class ShapeModifier {
             || style.textMarginRight !== undefined;
 
         if (hasTextBlockProps) {
-            shape.Section = shape.Section.filter((s: any) => s['@_N'] !== SECTION_NAMES.TextBlock);
-            shape.Section.push(createTextBlockSection({
-                topMargin:    style.textMarginTop,
-                bottomMargin: style.textMarginBottom,
-                leftMargin:   style.textMarginLeft,
-                rightMargin:  style.textMarginRight,
-            }));
+            const existing = shape.Section.find((s: any) => s['@_N'] === SECTION_NAMES.TextBlock);
+            if (existing) {
+                const cells = ensureCells(existing);
+                if (style.textMarginTop    !== undefined) upsertCell(cells, 'TopMargin',    style.textMarginTop.toString(),    { '@_U': 'IN' });
+                if (style.textMarginBottom !== undefined) upsertCell(cells, 'BottomMargin', style.textMarginBottom.toString(), { '@_U': 'IN' });
+                if (style.textMarginLeft   !== undefined) upsertCell(cells, 'LeftMargin',   style.textMarginLeft.toString(),   { '@_U': 'IN' });
+                if (style.textMarginRight  !== undefined) upsertCell(cells, 'RightMargin',  style.textMarginRight.toString(),  { '@_U': 'IN' });
+            } else {
+                shape.Section.push(createTextBlockSection({
+                    topMargin:    style.textMarginTop,
+                    bottomMargin: style.textMarginBottom,
+                    leftMargin:   style.textMarginLeft,
+                    rightMargin:  style.textMarginRight,
+                }));
+            }
         }
 
         if (style.verticalAlign !== undefined) {
@@ -512,6 +623,7 @@ export class ShapeModifier {
         upsert('LocPinY', (height / 2).toString());
 
         // Keep cached @_V consistent for renderers that don't evaluate formulas.
+        // Evaluate any formula that references Width or Height (e.g. 'Width*0.5').
         if (shape.Section) {
             const sections = Array.isArray(shape.Section) ? shape.Section : [shape.Section];
             for (const section of sections) {
@@ -521,8 +633,19 @@ export class ShapeModifier {
                     if (!row.Cell) continue;
                     const cells = Array.isArray(row.Cell) ? row.Cell : [row.Cell];
                     for (const cell of cells) {
-                        if (cell['@_F'] === 'Width')  cell['@_V'] = width.toString();
-                        if (cell['@_F'] === 'Height') cell['@_V'] = height.toString();
+                        const formula: unknown = cell['@_F'];
+                        if (typeof formula !== 'string') continue;
+                        if (!formula.includes('Width') && !formula.includes('Height')) continue;
+                        const expr = formula
+                            .replace(/\bWidth\b/g, width.toString())
+                            .replace(/\bHeight\b/g, height.toString());
+                        // Validate expression contains only safe arithmetic characters
+                        if (!/^[\d\s.+\-*/()]+$/.test(expr)) continue;
+                        try {
+                            // eslint-disable-next-line no-new-func
+                            const result = Function(`"use strict"; return (${expr})`)() as number;
+                            cell['@_V'] = result.toString();
+                        } catch { /* ignore malformed formulas */ }
                     }
                 }
             }
