@@ -60,7 +60,7 @@ export class ConnectorEditor {
         );
 
         // Only add the MASTERS relationship when the connector explicitly references a master shape
-        if (connectorShape['@_Master'] !== undefined) {
+        if ((connectorShape as any)['@_Master'] !== undefined) {
             await this.relsManager.ensureRelationship(
                 this.cache.getPagePath(pageId),
                 '../masters/masters.xml',
