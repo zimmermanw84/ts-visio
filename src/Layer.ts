@@ -26,6 +26,7 @@ export class Layer {
         modifier?: ShapeModifier,
         private _visible: boolean = true,
         private _locked: boolean = false,
+        private _print: boolean = true,
     ) {
         this.modifier = modifier ?? (pkg ? new ShapeModifier(pkg) : null);
     }
@@ -38,6 +39,11 @@ export class Layer {
     /** Whether the layer is currently locked. */
     get locked(): boolean {
         return this._locked;
+    }
+
+    /** Whether shapes on this layer are included when printing. */
+    get print(): boolean {
+        return this._print;
     }
 
     async setVisible(visible: boolean): Promise<this> {

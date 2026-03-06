@@ -123,7 +123,7 @@ export class LayerEditor {
     /**
      * Return all layers defined in the page's PageSheet as plain objects.
      */
-    getPageLayers(pageId: string): Array<{ name: string; index: number; visible: boolean; locked: boolean }> {
+    getPageLayers(pageId: string): Array<{ name: string; index: number; visible: boolean; locked: boolean; print: boolean }> {
         const parsed = this.cache.getParsed(pageId);
         const pageSheet = parsed.PageContents?.PageSheet;
         if (!pageSheet?.Section) return [];
@@ -141,6 +141,7 @@ export class LayerEditor {
                 index:   parseInt(row['@_IX'], 10),
                 visible: getVal('Visible') !== '0',
                 locked:  getVal('Lock')    === '1',
+                print:   getVal('Print')   !== '0',
             };
         });
     }

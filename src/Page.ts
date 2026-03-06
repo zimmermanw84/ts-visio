@@ -330,7 +330,12 @@ export class Page {
 
     async addLayer(name: string, options?: { visible?: boolean, lock?: boolean, print?: boolean }): Promise<Layer> {
         const info = await this.modifier.addLayer(this.id, name, options);
-        return new Layer(info.name, info.index, this.id, this.pkg, this.modifier);
+        return new Layer(
+            info.name, info.index, this.id, this.pkg, this.modifier,
+            options?.visible ?? true,
+            options?.lock ?? false,
+            options?.print ?? true,
+        );
     }
 
     /**
@@ -344,7 +349,7 @@ export class Page {
     getLayers(): Layer[] {
         const infos = this.modifier.getPageLayers(this.id);
         return infos.map(
-            l => new Layer(l.name, l.index, this.id, this.pkg, this.modifier, l.visible, l.locked)
+            l => new Layer(l.name, l.index, this.id, this.pkg, this.modifier, l.visible, l.locked, l.print)
         );
     }
 
