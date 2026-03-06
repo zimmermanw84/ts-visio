@@ -1,7 +1,10 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { VisioDocument } from '../src/VisioDocument';
 import { VisioPackage } from '../src/VisioPackage';
 import { ShapeReader } from '../src/ShapeReader';
+import { ConnectorEditor } from '../src/core/ConnectorEditor';
+import { RelsManager } from '../src/core/RelsManager';
+import { PageXmlCache } from '../src/core/PageXmlCache';
 import fs from 'fs';
 import path from 'path';
 
@@ -107,5 +110,31 @@ describe('Connectors', () => {
         expect(xCell?.F).toBe('Width');
         // Ensure static value is also set for immediate visibility
         expect(xCell?.V).toBe('2');
+    });
+
+    it('regression bug-28: addConnector does NOT add MASTERS relationship when connector has no @_Master', async () => {
+        const mockPkg = {
+            getFileText: vi.fn().mockImplementation(() => { throw new Error('not found'); }),
+            updateFile: vi.fn(),
+        } as unknown as VisioPackage;
+
+        const cache = new PageXmlCache(mockPkg);
+        // Seed the cache with a minimal page containing two shapes
+        const pageXml = `<?xml version="1.0" encoding="UTF-8"?>
+<PageContents><Shapes>
+  <Shape ID="1" Type="Shape"><Cell N="PinX" V="1"/><Cell N="PinY" V="1"/><Cell N="Width" V="1"/><Cell N="Height" V="1"/></Shape>
+  <Shape ID="2" Type="Shape"><Cell N="PinX" V="4"/><Cell N="PinY" V="1"/><Cell N="Width" V="1"/><Cell N="Height" V="1"/></Shape>
+</Shapes></PageContents>`;
+        mockPkg.getFileText = vi.fn().mockReturnValue(pageXml);
+        cache.registerPage('1', 'visio/pages/page1.xml');
+
+        const relsManager = new RelsManager(mockPkg);
+        const ensureSpy = vi.spyOn(relsManager, 'ensureRelationship');
+
+        const editor = new ConnectorEditor(cache, relsManager);
+        await editor.addConnector('1', '1', '2');
+
+        // ensureRelationship must NOT have been called because the connector has no @_Master
+        expect(ensureSpy).not.toHaveBeenCalled();
     });
 });

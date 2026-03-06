@@ -84,13 +84,13 @@ All read methods create `new ShapeReader(this.pkg)` and call `pkg.getFileText(pa
 
 ---
 
-### Bug 28: `ConnectorEditor.addConnector` unconditionally adds a MASTERS relationship
+### ~~Bug 28: `ConnectorEditor.addConnector` unconditionally adds a MASTERS relationship~~
 
-**File:** `src/core/ConnectorEditor.ts` line 62
+~~**File:** `src/core/ConnectorEditor.ts` line 62~~
 
-The generated connector shape has no `@_Master` attribute, so the page→`masters.xml` relationship is unnecessary. It is idempotent and harmless, but it pollutes every page that ever receives a connector with an unneeded OPC relationship.
+~~The generated connector shape has no `@_Master` attribute, so the page→`masters.xml` relationship is unnecessary. It is idempotent and harmless, but it pollutes every page that ever receives a connector with an unneeded OPC relationship.~~
 
-**Fix direction:** Only add the MASTERS relationship when the connector explicitly references a master shape.
+~~**Fix direction:** Only add the MASTERS relationship when the connector explicitly references a master shape.~~
 
 ---
 
